@@ -5,7 +5,15 @@ channels:
   - defaults
 
 dependencies:
-  - python=3.7
+  - python = 3.10
   - jupyterlab
   - matplotlib
   - pandas
+  - openpyxl
+  - xlsxwriter
+  - seaborn
+  - pandasdmx
+  - requests
+  - urllib3
+  - wbgapi
+  - sympy
