@@ -26,7 +26,7 @@ After adding any necessary dependencies to the Conda `environment.yml` file you 
 environment in a sub-directory of your project directory by running the following command.
 
 ```bash
-$ conda env create --prefix ./env --file ./workflow/environment.yml
+$ conda env create --prefix ./env --file ./workflow/envs/environment.yml
 ```
 Once the new environment has been created you can activate the environment with the following 
 command.
