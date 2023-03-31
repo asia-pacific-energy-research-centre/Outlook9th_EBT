@@ -323,7 +323,22 @@ scen = pd.read_excel('./data/scenario_list.xlsx')
 
 merged_df_clean_wide = pd.merge(scen, merged_df_clean_wide, how = 'cross')
 
-merged_df_clean_wide = merged_df_clean_wide.sort_values(['scenarios', 'economy', 'sectors', 'fuels', 'sub1sectors'])\
+# Sort subfuels and sub1sectors
+ordered = pd.read_csv('./data/order_sector_fuels.csv')
+
+order1 = list(ordered['subfuels'])
+order2 = list(ordered['sub1sectors'])
+
+merged_df_clean_wide['subfuels'] = pd.Categorical(merged_df_clean_wide['subfuels'], 
+                                                      categories = order1, 
+                                                      ordered = True)
+
+merged_df_clean_wide['sub1sectors'] = pd.Categorical(merged_df_clean_wide['sub1sectors'],
+                                                     categories = order2,
+                                                     ordered = True)
+
+
+merged_df_clean_wide = merged_df_clean_wide.sort_values(['scenarios', 'economy', 'sectors', 'fuels', 'sub1sectors', 'subfuels'])\
     .copy().reset_index(drop = True)
 
 # Required years
