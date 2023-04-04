@@ -22,19 +22,18 @@ merged_df_clean_wide = pd.read_csv(interim_path + 'interim.csv')
 year_list = list(range(1980, 2021, 1))
 year_str = list(map(str, year_list))
 
+# Read in data of fuels used by the different sector models
+fuel_df = pd.read_excel('./data/fuels_used_by_modellers.xlsx')
+fuel_df = fuel_df.iloc[1:,10:]
+
 # Industry and non-energy layout
 ine_vector = ['14_industry_sector', '17_nonenergy_use']
-ine_fuels = ['01_coal', '02_coal_products', '06_crude_oil_and_ngl', '07_petroleum_products', '08_gas',
-             '15_solid_biomass', '16_others', '17_electricity', '18_heat', '19_total',
-             '20_total_renewables', '21_modern_renewables'] 
 
-ine_subfuels = ['01_01_coking_coal', '01_x_thermal_coal', '07_01_motor_gasoline', '07_03_naphtha',
-                '07_06_kerosene', '07_07_gas_diesel_oil', '07_08_fuel_oil', '07_09_lpg', 
-                '07_10_refinery_gas_not_liquefied', '07_11_ethane', '07_x_other_petroleum_products',
-                '08_01_natural_gas', '16_01_biogas', '16_02_industrial_waste', 
-                '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable',
-                '16_05_biogasoline', '16_06_biodiesel', '16_08_other_liquid_biofuels', '16_09_other_sources', 
-                '16_x_hydrogen', 'x']
+ine_fuel = fuel_df.loc[:,'Industry and non-energy.1'].dropna()
+
+ine_fuels = list(ine_fuel[(ine_fuel.str.count('\d') <= 2) & (ine_fuel.str.contains('_x_') == False)])
+ine_subfuels = list(ine_fuel[(ine_fuel.str.count('\d') > 2) | (ine_fuel.str.contains('_x_') == True)])
+ine_subfuels.append('x')
 
 ine_df = merged_df_clean_wide[merged_df_clean_wide['sectors'].isin(ine_vector)].copy()
 
@@ -56,12 +55,12 @@ ine_df = pd.concat([ine_df1, ine_df2]).copy()
 
 # Buildings
 bld_vector = ['16_01_buildings']
-bld_fuels = ['01_coal', '02_coal_products', '03_peat', '04_peat_products',
-             '07_petroleum_products', '08_gas', '12_solar',
-             '15_solid_biomass', '16_others', '17_electricity', '18_heat', '19_total',
-             '20_total_renewables', '21_modern_renewables']
 
-bld_subfuels = ['07_06_kerosene', '07_09_lpg', 'x']
+bld_fuel = fuel_df.loc[:,'Buildings.1'].dropna()
+
+bld_fuels = list(bld_fuel[(bld_fuel.str.count('\d') <= 2) & (bld_fuel.str.contains('_x_') == False)])
+bld_subfuels = list(bld_fuel[(bld_fuel.str.count('\d') > 2) | (bld_fuel.str.contains('_x_') == True)])
+bld_subfuels.append('x')
 
 bld_df = first_subset[first_subset['sub1sectors'].isin(bld_vector)].copy()
 
@@ -84,18 +83,12 @@ bld_df = pd.concat([bld_df1, bld_df2]).copy()
 # Transport
 
 trn_vector = ['15_transport_sector']
-trn_fuels = ['01_coal', '07_petroleum_products', '08_gas',
-             '16_others', '17_electricity', '19_total',
-             '20_total_renewables', '21_modern_renewables'] 
 
-trn_subfuels = ['01_x_thermal_coal', '01_05_lignite', '07_01_motor_gasoline', '07_02_aviation_gasoline', 
-                '07_03_naphtha',
-                '07_06_kerosene', '07_07_gas_diesel_oil', '07_08_fuel_oil', '07_09_lpg', 
-                '07_11_ethane', '07_x_jet_fuel', '07_x_other_petroleum_products',
-                '08_01_natural_gas', '08_02_lng', '08_03_gas_works_gas', '16_01_biogas',
-                '16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', 
-                '16_08_other_liquid_biofuels', '16_09_other_sources', '16_x_ammonia',
-                '16_x_hydrogen', 'x']
+trn_fuel = fuel_df.loc[:,'Transport.1'].dropna()
+
+trn_fuels = list(trn_fuel[(trn_fuel.str.count('\d') <= 2) & (trn_fuel.str.contains('_x_') == False)])
+trn_subfuels = list(trn_fuel[(trn_fuel.str.count('\d') > 2) | (trn_fuel.str.contains('_x_') == True)])
+trn_subfuels.append('x')
 
 trn_df = second_subset[second_subset['sectors'].isin(trn_vector)].copy()
 
@@ -118,18 +111,11 @@ trn_df = pd.concat([trn_df1, trn_df2]).copy()
 # Ag and other
 ag_vector = ['16_02_agriculture_and_fishing', '16_05_nonspecified_others']
 
-ag_fuels = ['01_coal', '02_coal_products', '03_peat', '04_peat_products', '06_crude_oil_and_ngl', 
-            '07_petroleum_products', '08_gas', '11_geothermal', '12_solar',
-            '15_solid_biomass', '16_others', '17_electricity', '18_heat', '19_total',
-            '20_total_renewables', '21_modern_renewables'] 
+ag_fuel = fuel_df.loc[:,'Ag, fish & non-spec.1'].dropna()
 
-ag_subfuels = ['01_x_thermal_coal', '01_05_lignite', '02_01_coke_oven_coke', '02_03_coke_oven_gas',
-               '02_08_bkb_pb', '06_01_crude_oil', 
-               '07_01_motor_gasoline', '07_06_kerosene', '07_07_gas_diesel_oil', '07_08_fuel_oil', '07_09_lpg', 
-               '07_x_jet_fuel', '07_x_other_petroleum_products', '08_01_natural_gas', '15_01_fuelwood_and_woodwaste',
-               '15_02_bagasse', '15_03_charcoal', '15_05_other_biomass', '16_01_biogas', '16_02_industrial_waste', 
-               '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable',
-               '16_05_biogasoline', '16_06_biodiesel', '16_x_hydrogen', 'x']
+ag_fuels = list(ag_fuel[(ag_fuel.str.count('\d') <= 2) & (ag_fuel.str.contains('_x_') == False)])
+ag_subfuels = list(ag_fuel[(ag_fuel.str.count('\d') > 2) | (ag_fuel.str.contains('_x_') == True)])
+ag_subfuels.append('x')
 
 ag_df = third_subset[third_subset['sub1sectors'].isin(ag_vector)].copy()
 
@@ -152,15 +138,11 @@ ag_df = pd.concat([ag_df1, ag_df2]).copy()
 # Power
 pow_vector = ['09_01_electricity_plants', '09_02_chp_plants', '09_x_heat_plants']
 
-pow_fuels = ['01_coal', '02_coal_products', '03_peat', '04_peat_products', '06_crude_oil_and_ngl', 
-            '07_petroleum_products', '08_gas', '09_nuclear', '10_hydro', '11_geothermal', '12_solar',
-            '13_tide_wave_ocean', '14_wind', '15_solid_biomass', '16_others', '17_electricity', '18_heat',
-            '19_total', '20_total_renewables', '21_modern_renewables'] 
+pow_fuel = fuel_df.loc[:,'Power.1'].dropna()
 
-pow_subfuels = ['01_x_thermal_coal', '01_05_lignite', '06_01_crude_oil', 
-               '07_07_gas_diesel_oil', '07_08_fuel_oil', '07_x_other_petroleum_products', 
-               '08_01_natural_gas', '12_01_of_which_photovoltaics', '12_x_other_solar', 
-               '16_x_ammonia', '16_x_hydrogen', 'x']
+pow_fuels = list(pow_fuel[(pow_fuel.str.count('\d') <= 2) & (pow_fuel.str.contains('_x_') == False)])
+pow_subfuels = list(pow_fuel[(pow_fuel.str.count('\d') > 2) | (pow_fuel.str.contains('_x_') == True)])
+pow_subfuels.append('x')
 
 pow_df = fourth_subset[fourth_subset['sub1sectors'].isin(pow_vector)].copy()
 
@@ -183,14 +165,11 @@ pow_df = pd.concat([pow_df1, pow_df2]).copy()
 # Refining
 ref_vector = ['09_07_oil_refineries']
 
-ref_fuels = ['06_crude_oil_and_ngl', '07_petroleum_products', '13_tide_wave_ocean', '15_solid_biomass', '16_others', 
-             '19_total', '20_total_renewables', '21_modern_renewables'] 
+ref_fuel = fuel_df.loc[:,'Refining (oil & biofuels).1'].dropna()
 
-ref_subfuels = ['06_01_crude_oil', '06_02_natural_gas_liquids', '06_x_other_hydrocarbons', '07_01_motor_gasoline', 
-                '07_02_aviation_gasoline', '07_03_naphtha', '07_06_kerosene', '07_07_gas_diesel_oil', '07_08_fuel_oil', 
-                '07_09_lpg', '07_10_refinery_gas_not_liquefied', '07_11_ethane', '07_x_jet_fuel',
-                '07_x_other_petroleum_products', '15_02_bagasse', '16_05_biogasoline', '16_06_biodiesel',
-                '16_07_bio_jet_kerosene', '16_08_other_liquid_biofuels', '16_09_other_sources', 'x']
+ref_fuels = list(ref_fuel[(ref_fuel.str.count('\d') <= 2) & (ref_fuel.str.contains('_x_') == False)])
+ref_subfuels = list(ref_fuel[(ref_fuel.str.count('\d') > 2) | (ref_fuel.str.contains('_x_') == True)])
+ref_subfuels.append('x') 
 
 ref_df = fifth_subset[fifth_subset['sub1sectors'].isin(ref_vector)].copy()
 
@@ -210,14 +189,14 @@ ref_df2 = ref_df2.loc[~(ref_df2.select_dtypes(include = ['number']) == 0).all(ax
 
 ref_df = pd.concat([ref_df1, ref_df2]).copy()
 
-
 # Hydrogen
 hyd_vector = ['09_13_hydrogen_transformation']
 
-hyd_fuels = ['01_coal', '02_coal_products', '08_gas', '15_solid_biomass', '16_others', '17_electricity',
-             '19_total', '20_total_renewables', '21_modern_renewables'] 
+hyd_fuel = fuel_df.loc[:,'Hydrogen.1'].dropna()
 
-hyd_subfuels = ['16_x_ammonia', '16_x_hydrogen', 'x']
+hyd_fuels = list(hyd_fuel[(hyd_fuel.str.count('\d') <= 2) & (hyd_fuel.str.contains('_x_') == False)])
+hyd_subfuels = list(hyd_fuel[(hyd_fuel.str.count('\d') > 2) | (hyd_fuel.str.contains('_x_') == True)])
+hyd_subfuels.append('x') 
 
 hyd_df = sixth_subset[sixth_subset['sub1sectors'].isin(hyd_vector)].copy()
 
@@ -231,7 +210,8 @@ merged_df_clean_wide = pd.concat([seventh_subset, ine_df, trn_df, bld_df, ag_df,
 
 ############################################################################################################
 
-# Now subset and remove transformation
+# Now subset and remove transformation data rows that have not been requested as per above
+# I.e. remove all zero and np.nan rows in these categories
 # Level 0
 subset0 = ['08_transfers', '11_statistical_discrepancy']
 
@@ -310,7 +290,7 @@ s_df = s_df[s_df['fuels'].isin(s_fuels)].copy()
 
 merged_df_clean_wide = pd.concat([s_df, nos_df]).copy()
 
-# Remove coal products
+# Remove coal products (amybe reverse this decision)
 coal_p = ['02_01_coke_oven_coke', '02_02_gas_coke', '02_03_coke_oven_gas', '02_04_blast_furnace_gas',
           '02_05_other_recovered_gases', '02_06_patent_fuel', '02_07_coal_tar', '02_08_bkb_pb']
 
