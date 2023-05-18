@@ -81,7 +81,6 @@ bld_df2 = bld_df2.loc[~(bld_df2.select_dtypes(include = ['number']) == 0).all(ax
 bld_df = pd.concat([bld_df1, bld_df2]).copy()
 
 # Transport
-
 trn_vector = ['15_transport_sector']
 
 trn_fuel = fuel_df.loc[:,'Transport.1'].dropna()

@@ -72,7 +72,7 @@ df_fuel_sector = pd.merge(df_fuel, sector_mapping, how = 'left', left_on = 'sect
 df_fuel_sector['replace_materials'] = df_fuel_sector['unique_the_end_of_sectors'].fillna(df_fuel_sector['sectors'])
 df_fuel_sector['sectors'] = df_fuel_sector['replace_materials'].where(df_fuel_sector['replace_materials'].notnull(), df_fuel_sector['sectors'])
 
-df_fuel_sector.drop(['clean_egeda_sector_name', 'unique_the_end_of_sectors', 'replace_materials'], axis= 1, inplace = True)
+df_fuel_sector.drop(['clean_egeda_sector_name', 'unique_the_end_of_sectors', 'replace_materials'], axis = 1, inplace = True)
 
 # Self defined layout
 
