@@ -1,5 +1,5 @@
-name: null
-
+name: Outlook9th_EBT
+# conda env create --prefix ./env --file ./config/environment.yml
 channels:
   - conda-forge
   - defaults
@@ -9,6 +9,7 @@ dependencies:
   - jupyterlab
   - matplotlib
   - pandas
+  - numpy
   - openpyxl
   - xlsxwriter
   - seaborn
