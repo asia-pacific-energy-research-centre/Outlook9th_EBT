@@ -17,8 +17,12 @@ os.chdir(re.split(wanted_wd, os.getcwd())[0] + wanted_wd)
 # read raw data
 # na_values: defines values that should be viewed as nan
 
-RawEGEDA = pd.read_excel('./data/October_2022/00APEC.xlsx',\
-                         sheet_name = None, # 'None' reads in all sheets\
+xlsx_raw = './data/October_2022/00APEC.xlsx' #directory of raw data file
+
+sheet_names = pd.ExcelFile(xlsx_raw).sheet_names[:21] #making a list with the first 21 economies' worksheets 
+
+RawEGEDA = pd.read_excel(xlsx_raw,
+                         sheet_name = sheet_names,
                          na_values = ['x', 'X', '']) # I don't think there's any x's or X's in the EGEDA xlsx file, but leaving as is (shouldn't make a difference)
 
 # Check the shape of read-in data
@@ -33,8 +37,7 @@ for i in economies:
     shape_of_data.append(dimension)
 
 # Check the number of rows
-# save the numbers of row of all dataframe 
-
+# save the numbers of row of all dataframe
 number_of_rows = []
 for i in shape_of_data:
     number_of_rows.append(i[0])
