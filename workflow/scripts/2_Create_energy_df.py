@@ -25,8 +25,8 @@ sector_mapping = pd.read_excel('./data/manual_adjust/reference_table_sectors.xls
 
 # Notice that the values in "fuels" and "clean_egeda_fuel_name" are the same
 # You can check with the following code
-# test = df_fuel.loc[df_fuel['fuels'] != df_fuel['clean_egeda_fuel_name']]
-# test
+#test = df_fuel.loc[df_fuel['fuels'] != df_fuel['clean_egeda_fuel_name']]
+#test
 
 df_fuel = pd.merge(df_no_year_econ_index, 
                    fuel_mapping, 
@@ -200,7 +200,7 @@ other_solar = pd.concat([other_solar_a, other_solar_b], axis = 0)
 other_solar_g = other_solar.groupby(['economy', 'year', 'sectors'])['value']\
     .sum().reset_index().assign(fuels = '12_x_other_solar')
 
-# Hydrogen and ammpnia
+# Hydrogen and ammonia and efuel
 
 temp_for_new = other_solar_g.copy()
 temp_for_new['value'] = 0
@@ -212,8 +212,11 @@ hydrogen['fuels'] = '16_x_hydrogen'
 ammonia = temp_for_new.copy()
 ammonia['fuels'] = '16_x_ammonia'
 
+efuel = temp_for_new.copy()
+efuel['fuels'] = '16_x_efuel'
+
 # Concat 
-# - exclude the data that are used to do the aggreation 
+# - exclude the data that are used to do the aggregation 
 # - include the data you just create 
 
 # Remember to remove the peat and peat product because we decided to let thme back to the list. (20230317)
@@ -347,8 +350,10 @@ merged_df_clean = merged_df_clean.reindex(columns = ['economy', 'year', 'sectors
 # - We will replace them with np.nan after ```pivot_table```
 # - BTW, replacing with string may cause problem in ```pivot_table```
 
-value_not_in_the_range = merged_df_clean['value'].min() - 1
-merged_df_clean = merged_df_clean.fillna(value_not_in_the_range)
+#value_not_in_the_range = merged_df_clean['value'].min() - 1
+#merged_df_clean = merged_df_clean.fillna(value_not_in_the_range)
+
+merged_df_clean = merged_df_clean.fillna(0) #replacing empty cells with '0'
 
 merged_df_clean_wide = merged_df_clean.pivot_table(index = ['economy', 'sectors', 'sub1sectors', 'sub2sectors', 
                                                             'sub3sectors', 'sub4sectors', 'fuels', 'subfuels'],

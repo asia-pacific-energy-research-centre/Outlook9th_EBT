@@ -308,6 +308,8 @@ ordered = pd.read_csv('./data/order_sector_fuels.csv')
 order1 = list(ordered['subfuels'])
 order2 = list(ordered['sub1sectors'])
 
+order2 = list(filter(lambda x: pd.notna(x), order2)) #dropping the 'nan' category from the list
+
 merged_df_clean_wide['subfuels'] = pd.Categorical(merged_df_clean_wide['subfuels'], 
                                                       categories = order1, 
                                                       ordered = True)
