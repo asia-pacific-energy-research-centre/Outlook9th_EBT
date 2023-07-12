@@ -1,44 +1,50 @@
 """A script to merge the layout file and the demand output results files."""
 
 import pandas as pd
+import numpy as np
 import os
 import glob
 
-folder_path = '../../demand_results_data/'
+#read the layout file
+layout_file = glob.glob('../../results/model_df_test_l*.csv')
 
-#get a list of all CSV and Excel file paths in the folder
-file_pattern = os.path.join(folder_path, '*')
-file_paths = glob.glob(file_pattern)
+if len(layout_file) == 0:
+    print("Layout file not found.")
+    exit()
 
-demand_dfs = {} #dictionary to store the demand results files
+layout_file = layout_file[0]
 
-#process each file
-for file_path in file_paths:
-    file_name = os.path.basename(file_path)
-    if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
-        demand_df = pd.read_excel(file_path)
-    elif file_path.endswith('.csv'):
-        demand_df = pd.read_csv(file_path)
+layout_df = pd.read_csv(layout_file)
+
+#get the column names of the predicted years
+years = layout_df.columns[50:]
+
+# Define the path pattern for the results data files
+results_data_path = '../../demand_results_data/*'
+
+# Get a list of all matching results data file paths
+results_data_files = glob.glob(results_data_path)
+
+# Iterate over the results data files
+for result_file in results_data_files:
+    # Determine the file format based on the file extension
+    if result_file.endswith('.csv'):
+        results_data = pd.read_csv(result_file)
+    elif result_file.endswith('.xlsx') or result_file.endswith('.xls'):
+        results_data = pd.read_excel(result_file)
     else:
-        print("Unsupported file format:", file_path)
+        print(f"Unsupported file format: {result_file}")
         continue
-    demand_dfs[file_name] = demand_df
 
-'''
-#read the layout template into a df
-tfc_df = pd.read_csv(data_files[0])
+    #iterate over the columns representing the predicted years
+    for year in years:
+        rows_with_nan = layout_df[year].isnull().tolist() #find the rows with NaN values in the current year column
 
-#separate input data and output data
-category_variables = tfc_df[['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']]
+        #get the corresponding values from the results data based on the categories
+        categories = layout_df.iloc[rows_with_nan, :9]
+        result_values = results_data.loc[results_data.iloc[:, :9].isin(categories.values.flatten()).all(axis=1), year].values
 
-year_list = list(map(str, list(range(1980, 2070 + 1)))) #making a list of years from 1980 to 2070
+        layout_df.iloc[rows_with_nan, layout_df.columns.get_loc(year)] = result_values #replace the NaN values in the layout df with the result values for the current year
 
-output_data = tfc_df[year_list]
-'''
-
-#iterate over the remaining excel files and merge them with the initial df
-"""
-for file in excel_files[1:]:
-    df = pd.read_excel(file)
-    tfc_df = pd.concat([tfc_df, df], ignore_index=True)
-"""
+#save the combined data to a new Excel file
+layout_df.to_excel('../../tfc/combined_data.xlsx', index=False)
