@@ -6,7 +6,7 @@ import os
 import glob
 
 #read the layout file
-layout_file = glob.glob('../../results/model_df_test_l*.csv')
+layout_file = glob.glob('../../results/model_df_wide_202*.csv')
 
 if len(layout_file) == 0:
     print("Layout file not found.")
@@ -35,7 +35,27 @@ for result_file in results_data_files:
     else:
         print(f"Unsupported file format: {result_file}")
         continue
+    
+    # Iterate over the columns representing the predicted years
+    for year in years:
+        rows_with_nan = layout_df[year].isnull()  # Find the rows with NaN values in the current year column
 
+        # Iterate over the rows with NaN values in the layout DataFrame
+        for index, row in layout_df.loc[rows_with_nan].iterrows():
+            # Get the categories from the current row
+            categories = row[:9]
+
+            # Find the corresponding row in the results DataFrame based on the categories
+            result_rows = results_data.loc[results_data.iloc[:, :9].eq(categories).all(axis=1)]
+
+            if len(result_rows) > 0:
+                # Get the value for the current year from the first matching row
+                result_value = result_rows.iloc[0][year]
+
+                # Update the NaN value in the layout DataFrame with the result value for the current year
+                layout_df.loc[index, year] = result_value
+    
+"""
     #iterate over the columns representing the predicted years
     for year in years:
         rows_with_nan = layout_df[year].isnull().tolist() #find the rows with NaN values in the current year column
@@ -45,6 +65,7 @@ for result_file in results_data_files:
         result_values = results_data.loc[results_data.iloc[:, :9].isin(categories.values.flatten()).all(axis=1), year].values
 
         layout_df.iloc[rows_with_nan, layout_df.columns.get_loc(year)] = result_values #replace the NaN values in the layout df with the result values for the current year
+"""
 
 #save the combined data to a new Excel file
 layout_df.to_excel('../../tfc/combined_data.xlsx', index=False)
