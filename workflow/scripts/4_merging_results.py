@@ -17,7 +17,7 @@ layout_file = layout_file[0]
 layout_df = pd.read_csv(layout_file)
 
 #get the column names of the predicted years
-years = layout_df.columns[50:]
+#years = layout_df.columns[50:]
 
 # Define the path pattern for the results data files
 results_data_path = '../../demand_results_data/*'
@@ -25,47 +25,32 @@ results_data_path = '../../demand_results_data/*'
 # Get a list of all matching results data file paths
 results_data_files = glob.glob(results_data_path)
 
-# Iterate over the results data files
-for result_file in results_data_files:
-    # Determine the file format based on the file extension
-    if result_file.endswith('.csv'):
-        results_data = pd.read_csv(result_file)
-    elif result_file.endswith('.xlsx') or result_file.endswith('.xls'):
-        results_data = pd.read_excel(result_file)
+# Specify the shared category columns
+shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
+
+# Merge each results file with the layout file
+for file in results_data_files:
+    # Check the file extension
+    if file.endswith('.xlsx'):
+        # Read Excel file
+        results_data = pd.read_excel(file)
+    elif file.endswith('.csv'):
+        # Read CSV file
+        results_data = pd.read_csv(file)
     else:
-        print(f"Unsupported file format: {result_file}")
+        print(f"Unsupported file format: {file}")
         continue
     
-    # Iterate over the columns representing the predicted years
-    for year in years:
-        rows_with_nan = layout_df[year].isnull()  # Find the rows with NaN values in the current year column
-
-        # Iterate over the rows with NaN values in the layout DataFrame
-        for index, row in layout_df.loc[rows_with_nan].iterrows():
-            # Get the categories from the current row
-            categories = row[:9]
-
-            # Find the corresponding row in the results DataFrame based on the categories
-            result_rows = results_data.loc[results_data.iloc[:, :9].eq(categories).all(axis=1)]
-
-            if len(result_rows) > 0:
-                # Get the value for the current year from the first matching row
-                result_value = result_rows.iloc[0][year]
-
-                # Update the NaN value in the layout DataFrame with the result value for the current year
-                layout_df.loc[index, year] = result_value
+    # Drop the year columns from 1980 to 2020 in the results dataframe
+    year_columns = [str(year) for year in range(1980, 2021)]
+    results_data.drop(columns=year_columns, inplace=True, errors='ignore')
     
-"""
-    #iterate over the columns representing the predicted years
-    for year in years:
-        rows_with_nan = layout_df[year].isnull().tolist() #find the rows with NaN values in the current year column
-
-        #get the corresponding values from the results data based on the categories
-        categories = layout_df.iloc[rows_with_nan, :9]
-        result_values = results_data.loc[results_data.iloc[:, :9].isin(categories.values.flatten()).all(axis=1), year].values
-
-        layout_df.iloc[rows_with_nan, layout_df.columns.get_loc(year)] = result_values #replace the NaN values in the layout df with the result values for the current year
-"""
+    # Merge the layout dataframe with the results dataframe based on the shared categories
+    layout_df.set_index(shared_categories, inplace=True)
+    results_data.set_index(shared_categories, inplace=True)
+    layout_df.update(results_data)
+    layout_df.reset_index(inplace=True)
 
 #save the combined data to a new Excel file
-layout_df.to_excel('../../tfc/combined_data.xlsx', index=False)
+#layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
+layout_df.to_csv('../../tfc/merged_file.csv', index=False)
