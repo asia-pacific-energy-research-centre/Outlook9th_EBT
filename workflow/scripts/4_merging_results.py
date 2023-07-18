@@ -65,15 +65,8 @@ for file in results_data_files:
     # Extract the file name from the file path
     file_name = os.path.basename(file)
 
-    # Check if there are any differences
-    if len(differences) > 0:
-        print(f"Differences found between layout and results in file: {file_name}")
-        for variable, category in differences:
-            print(f"There is no '{variable}' in '{category}'")
-
-        # Stop the code
-        print("Stopping the code due to differences found.")
-        sys.exit()
+    # Use assert to check if there are any differences
+    assert len(differences) == 0, f"Differences found in results file: {file_name}\n\nDifferences:\n" + '\n'.join([f"There is no '{variable}' in '{category}'" for variable, category in differences])
 
     # Set the index for both DataFrames using the shared category columns
     layout_df.set_index(shared_categories, inplace=True)
