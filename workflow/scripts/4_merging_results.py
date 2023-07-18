@@ -1,44 +1,90 @@
 """A script to merge the layout file and the demand output results files."""
 
 import pandas as pd
+import numpy as np
 import os
 import glob
+import sys
 
-folder_path = '../../demand_results_data/'
+#read the layout file
+layout_file = glob.glob('../../results/model_df_wide_202*.csv')
 
-#get a list of all CSV and Excel file paths in the folder
-file_pattern = os.path.join(folder_path, '*')
-file_paths = glob.glob(file_pattern)
+if len(layout_file) == 0:
+    print("Layout file not found.")
+    exit()
 
-demand_dfs = {} #dictionary to store the demand results files
+layout_file = layout_file[0]
 
-#process each file
-for file_path in file_paths:
-    file_name = os.path.basename(file_path)
-    if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
-        demand_df = pd.read_excel(file_path)
-    elif file_path.endswith('.csv'):
-        demand_df = pd.read_csv(file_path)
+layout_df = pd.read_csv(layout_file)
+
+# Define the path pattern for the results data files
+results_data_path = '../../demand_results_data/*'
+
+# Get a list of all matching results data file paths
+results_data_files = glob.glob(results_data_path)
+
+# Specify the shared category columns in the desired order
+shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
+
+# Store the extracted economy DataFrames
+economy_dataframes = {}
+
+# Iterate over the results files
+for file in results_data_files:
+    # Read the results file
+    if file.endswith('.xlsx'):
+        results_df = pd.read_excel(file)
+    elif file.endswith('.csv'):
+        results_df = pd.read_csv(file)
     else:
-        print("Unsupported file format:", file_path)
+        print(f"Unsupported file format: {file}")
         continue
-    demand_dfs[file_name] = demand_df
 
-'''
-#read the layout template into a df
-tfc_df = pd.read_csv(data_files[0])
+    # Reorder the shared categories in the results DataFrame
+    results_df = results_df[shared_categories + list(results_df.columns.difference(shared_categories))]
 
-#separate input data and output data
-category_variables = tfc_df[['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']]
+    # Convert columns to string type
+    results_df.columns = results_df.columns.astype(str)
 
-year_list = list(map(str, list(range(1980, 2070 + 1)))) #making a list of years from 1980 to 2070
+    # Drop columns with years within 1980 and 2020 in the results DataFrame
+    results_df.drop(columns=[col for col in results_df.columns if any(str(year) in col for year in range(1980, 2021))], inplace=True)
 
-output_data = tfc_df[year_list]
-'''
+    # Compare the shared categories between layout and results DataFrame
+    layout_shared_categories = layout_df[shared_categories]
+    results_shared_categories = results_df[shared_categories]
 
-#iterate over the remaining excel files and merge them with the initial df
-"""
-for file in excel_files[1:]:
-    df = pd.read_excel(file)
-    tfc_df = pd.concat([tfc_df, df], ignore_index=True)
-"""
+    # Create a list to store the differences
+    differences = []
+
+    # Check if there are differences between the layout DataFrame and the results DataFrame
+    for category in shared_categories:
+        diff_variables = results_shared_categories.loc[~results_shared_categories[category].isin(layout_shared_categories[category]), category].unique()
+        for variable in diff_variables:
+            differences.append((variable, category))
+
+    # Extract the file name from the file path
+    file_name = os.path.basename(file)
+
+    # Check if there are any differences
+    if len(differences) > 0:
+        print(f"Differences found between layout and results in file: {file_name}")
+        for variable, category in differences:
+            print(f"There is no '{variable}' in '{category}'")
+
+        # Stop the code
+        print("Stopping the code due to differences found.")
+        sys.exit()
+
+    # Set the index for both DataFrames using the shared category columns
+    layout_df.set_index(shared_categories, inplace=True)
+    results_df.set_index(shared_categories, inplace=True)
+
+    # Update the layout DataFrame with the results DataFrame
+    layout_df.update(results_df)
+
+    # Reset the index of the layout DataFrame
+    layout_df.reset_index(inplace=True)
+
+#save the combined data to a new Excel file
+#layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
+layout_df.to_csv('../../tfc/merged_file.csv', index=False)
