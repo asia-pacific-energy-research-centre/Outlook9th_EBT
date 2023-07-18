@@ -1,3 +1,4 @@
+#%%
 # Now begin to subset
 # Change
 import numpy as np
@@ -23,7 +24,7 @@ year_list = list(range(1980, 2021, 1))
 year_str = list(map(str, year_list))
 
 # Read in data of fuels used by the different sector models
-fuel_df = pd.read_excel('./data/fuels_used_by_modellers.xlsx')
+fuel_df = pd.read_excel('./config/fuels_used_by_modellers.xlsx')
 fuel_df = fuel_df.iloc[1:,10:]
 
 # Industry and non-energy layout
@@ -298,12 +299,12 @@ merged_df_clean_wide = merged_df_clean_wide[~merged_df_clean_wide['subfuels'].is
 
 # Merge scenarios
 
-scen = pd.read_excel('./data/scenario_list.xlsx')
+scen = pd.read_excel('./config/scenario_list.xlsx')
 
 merged_df_clean_wide = pd.merge(scen, merged_df_clean_wide, how = 'cross')
 
 # Sort subfuels and sub1sectors
-ordered = pd.read_csv('./data/order_sector_fuels.csv')
+ordered = pd.read_csv('./config/order_sector_fuels.csv')
 
 order1 = list(ordered['subfuels'])
 order2 = list(ordered['sub1sectors'])

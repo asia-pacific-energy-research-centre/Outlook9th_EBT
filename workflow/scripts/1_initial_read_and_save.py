@@ -3,20 +3,19 @@
 # Script created by Wu, Taiwan researcher, to take EBT EGEDA data and build a large dataset that will contain all possible variable combinations
 # that will be populated by the 9th modelling. This involves removing some EBT fuels and sectors combos and adding in specific modelling combos
 # that are not in the EBT (such as type of road transport)
-
+#%%
 import pandas as pd 
 import re
 import os
 from datetime import datetime
+import utility_functions as util
 
-# Change the working drive
-wanted_wd = 'Outlook9th_EBT'
-os.chdir(re.split(wanted_wd, os.getcwd())[0] + wanted_wd)
-
+util.set_working_directory()
+USE_SINGLE_ECONOMY, single_economy = util.import_useful_varaibles()
 # read raw data
 # na_values: defines values that should be viewed as nan
 
-xlsx_raw = './data/October_2022/00APEC.xlsx' #directory of raw data file
+xlsx_raw = './data/00APEC_20220801.xlsx' #directory of raw data file
 
 sheet_names = pd.ExcelFile(xlsx_raw).sheet_names[:21] #making a list with the first 21 economies' worksheets 
 
@@ -28,9 +27,13 @@ RawEGEDA = pd.read_excel(xlsx_raw,
 # Save the economy name (key) in RawEGEDA. We will use it in the for-loop. 
 economies = RawEGEDA.keys()
 
+if USE_SINGLE_ECONOMY:
+    #drop any keys that arent the single economy. but remove any _'s form single economy name first
+    s = single_economy.replace('_', '')
+    economies = [e for e in economies if e.replace('_', '') == s]
+    
 # Use for-loop to record the shape of all dataframes 
 shape_of_data = []
-
 for i in economies:
     dimension = RawEGEDA[i].shape
     shape_of_data.append(dimension)
@@ -228,7 +231,7 @@ unique_sectors_df.to_excel(result_path, index = False)
 # - align the name of fuels and sector, and mark the differences in other cols.
 
 # Check if there are still differences in the fuel name (ignore the item number)
-fuel_reference_table = pd.read_excel('./data/manual_adjust/reference_table_fuel.xlsx')
+fuel_reference_table = pd.read_excel('./config/reference_table_fuel.xlsx')
 
 # drop the item number 
 for i in range(0, 2, 1):
@@ -245,7 +248,7 @@ diff_fuel = fuel_reference_table[fuel_reference_table['not_equal'] == True].sort
 
 # Check if there are still differences in the sector name (ignore the item number)
 
-sector_reference_table = pd.read_excel('./data/manual_adjust/reference_table_sectors.xlsx')
+sector_reference_table = pd.read_excel('./config/reference_table_sector.xlsx')
 
 # drop the item number 
 for i in range(0, 3, 1):
@@ -292,3 +295,5 @@ df_no_year_econ_index = df.reset_index()
 interim_path = './data/interim/'
 os.makedirs(interim_path, exist_ok = True)
 df_no_year_econ_index.to_csv(interim_path + 'EBT_long.csv', index = False)
+
+#%%

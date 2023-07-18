@@ -1,4 +1,5 @@
-# Script created by Wu, Taiwan researcher, to take EBT EGEDA data and build a large dataset that will contain all possible variable combinations
+#%%
+# # Script created by Wu, Taiwan researcher, to take EBT EGEDA data and build a large dataset that will contain all possible variable combinations
 # that will be populated by the 9th modelling. This involves removing some EBT fuels and sectors combos and adding in specific modelling combos
 # that are not in the EBT (such as type of road transport)
 
@@ -20,8 +21,8 @@ os.makedirs(interim_path, exist_ok = True)
 df_no_year_econ_index = pd.read_csv(interim_path + 'EBT_long.csv')
 
 # Import
-fuel_mapping = pd.read_excel('./data/manual_adjust/reference_table_fuel_revised.xlsx', usecols = [0, 1])
-sector_mapping = pd.read_excel('./data/manual_adjust/reference_table_sectors.xlsx', usecols = [0, 1])
+fuel_mapping = pd.read_excel('./config/reference_table_fuel.xlsx', usecols = [0, 1])
+sector_mapping = pd.read_excel('./config/reference_table_sector.xlsx', usecols = [0, 1])
 
 # Notice that the values in "fuels" and "clean_egeda_fuel_name" are the same
 # You can check with the following code
@@ -76,9 +77,9 @@ df_fuel_sector.drop(['clean_egeda_sector_name', 'unique_the_end_of_sectors', 're
 
 # Self defined layout
 
-fuel_layout = pd.read_excel('./data/self_defined_layout/EBT_column_fuels.xlsx', 
+fuel_layout = pd.read_excel('./config/EBT_column_fuels.xlsx', 
                             sheet_name = 'fuel_layout_20230329', usecols = [0, 1])
-sector_layout = pd.read_excel('./data/self_defined_layout/EBT_row_sectors.xlsx', 
+sector_layout = pd.read_excel('./config/EBT_row_sectors.xlsx', 
                               sheet_name = 'sector_layout_20230330', usecols = [0, 1, 2, 3, 4])
 
 # Clean the data again FFS
@@ -236,7 +237,7 @@ df_fuel_sector = df_fuel_sector[~df_fuel_sector['fuels'].isin(['01_02_other_bitu
                                                                '07_17_other_products'])]
 
 df_fuel_sector = pd.concat([df_fuel_sector, thermal_coal_g, other_hydrocarbons_g, jet_fuel_g, 
-                            other_petroleum_products_g, other_solar_g, hydrogen, ammonia], axis = 0)\
+                            other_petroleum_products_g, other_solar_g, hydrogen, ammonia,efuel], axis = 0)\
                                 .reset_index(drop = True)
 
 # Sectors
@@ -363,3 +364,4 @@ merged_df_clean_wide.replace(value_not_in_the_range, np.nan, inplace = True)
 
 # Save file and subset in next script
 merged_df_clean_wide.to_csv(interim_path + 'interim.csv', index = False)
+#%%
