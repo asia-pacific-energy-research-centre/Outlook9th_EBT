@@ -4,7 +4,6 @@
 # that will be populated by the 9th modelling. This involves removing some EBT fuels and sectors combos and adding in specific modelling combos
 # that are not in the EBT (such as type of road transport)
 
-import numpy as np
 import pandas as pd 
 import re
 import os
