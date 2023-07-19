@@ -103,8 +103,8 @@ def merging_results(merged_df_clean_wide):
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
     if USE_SINGLE_ECONOMY:
-        layout_df.to_csv(f'results/tfc/merged_file_{SINGLE_ECONOMY}.csv', index=False)
+        layout_df.to_csv(f'results/merged_file_{SINGLE_ECONOMY}.csv', index=False)
     else:
-        layout_df.to_csv('results/tfc/merged_file.csv', index=False)
+        layout_df.to_csv('results/merged_file.csv', index=False)
         
     return layout_df
