@@ -24,7 +24,7 @@ def merging_results(merged_df_clean_wide):
     layout_df = merged_df_clean_wide.copy()
 
     # Define the path pattern for the results data files
-    results_data_path = '../../demand_results_data/*'
+    results_data_path = 'data/demand_results_data/*'
 
     # Get a list of all matching results data file paths
     results_data_files = glob.glob(results_data_path)
@@ -32,8 +32,8 @@ def merging_results(merged_df_clean_wide):
     # Specify the shared category columns in the desired order
     shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
 
-    # Store the extracted economy DataFrames
-    economy_dataframes = {}#TO DO THIS ISNT BEING SUED. SHOULD IMPLEMENT IT WIITH THE SINGLE ECONOMY VAR
+    # # Store the extracted economy DataFrames
+    # economy_dataframes = {}#TO DO THIS ISNT BEING SUED. SHOULD I MAKE IT WORK?
 
     # Iterate over the results files
     for file in results_data_files:
@@ -94,6 +94,8 @@ def merging_results(merged_df_clean_wide):
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
     if USE_SINGLE_ECONOMY:
-        layout_df.to_csv(f'../../tfc/merged_file_{SINGLE_ECONOMY}.csv', index=False)
+        layout_df.to_csv(f'results/tfc/merged_file_{SINGLE_ECONOMY}.csv', index=False)
     else:
-        layout_df.to_csv('../../tfc/merged_file.csv', index=False)
+        layout_df.to_csv('results/tfc/merged_file.csv', index=False)
+        
+    return layout_df

@@ -28,6 +28,12 @@ def create_energy_df(df_no_year_econ_index):
     fuel_mapping = pd.read_excel('./config/reference_table_fuel.xlsx', usecols = [0, 1])
     sector_mapping = pd.read_excel('./config/reference_table_sector.xlsx', usecols = [0, 1])
 
+    #TODO. THIS NEEDS TO BE CLEANED UP. PREFERABLY WE ARCHIVE OLD LAYOUTS RATHER THAN DATEMARKING THEM
+    fuel_layout = pd.read_excel('./config/EBT_column_fuels.xlsx', 
+                                sheet_name =FUEL_LAYOUT_SHEET, usecols = [0, 1])
+    sector_layout = pd.read_excel('./config/EBT_row_sectors.xlsx', 
+                                sheet_name = SECTOR_LAYOUT_SHEET, usecols = [0, 1, 2, 3, 4])
+    
     # Notice that the values in "fuels" and "clean_egeda_fuel_name" are the same
     # You can check with the following code
     #test = df_fuel.loc[df_fuel['fuels'] != df_fuel['clean_egeda_fuel_name']]
@@ -79,12 +85,12 @@ def create_energy_df(df_no_year_econ_index):
 
     df_fuel_sector.drop(['clean_egeda_sector_name', 'unique_the_end_of_sectors', 'replace_materials'], axis = 1, inplace = True)
 
-    # Self defined layout
-    #TODO. THIS NEEDS TO BE CLEANED UP. PREFERABLY WE ARCHIVE OLD LAYOUTS RATHER THAN DATEMARKING THEM
-    fuel_layout = pd.read_excel('./config/EBT_column_fuels.xlsx', 
-                                sheet_name =FUEL_LAYOUT_SHEET, usecols = [0, 1])
-    sector_layout = pd.read_excel('./config/EBT_row_sectors.xlsx', 
-                                sheet_name = SECTOR_LAYOUT_SHEET, usecols = [0, 1, 2, 3, 4])
+    # # Self defined layout
+    # #TODO. THIS NEEDS TO BE CLEANED UP. PREFERABLY WE ARCHIVE OLD LAYOUTS RATHER THAN DATEMARKING THEM
+    # fuel_layout = pd.read_excel('./config/EBT_column_fuels.xlsx', 
+    #                             sheet_name =FUEL_LAYOUT_SHEET, usecols = [0, 1])
+    # sector_layout = pd.read_excel('./config/EBT_row_sectors.xlsx', 
+    #                             sheet_name = SECTOR_LAYOUT_SHEET, usecols = [0, 1, 2, 3, 4])#FILES MOVE TO TOP OF SCRIPT
 
     # Clean the data again FFS
 
@@ -355,7 +361,7 @@ def create_energy_df(df_no_year_econ_index):
     # - We will replace them with np.nan after ```pivot_table```
     # - BTW, replacing with string may cause problem in ```pivot_table```
 
-    #value_not_in_the_range = merged_df_clean['value'].min() - 1
+    value_not_in_the_range = merged_df_clean['value'].min() - 1
     #merged_df_clean = merged_df_clean.fillna(value_not_in_the_range)
 
     merged_df_clean = merged_df_clean.fillna(0) #replacing empty cells with '0'

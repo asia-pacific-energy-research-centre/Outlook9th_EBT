@@ -9,21 +9,22 @@ from datetime import datetime
 from utility_functions import *
 
 set_working_directory()#from utility_functions.py
+
 def subset_data(merged_df_clean_wide):
     # interim save
     interim_path = './data/interim/'
     os.makedirs(interim_path, exist_ok = True)
 
-    if USE_SINGLE_ECONOMY:
-        merged_df_clean_wide = pd.read_csv(interim_path + 'interim_' + SINGLE_ECONOMY + '.csv')
-    else:
-        merged_df_clean_wide = pd.read_csv(interim_path + 'interim.csv')
+    # if USE_SINGLE_ECONOMY:
+    #     merged_df_clean_wide = pd.read_csv(interim_path + 'interim_' + SINGLE_ECONOMY + '.csv')
+    # else:
+    #     merged_df_clean_wide = pd.read_csv(interim_path + 'interim.csv')
 
     ###############################################################################################
     # Mat addition: subset the sector_fuel_layout df
 
     year_list = list(range(1980, 2021, 1))
-    year_str = list(map(str, year_list))
+    # year_list = list(map(str, year_list))
 
     # Read in data of fuels used by the different sector models
     fuel_df = pd.read_excel('./config/fuels_used_by_modellers.xlsx')
@@ -50,7 +51,7 @@ def subset_data(merged_df_clean_wide):
                     (ine_df['subfuels'].isin(ine_subfuels)))].copy()
 
     # drop if all na
-    ine_df2 = ine_df2.dropna(subset = year_str).copy()
+    ine_df2 = ine_df2.dropna(subset = year_list).copy()
     # drop if all zero
     ine_df2 = ine_df2.loc[~(ine_df2.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
@@ -77,7 +78,7 @@ def subset_data(merged_df_clean_wide):
                     (bld_df['subfuels'].isin(bld_subfuels)))].copy()
 
     # drop if all na
-    bld_df2 = bld_df2.dropna(subset = year_str).copy()
+    bld_df2 = bld_df2.dropna(subset = year_list).copy()
     # drop if all zero
     bld_df2 = bld_df2.loc[~(bld_df2.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
@@ -104,7 +105,7 @@ def subset_data(merged_df_clean_wide):
                     (trn_df['subfuels'].isin(trn_subfuels)))].copy()
 
     # drop if all na
-    trn_df2 = trn_df2.dropna(subset = year_str).copy()
+    trn_df2 = trn_df2.dropna(subset = year_list).copy()
     # drop if all zero
     trn_df2 = trn_df2.loc[~(trn_df2.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
@@ -131,7 +132,7 @@ def subset_data(merged_df_clean_wide):
                     (ag_df['subfuels'].isin(ag_subfuels)))].copy()
 
     # drop if all na
-    ag_df2 = ag_df2.dropna(subset = year_str).copy()
+    ag_df2 = ag_df2.dropna(subset = year_list).copy()
     # drop if all zero
     ag_df2 = ag_df2.loc[~(ag_df2.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
@@ -158,7 +159,7 @@ def subset_data(merged_df_clean_wide):
                     (pow_df['subfuels'].isin(pow_subfuels)))].copy()
 
     # drop if all na
-    pow_df2 = pow_df2.dropna(subset = year_str).copy()
+    pow_df2 = pow_df2.dropna(subset = year_list).copy()
     # drop if all zero
     pow_df2 = pow_df2.loc[~(pow_df2.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
@@ -185,7 +186,7 @@ def subset_data(merged_df_clean_wide):
                     (ref_df['subfuels'].isin(ref_subfuels)))].copy()
 
     # drop if all na
-    ref_df2 = ref_df2.dropna(subset = year_str).copy()
+    ref_df2 = ref_df2.dropna(subset = year_list).copy()
     # drop if all zero
     ref_df2 = ref_df2.loc[~(ref_df2.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
@@ -220,7 +221,7 @@ def subset_data(merged_df_clean_wide):
     split_df = merged_df_clean_wide[merged_df_clean_wide['sectors'].isin(subset0)].copy()
     remain_df = merged_df_clean_wide[~merged_df_clean_wide['sectors'].isin(subset0)].copy()
 
-    split_df = split_df.dropna(subset = year_str).copy()
+    split_df = split_df.dropna(subset = year_list).copy()
     split_df = split_df.loc[~(split_df.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
     merged_df_clean_wide = pd.concat([split_df, remain_df]).copy()
@@ -235,7 +236,7 @@ def subset_data(merged_df_clean_wide):
     split_df = merged_df_clean_wide[merged_df_clean_wide['sub1sectors'].isin(subset1)].copy()
     remain_df = merged_df_clean_wide[~merged_df_clean_wide['sub1sectors'].isin(subset1)].copy()
 
-    split_df = split_df.dropna(subset = year_str).copy()
+    split_df = split_df.dropna(subset = year_list).copy()
     split_df = split_df.loc[~(split_df.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
     merged_df_clean_wide = pd.concat([split_df, remain_df]).copy()
@@ -249,7 +250,7 @@ def subset_data(merged_df_clean_wide):
     split_df = merged_df_clean_wide[merged_df_clean_wide['sub2sectors'].isin(subset2)].copy()
     remain_df = merged_df_clean_wide[~merged_df_clean_wide['sub2sectors'].isin(subset2)].copy()
 
-    split_df = split_df.dropna(subset = year_str).copy()
+    split_df = split_df.dropna(subset = year_list).copy()
     split_df = split_df.loc[~(split_df.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
     merged_df_clean_wide = pd.concat([split_df, remain_df]).copy()
@@ -305,21 +306,21 @@ def subset_data(merged_df_clean_wide):
 
     merged_df_clean_wide = pd.merge(scen, merged_df_clean_wide, how = 'cross')
 
-    # Sort subfuels and sub1sectors
-    ordered = pd.read_csv('./config/order_sector_fuels.csv')#TODO, IT WOULD BE USEFUL TO EXPLAIN WHAT THIS DOES. IS THERE ANY REASON WHY WE SHOULDNT JUST ORDER THE FUEL AND SECTOR COLUMNS USING .SORT_VALUES()?
+    # # Sort subfuels and sub1sectors#REMOVED BEECAUSE SEEMED NEEDLESS.
+    # ordered = pd.read_csv('./config/order_sector_fuels.csv')#TODO, IT WOULD BE USEFUL TO EXPLAIN WHAT THIS DOES. IS THERE ANY REASON WHY WE SHOULDNT JUST ORDER THE FUEL AND SECTOR COLUMNS USING .SORT_VALUES()?
 
-    order1 = list(ordered['subfuels'])
-    order2 = list(ordered['sub1sectors'])
+    # order1 = list(ordered['subfuels'])
+    # order2 = list(ordered['sub1sectors'])
 
-    order2 = list(filter(lambda x: pd.notna(x), order2)) #dropping the 'nan' category from the list
+    # order2 = list(filter(lambda x: pd.notna(x), order2)) #dropping the 'nan' category from the list
 
-    merged_df_clean_wide['subfuels'] = pd.Categorical(merged_df_clean_wide['subfuels'], 
-                                                        categories = order1, 
-                                                        ordered = True)
+    # merged_df_clean_wide['subfuels'] = pd.Categorical(merged_df_clean_wide['subfuels'], 
+    #                                                     categories = order1, 
+    #                                                     ordered = True)
 
-    merged_df_clean_wide['sub1sectors'] = pd.Categorical(merged_df_clean_wide['sub1sectors'],
-                                                        categories = order2,
-                                                        ordered = True)
+    # merged_df_clean_wide['sub1sectors'] = pd.Categorical(merged_df_clean_wide['sub1sectors'],
+    #                                                     categories = order2,
+    #                                                     ordered = True)
 
 
     merged_df_clean_wide = merged_df_clean_wide.sort_values(['scenarios', 'economy', 'sectors', 'fuels', 'sub1sectors', 'subfuels'])\
@@ -366,5 +367,5 @@ def subset_data(merged_df_clean_wide):
         reference_df.to_csv(folder_path + '/model_df_wide_ref_' + date_today + '.csv', index = False)
         target_df.to_csv(folder_path + '/model_df_wide_tgt_' + date_today + '.csv', index = False)
         
-    return merged_df_clean_wide, reference_df, target_df
+    return merged_df_clean_wide
 
