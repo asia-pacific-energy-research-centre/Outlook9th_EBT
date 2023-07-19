@@ -24,7 +24,7 @@ def main():
 
     # Return the final DataFrame
     return layout_df
-
+#%%
 # Run the main function and store the result
 result = main()
 #%%

@@ -22,6 +22,9 @@ def merging_results(merged_df_clean_wide):
 
     # layout_df = pd.read_csv(layout_file)
     layout_df = merged_df_clean_wide.copy()
+    
+    #extract unqiue economies:
+    economies = layout_df['economy'].unique()
 
     # Define the path pattern for the results data files
     results_data_path = 'data/demand_results_data/*'
@@ -49,6 +52,9 @@ def merging_results(merged_df_clean_wide):
         # Reorder the shared categories in the results DataFrame
         results_df = results_df[shared_categories + list(results_df.columns.difference(shared_categories))]
 
+        #filter for only economies in the results file:
+        results_df = results_df[results_df['economy'].isin(economies)]
+        
         # Convert columns to string type
         results_df.columns = results_df.columns.astype(str)
 
