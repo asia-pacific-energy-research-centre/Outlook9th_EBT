@@ -78,6 +78,69 @@ for file in results_data_files:
     # Reset the index of the layout DataFrame
     layout_df.reset_index(inplace=True)
 
+# Define the year range to drop
+year_range = range(1980, 2021)
+
+# Create a list of columns to drop
+columns_to_drop = ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'] + [str(year) for year in year_range if str(year) in layout_df.columns]
+
+# Drop the specified columns and year columns from the layout_df DataFrame
+filtered_df = layout_df.drop(columns_to_drop, axis=1)
+
+# Filter the 'sectors' column to include only the desired sectors
+tfc_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use']
+tfc_filtered_df = filtered_df[filtered_df['sectors'].isin(tfc_desired_sectors)].copy()
+
+# Filter the 'sectors' column to include only the desired sectors
+tfec_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector']
+tfec_filtered_df = filtered_df[filtered_df['sectors'].isin(tfec_desired_sectors)].copy()
+
+# Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '12_total_final_consumption'
+tfc_grouped_df = tfc_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+
+# Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '13_total_final_energy_consumption'
+tfec_grouped_df = tfec_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+
+# Add the missing columns with 'x' as values in the same order as shared_categories
+for col in shared_categories:
+    if col not in tfc_grouped_df.columns:
+        tfc_grouped_df[col] = 'x'
+        
+# Add the missing columns with 'x' as values in the same order as shared_categories
+for col in shared_categories:
+    if col not in tfec_grouped_df.columns:
+        tfec_grouped_df[col] = 'x'
+
+# Reorder the columns to match the order of shared_categories
+tfc_ordered_columns = shared_categories + [col for col in tfc_grouped_df.columns if col not in shared_categories]
+
+# Reorder the columns to match the order of shared_categories
+tfec_ordered_columns = shared_categories + [col for col in tfec_grouped_df.columns if col not in shared_categories]
+
+# Reorder the columns in grouped_df using the ordered_columns list
+tfc_grouped_df = tfc_grouped_df[ordered_columns]
+
+# Reorder the columns in grouped_df using the ordered_columns list
+tfec_grouped_df = tfec_grouped_df[ordered_columns]
+
+# Add the 'sectors' column with value '12_total_final_consumption'
+tfc_grouped_df['sectors'] = '12_total_final_consumption'
+
+# Add the 'sectors' column with value '13_total_final_energy_consumption'
+tfec_grouped_df['sectors'] = '13_total_final_energy_consumption'
+
+# Set the index for both DataFrames using the shared category columns
+layout_df.set_index(shared_categories, inplace=True)
+tfc_grouped_df.set_index(shared_categories, inplace=True)
+tfec_grouped_df.set_index(shared_categories, inplace=True)
+
+# Update the layout_df with the values from grouped_df
+layout_df.update(tfc_grouped_df)
+layout_df.update(tfec_grouped_df)
+
+# Reset the index of the layout DataFrame
+layout_df.reset_index(inplace=True)
+
 #save the combined data to a new Excel file
 #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
 date_today = datetime.now().strftime('%Y%m%d')
