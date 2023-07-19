@@ -23,6 +23,9 @@ def merging_results(merged_df_clean_wide):
     # layout_df = pd.read_csv(layout_file)
     layout_df = merged_df_clean_wide.copy()
     
+    #convert all col names to str since loaded csvs will have int columns
+    layout_df.columns = layout_df.columns.astype(str)
+    
     #extract unqiue economies:
     economies = layout_df['economy'].unique()
 
@@ -52,7 +55,7 @@ def merging_results(merged_df_clean_wide):
         # Reorder the shared categories in the results DataFrame
         results_df = results_df[shared_categories + list(results_df.columns.difference(shared_categories))]
 
-        #filter for only economies in the results file:
+        #filter for only economies in the layout file:
         results_df = results_df[results_df['economy'].isin(economies)]
         
         # Convert columns to string type
@@ -82,7 +85,7 @@ def merging_results(merged_df_clean_wide):
             print(f"Differences found between layout and results in file: {file_name}")
             for variable, category in differences:
                 print(f"There is no '{variable}' in '{category}'")
-
+            breakpoint()
             # Stop the code
             print("Stopping the code due to differences found.")
             sys.exit()
