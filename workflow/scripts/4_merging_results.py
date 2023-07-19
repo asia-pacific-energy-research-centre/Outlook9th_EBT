@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import os
 import glob
-import sys
+from datetime import datetime
 
 #read the layout file
 layout_file = glob.glob('../../results/model_df_wide_202*.csv')
@@ -33,7 +33,7 @@ economy_dataframes = {}
 for file in results_data_files:
     # Read the results file
     if file.endswith('.xlsx'):
-        results_df = pd.read_excel(file)
+        results_df = pd.read_excel(file, sheet_name=-1)
     elif file.endswith('.csv'):
         results_df = pd.read_csv(file)
     else:
@@ -80,4 +80,5 @@ for file in results_data_files:
 
 #save the combined data to a new Excel file
 #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
-layout_df.to_csv('../../tfc/merged_file.csv', index=False)
+date_today = datetime.now().strftime('%Y%m%d')
+layout_df.to_csv('../../tfc/tfc_df_wide_'+date_today+'.csv', index=False)
