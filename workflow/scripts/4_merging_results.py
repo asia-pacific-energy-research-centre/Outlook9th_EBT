@@ -7,7 +7,7 @@ import glob
 from datetime import datetime
 
 #read the layout file
-layout_file = glob.glob('../../results/model_df_wide_202*.csv')
+layout_file = glob.glob('../../results/model_df_wide_*.csv')
 
 if len(layout_file) == 0:
     print("Layout file not found.")
@@ -16,6 +16,9 @@ if len(layout_file) == 0:
 layout_file = layout_file[0]
 
 layout_df = pd.read_csv(layout_file)
+
+#extract unqiue economies:
+economies = layout_df['economy'].unique()
 
 # Define the path pattern for the results data files
 results_data_path = '../../demand_results_data/*'
@@ -43,6 +46,10 @@ for file in results_data_files:
     # Reorder the shared categories in the results DataFrame
     results_df = results_df[shared_categories + list(results_df.columns.difference(shared_categories))]
 
+    
+    #filter for only economies in the layout file:
+    results_df = results_df[results_df['economy'].isin(economies)]
+    
     # Convert columns to string type
     results_df.columns = results_df.columns.astype(str)
 
@@ -118,10 +125,10 @@ tfc_ordered_columns = shared_categories + [col for col in tfc_grouped_df.columns
 tfec_ordered_columns = shared_categories + [col for col in tfec_grouped_df.columns if col not in shared_categories]
 
 # Reorder the columns in grouped_df using the ordered_columns list
-tfc_grouped_df = tfc_grouped_df[ordered_columns]
+tfc_grouped_df = tfc_grouped_df[tfc_ordered_columns]
 
 # Reorder the columns in grouped_df using the ordered_columns list
-tfec_grouped_df = tfec_grouped_df[ordered_columns]
+tfec_grouped_df = tfec_grouped_df[tfec_ordered_columns]
 
 # Add the 'sectors' column with value '12_total_final_consumption'
 tfc_grouped_df['sectors'] = '12_total_final_consumption'
