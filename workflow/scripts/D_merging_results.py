@@ -4,8 +4,11 @@ import pandas as pd
 import numpy as np
 import os
 import glob
-import sys
+from datetime import datetime
 from utility_functions import *
+
+# Specify the shared category columns in the desired order
+shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
 
 def merging_results(merged_df_clean_wide):
     # #read the layout file
@@ -26,7 +29,7 @@ def merging_results(merged_df_clean_wide):
     #convert all col names to str since loaded csvs will have int columns
     layout_df.columns = layout_df.columns.astype(str)
     
-    #extract unqiue economies:
+    #extract unique economies:
     economies = layout_df['economy'].unique()
 
     # Define the path pattern for the results data files
@@ -35,17 +38,11 @@ def merging_results(merged_df_clean_wide):
     # Get a list of all matching results data file paths
     results_data_files = glob.glob(results_data_path)
 
-    # Specify the shared category columns in the desired order
-    shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
-
-    # # Store the extracted economy DataFrames
-    # economy_dataframes = {}#TO DO THIS ISNT BEING SUED. SHOULD I MAKE IT WORK?
-
     # Iterate over the results files
     for file in results_data_files:
         # Read the results file
         if file.endswith('.xlsx'):
-            results_df = pd.read_excel(file)
+            results_df = pd.read_excel(file, sheet_name=-1)
         elif file.endswith('.csv'):
             results_df = pd.read_csv(file)
         else:
@@ -80,15 +77,8 @@ def merging_results(merged_df_clean_wide):
         # Extract the file name from the file path
         file_name = os.path.basename(file)
 
-        # Check if there are any differences
-        if len(differences) > 0:
-            print(f"Differences found between layout and results in file: {file_name}")
-            for variable, category in differences:
-                print(f"There is no '{variable}' in '{category}'")
-            breakpoint()
-            # Stop the code
-            print("Stopping the code due to differences found.")
-            sys.exit()
+        # Use assert to check if there are any differences
+        assert len(differences) == 0, f"Differences found in results file: {file_name}\n\nDifferences:\n" + '\n'.join([f"There is no '{variable}' in '{category}'" for variable, category in differences])
 
         # Set the index for both DataFrames using the shared category columns
         layout_df.set_index(shared_categories, inplace=True)
@@ -100,11 +90,75 @@ def merging_results(merged_df_clean_wide):
         # Reset the index of the layout DataFrame
         layout_df.reset_index(inplace=True)
 
+    # Define the year range to drop
+    year_range = range(1980, 2021)
+
+    # Create a list of columns to drop
+    columns_to_drop = ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'] + [str(year) for year in year_range if str(year) in layout_df.columns]
+
+    # Drop the specified columns and year columns from the layout_df DataFrame
+    filtered_df = layout_df.drop(columns_to_drop, axis=1)
+
+    # Filter the 'sectors' column to include only the desired sectors
+    tfc_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use']
+    tfc_filtered_df = filtered_df[filtered_df['sectors'].isin(tfc_desired_sectors)].copy()
+
+    # Filter the 'sectors' column to include only the desired sectors
+    tfec_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector']
+    tfec_filtered_df = filtered_df[filtered_df['sectors'].isin(tfec_desired_sectors)].copy()
+
+    # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '12_total_final_consumption'
+    tfc_grouped_df = tfc_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+
+    # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '13_total_final_energy_consumption'
+    tfec_grouped_df = tfec_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+
+    # Add the missing columns with 'x' as values in the same order as shared_categories
+    for col in shared_categories:
+        if col not in tfc_grouped_df.columns:
+            tfc_grouped_df[col] = 'x'
+            
+    # Add the missing columns with 'x' as values in the same order as shared_categories
+    for col in shared_categories:
+        if col not in tfec_grouped_df.columns:
+            tfec_grouped_df[col] = 'x'
+
+    # Reorder the columns to match the order of shared_categories
+    tfc_ordered_columns = shared_categories + [col for col in tfc_grouped_df.columns if col not in shared_categories]
+
+    # Reorder the columns to match the order of shared_categories
+    tfec_ordered_columns = shared_categories + [col for col in tfec_grouped_df.columns if col not in shared_categories]
+
+    # Reorder the columns in grouped_df using the ordered_columns list
+    tfc_grouped_df = tfc_grouped_df[tfc_ordered_columns]
+
+    # Reorder the columns in grouped_df using the ordered_columns list
+    tfec_grouped_df = tfec_grouped_df[tfec_ordered_columns]
+
+    # Add the 'sectors' column with value '12_total_final_consumption'
+    tfc_grouped_df['sectors'] = '12_total_final_consumption'
+
+    # Add the 'sectors' column with value '13_total_final_energy_consumption'
+    tfec_grouped_df['sectors'] = '13_total_final_energy_consumption'
+
+    # Set the index for both DataFrames using the shared category columns
+    layout_df.set_index(shared_categories, inplace=True)
+    tfc_grouped_df.set_index(shared_categories, inplace=True)
+    tfec_grouped_df.set_index(shared_categories, inplace=True)
+
+    # Update the layout_df with the values from grouped_df
+    layout_df.update(tfc_grouped_df)
+    layout_df.update(tfec_grouped_df)
+
+    # Reset the index of the layout DataFrame
+    layout_df.reset_index(inplace=True)
+
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
+    date_today = datetime.now().strftime('%Y%m%d')
     if USE_SINGLE_ECONOMY:
-        layout_df.to_csv(f'results/merged_file_{SINGLE_ECONOMY}.csv', index=False)
+        layout_df.to_csv(f'results/merged_file_{SINGLE_ECONOMY+date_today}.csv', index=False)
     else:
-        layout_df.to_csv('results/merged_file.csv', index=False)
+        layout_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
         
     return layout_df
