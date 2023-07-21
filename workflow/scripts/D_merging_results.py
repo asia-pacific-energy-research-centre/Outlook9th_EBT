@@ -154,7 +154,8 @@ def merging_results(merged_df_clean_wide):
     new_layout_df = pd.concat([new_layout_df, tfc_grouped_df, tfec_grouped_df])
     
     #we couldnt get update to work so this is a test to try and see if we can get it to work:
-    # layout_df = test_update_function(layout_df, tfc_grouped_df, tfec_grouped_df, shared_categories, SINGLE_ECONOMY, SAVE_TEST_RESULTS_TO_CSV=True)
+    new_layout_df = layout_df.copy()
+    # new_layout_df = test_update_function(layout_df,new_layout_df, tfc_grouped_df, tfec_grouped_df, shared_categories, SINGLE_ECONOMY, SAVE_TEST_RESULTS_TO_CSV=True)
     
     # Reset the index of the layout DataFrame
     layout_df.reset_index(inplace=True)
