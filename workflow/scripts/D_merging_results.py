@@ -107,11 +107,18 @@ def merging_results(merged_df_clean_wide):
     tfec_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector']
     tfec_filtered_df = filtered_df[filtered_df['sectors'].isin(tfec_desired_sectors)].copy()
 
+    # Filter the 'sectors' column to include only the desired sectors
+    tpes_desired_sectors = ['9_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy','12_total_final_consumption']
+    tpes_filtered_df = filtered_df[filtered_df['sectors'].isin(tpes_desired_sectors)].copy()
+
     # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '12_total_final_consumption'
     tfc_grouped_df = tfc_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
 
     # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '13_total_final_energy_consumption'
     tfec_grouped_df = tfec_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+
+    # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '7_total_primary_energy_supply'
+    tpes_grouped_df = tpes_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
 
     # Add the missing columns with 'x' as values in the same order as shared_categories
     for col in shared_categories:
