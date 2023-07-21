@@ -6,6 +6,7 @@ import os
 import glob
 from datetime import datetime
 from utility_functions import *
+from tests import test_update_function
 
 # Specify the shared category columns in the desired order
 shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
@@ -140,16 +141,21 @@ def merging_results(merged_df_clean_wide):
 
     # Add the 'sectors' column with value '13_total_final_energy_consumption'
     tfec_grouped_df['sectors'] = '13_total_final_energy_consumption'
-
     # Set the index for both DataFrames using the shared category columns
     layout_df.set_index(shared_categories, inplace=True)
     tfc_grouped_df.set_index(shared_categories, inplace=True)
     tfec_grouped_df.set_index(shared_categories, inplace=True)
 
-    # Update the layout_df with the values from grouped_df
-    layout_df.update(tfc_grouped_df)
-    layout_df.update(tfec_grouped_df)
-
+    new_layout_df = layout_df.copy()
+    new_layout_df.reset_index(inplace=True)
+    new_layout_df = new_layout_df[~new_layout_df['sectors'].isin(['12_total_final_consumption', '13_total_final_energy_consumption'])]
+    new_layout_df.set_index(shared_categories, inplace=True)
+    #CONCAT
+    new_layout_df = pd.concat([new_layout_df, tfc_grouped_df, tfec_grouped_df])
+    
+    #we couldnt get update to work so this is a test to try and see if we can get it to work:
+    # layout_df = test_update_function(layout_df, tfc_grouped_df, tfec_grouped_df, shared_categories, SINGLE_ECONOMY, SAVE_TEST_RESULTS_TO_CSV=True)
+    
     # Reset the index of the layout DataFrame
     layout_df.reset_index(inplace=True)
 
@@ -162,3 +168,5 @@ def merging_results(merged_df_clean_wide):
         layout_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
         
     return layout_df
+
+
