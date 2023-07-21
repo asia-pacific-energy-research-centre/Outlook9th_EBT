@@ -28,6 +28,8 @@ def test_update_function(layout_df, new_layout_df,tfc_grouped_df, tfec_grouped_d
 
     if different_rows.empty:
         print("The two dataframes are equal when comparing using update to removeing then concating the values.")
+        #pivot the dfs back to the original format:
+        layout_df = layout_df.pivot(index=shared_categories, columns='year', values='value')
         return layout_df
     else:
         # Print the indices of the different rows
