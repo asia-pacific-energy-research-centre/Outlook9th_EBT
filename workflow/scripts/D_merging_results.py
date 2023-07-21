@@ -117,18 +117,26 @@ def merging_results(merged_df_clean_wide):
     # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '13_total_final_energy_consumption'
     tfec_grouped_df = tfec_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
 
-    # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '7_total_primary_energy_supply'
-    tpes_grouped_df = tpes_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+    # Filter numeric columns only in tpes_filtered_df
+    numeric_cols = tpes_filtered_df.select_dtypes(include=[np.number]).columns.tolist()
+
+    # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the absolute values in numeric columns
+    tpes_grouped_df = tpes_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels'])[numeric_cols].apply(lambda x: np.abs(x.sum())).reset_index()
 
     # Add the missing columns with 'x' as values in the same order as shared_categories
     for col in shared_categories:
         if col not in tfc_grouped_df.columns:
             tfc_grouped_df[col] = 'x'
-            
+
     # Add the missing columns with 'x' as values in the same order as shared_categories
     for col in shared_categories:
         if col not in tfec_grouped_df.columns:
             tfec_grouped_df[col] = 'x'
+
+    # Add the missing columns with 'x' as values in the same order as shared_categories
+    for col in shared_categories:
+        if col not in tpes_grouped_df.columns:
+            tpes_grouped_df[col] = 'x'
 
     # Reorder the columns to match the order of shared_categories
     tfc_ordered_columns = shared_categories + [col for col in tfc_grouped_df.columns if col not in shared_categories]
@@ -136,11 +144,17 @@ def merging_results(merged_df_clean_wide):
     # Reorder the columns to match the order of shared_categories
     tfec_ordered_columns = shared_categories + [col for col in tfec_grouped_df.columns if col not in shared_categories]
 
+    # Reorder the columns to match the order of shared_categories
+    tpes_ordered_columns = shared_categories + [col for col in tpes_grouped_df.columns if col not in shared_categories]
+
     # Reorder the columns in grouped_df using the ordered_columns list
     tfc_grouped_df = tfc_grouped_df[tfc_ordered_columns]
 
     # Reorder the columns in grouped_df using the ordered_columns list
     tfec_grouped_df = tfec_grouped_df[tfec_ordered_columns]
+
+    # Reorder the columns in grouped_df using the ordered_columns list
+    tpes_grouped_df = tpes_grouped_df[tpes_ordered_columns]
 
     # Add the 'sectors' column with value '12_total_final_consumption'
     tfc_grouped_df['sectors'] = '12_total_final_consumption'
@@ -148,14 +162,19 @@ def merging_results(merged_df_clean_wide):
     # Add the 'sectors' column with value '13_total_final_energy_consumption'
     tfec_grouped_df['sectors'] = '13_total_final_energy_consumption'
 
+    # Add the 'sectors' column with value '7_total_primary_energy_supply'
+    tpes_grouped_df['sectors'] = '7_total_primary_energy_supply'
+
     # Set the index for both DataFrames using the shared category columns
     layout_df.set_index(shared_categories, inplace=True)
     tfc_grouped_df.set_index(shared_categories, inplace=True)
     tfec_grouped_df.set_index(shared_categories, inplace=True)
+    tpes_grouped_df.set_index(shared_categories, inplace=True)
 
     # Update the layout_df with the values from grouped_df
     layout_df.update(tfc_grouped_df)
     layout_df.update(tfec_grouped_df)
+    layout_df.update(tpes_grouped_df)
 
     # Reset the index of the layout DataFrame
     layout_df.reset_index(inplace=True)
