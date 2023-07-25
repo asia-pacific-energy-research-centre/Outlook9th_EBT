@@ -10,7 +10,9 @@
 .vscode/settings.json
 env/
 
-
+**/archive/
+#DONT IGNORE ANY FILES IN config, even if they are xlsx or csv
+!config/*
 
 # User-specific files
 *.rsuser
