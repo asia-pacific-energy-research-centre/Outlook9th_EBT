@@ -22,10 +22,7 @@ def merging_results(merged_df_clean_wide):
 
     # layout_df = pd.read_csv(layout_file)
     layout_df = merged_df_clean_wide.copy()
-    
-    # Save the layout_df to a new CSV file
-    layout_df.to_csv("layout_df.csv", index=False)
-    
+
     #convert all col names to str since loaded csvs will have int columns
     layout_df.columns = layout_df.columns.astype(str)
     
@@ -115,9 +112,6 @@ def merging_results(merged_df_clean_wide):
 
         # Combine the results_df
         merged_results_df = pd.concat([merged_results_df, filtered_results_df])
-        
-        # Save the new_layout_df to a new CSV file
-        merged_results_df.to_csv("merged_results_df.csv", index=False)
 
 
     # Get the unique sectors from the results_df
@@ -131,9 +125,6 @@ def merging_results(merged_df_clean_wide):
 
 
 
-    # Save the new_layout_df to a new CSV file
-    new_layout_df.to_csv("new_layout_df.csv", index=False)
-
     # Drop columns 2021 to 2070 from new_layout_df
     columns_to_drop = [str(year) for year in range(2021, 2071)]
     new_layout_df.drop(columns=columns_to_drop, inplace=True)
@@ -141,20 +132,11 @@ def merging_results(merged_df_clean_wide):
     # Merge the new_layout_df with the results_df based on shared_categories
     merged_df = pd.merge(new_layout_df, merged_results_df, on=shared_categories, how="left")
 
-    # Save merged_df to a new CSV file
-    merged_df.to_csv('merged_df.csv', index=False)
-
-    # Save layout_df to a new CSV file
-    dropped_layout_df.to_csv('before_layout_df.csv', index=False)
 
     # Combine the original layout_df with the merged_df
     results_layout_df = pd.concat([dropped_layout_df, merged_df])
 
 
-
-
-    # Save layout_df to a new CSV file
-    results_layout_df.to_csv('after_layout_df.csv', index=False)
 
     #Check if new_layout_df and results_df have the same number of rows
     #assert new_layout_df.shape[0] == results_df.shape[0], f"Layout dataframe and {file} do not have the same number of rows.\nLayout dataframe rows: {new_layout_df.shape[0]}\n{file} rows: {results_df.shape[0]}"
@@ -239,9 +221,7 @@ def merging_results(merged_df_clean_wide):
 
     # Combine the grouped_df
     merged_grouped_df = pd.concat([tfc_grouped_df, tfec_grouped_df, tpes_grouped_df])
-    
-    # Save the new_layout_df to a new CSV file
-    merged_grouped_df.to_csv("merged_grouped_df.csv", index=False)
+
 
 
     # Get the unique sectors
@@ -256,14 +236,9 @@ def merging_results(merged_df_clean_wide):
 
     new_aggregate_layout_df.drop(columns=columns_to_drop, inplace=True)
 
-    # Save the new_layout_df to a new CSV file
-    new_aggregate_layout_df.to_csv("new_aggregate_layout_df.csv", index=False)
-
     # Merge the DataFrames based on the shared category columns
     aggregate_merged_df = new_aggregate_layout_df.merge(merged_grouped_df, on=shared_categories, how='left')
 
-    # Save the new_layout_df to a new CSV file
-    aggregate_merged_df.to_csv("aggregate_merged_df.csv", index=False)
 
     # Combine the original layout_df with the merged_df
     layout_df = pd.concat([dropped_aggregate_layout_df, aggregate_merged_df])
