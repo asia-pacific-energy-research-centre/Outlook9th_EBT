@@ -154,8 +154,60 @@ def merging_results(merged_df_clean_wide):
     historic_df = historic_df.groupby(shared_categories)['value'].sum().reset_index()
     predicted_df = predicted_df.groupby(shared_categories)['value'].sum().reset_index()
 
-    historic_df.to_csv('historic_df.csv', index=False)
-    predicted_df.to_csv('predicted_df.csv', index=False)
+    # Merge the two dataframes on 'shared_categories'
+    years_aggregated_df = pd.merge(historic_df, predicted_df, on=shared_categories, suffixes=('_historic', '_predicted'))
+
+    # Condition 1: 'value_historic' is not NA and not 0
+    condition1 = years_aggregated_df['value_historic'].notna() & (years_aggregated_df['value_historic'] != 0)
+
+    # Condition 2: The row has '19_total' in the 'fuels' column
+    condition2 = years_aggregated_df['fuels'].str.contains('19_total')
+
+    # Condition 3: There is at least one 'x' in the row
+    condition3 = years_aggregated_df.apply(lambda row: row.astype(str).str.contains('x').any(), axis=1)
+
+    # Condition 4: There is 'x' in the 'subfuels' column
+    condition4 = years_aggregated_df['subfuels'].str.contains('x')
+
+    # Condition 5: For each group of rows that have the same other_categories, check if there are multiple unique values in the 'subfuels' column
+    other_categories = [cat for cat in shared_categories if cat != 'subfuels']
+    condition5 = years_aggregated_df.groupby(other_categories)['subfuels'].transform('nunique') > 1
+
+    # Combine Condition 4 and Condition 5
+    condition4_and_5 = condition4 & condition5
+
+    # Condition 6: The 'value_historic' of rows where Condition 4 and Condition 5 are met equals the sum of 'value_historic' for the same combination of other_categories
+    sum_values = years_aggregated_df.groupby(other_categories)['value_historic'].transform('sum')
+    condition6 = years_aggregated_df['value_historic'] == sum_values
+    condition4_and_5_and_6 = condition4_and_5 & condition6
+
+    # Count how many 'x' there are in 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'
+    subsectors = ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']
+    x_count = years_aggregated_df[subsectors].apply(lambda x: x.str.contains('x')).sum(axis=1)
+
+    # For each x_count from 1 to 4, check for other 'subsectors' values and 'value_historic' equality
+    for i in range(1, 5):
+        # Condition 7: There is exactly i 'x' in the subsectors
+        condition7 = x_count == i
+
+        # Condition 8: If there is exactly i 'x', check if there are other 'subsectors' values for the same combination of other categories
+        other_categories_sub = [cat for cat in shared_categories if cat != subsectors[4 - i]]
+        condition8 = years_aggregated_df[condition7].groupby(other_categories_sub)[subsectors[4 - i]].transform('nunique') > 1
+        condition7_and_8 = condition7 & condition8
+
+        # Condition 9: If Condition 7 and Condition 8 are met, check if the 'value_historic' is equal to the sum of the 'value_historic' for the same conditions
+        condition9 = condition7_and_8 & (years_aggregated_df['value_historic'] == years_aggregated_df[condition7_and_8]['value_historic'].sum())
+
+        # Add the result to the 'subtotal' column
+        if i == 1:
+            years_aggregated_df['subtotal'] = condition1 | condition2 | condition3 | condition4_and_5_and_6 | condition9
+        else:
+            years_aggregated_df['subtotal'] = years_aggregated_df['subtotal'] | condition9
+
+
+
+
+    years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
 
 
 
