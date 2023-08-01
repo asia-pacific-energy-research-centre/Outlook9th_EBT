@@ -165,7 +165,7 @@ def merging_results(merged_df_clean_wide):
 
     # Overarching conditions
     overarching_conditions = condition1 & condition3
-    print("Number of rows that meet the overarching conditions: ", overarching_conditions.sum())
+    #print("Number of rows that meet the overarching conditions: ", overarching_conditions.sum())
 
     # Condition 2: The row has '19_total' in the 'fuels' column
     condition2 = years_aggregated_df['fuels'].str.contains('19_total')
@@ -184,25 +184,36 @@ def merging_results(merged_df_clean_wide):
     df_cond4 = years_aggregated_df[condition4].copy()
 
     # Print out the 'value_historic' values for each group of rows with the same combination of other_categories
-    df_cond4.groupby(other_categories)['value_historic'].apply(lambda x: print(x))
+    #df_cond4.groupby(other_categories)['value_historic'].apply(lambda x: print(x))
+
+
+    group_sizes = df_cond4.groupby(other_categories).size()
+    print(group_sizes)
+
 
     # Define a small tolerance
     tolerance = 1e-3
 
-    # For each row, compare its 'value_historic' to the sum of 'value_historic' for the same combination of other_categories (excluding itself)
-    df_cond4['sum_others'] = df_cond4.groupby(other_categories)['value_historic'].transform(lambda x: x.sum() - x)
+    # Calculate the total sum for each group
+    group_sums = df_cond4.groupby(other_categories)['value_historic'].transform('sum')
+
+    # Subtract each value from the total sum of its group to get the sum of the other elements
+    sum_others_series = group_sums - df_cond4['value_historic']
+
+    # Add the new series to the dataframe
+    df_cond4['sum_others'] = sum_others_series
 
     # Print out 'value_historic' and 'sum_others' for each row
-    for idx, row in df_cond4.iterrows():
-        print(f"Row {idx} - Value: {row['value_historic']}, Sum of Others: {row['sum_others']}")
+    # for idx, row in df_cond4.iterrows():
+    #     print(f"Row {idx} - Value: {row['value_historic']}, Sum of Others: {row['sum_others']}")
 
     # Apply condition 5 
     condition5 = np.isclose(df_cond4['value_historic'], df_cond4['sum_others'], rtol=tolerance, atol=tolerance)
 
 
     # Print Condition 5
-    print("\nCondition 5:")
-    print(condition5)
+    # print("\nCondition 5:")
+    # print(condition5)
 
 
     # Update 'condition5' column in the DataFrame
@@ -250,7 +261,7 @@ def merging_results(merged_df_clean_wide):
     years_aggregated_df['subtotal'] = condition4 #& (condition2 | condition4_and_5_and_6)
 
     # Print the number of rows where 'subtotal' is True
-    print("Number of rows where 'subtotal' is True: ", years_aggregated_df['subtotal'].sum())
+    # print("Number of rows where 'subtotal' is True: ", years_aggregated_df['subtotal'].sum())
 
 
 
