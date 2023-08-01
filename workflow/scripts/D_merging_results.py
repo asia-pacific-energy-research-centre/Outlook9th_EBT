@@ -171,27 +171,34 @@ def merging_results(merged_df_clean_wide):
     condition2 = years_aggregated_df['fuels'].str.contains('19_total')
 
     # Condition 4: The 'subfuels' column is exactly 'x'
-    condition4 = (years_aggregated_df['subfuels'] == 'x') & years_aggregated_df['value_historic'].notna() & (years_aggregated_df['value_historic'] != 0) & (years_aggregated_df['fuels'] != '19_total')
+    condition4 = (years_aggregated_df['subfuels'] == 'x') & \
+                years_aggregated_df['value_historic'].notna() & \
+                (years_aggregated_df['value_historic'] != 0) & \
+                ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
 
     # # Condition 5: For each group of rows that have the same other_categories, check if there are multiple unique values in the 'subfuels' column
     other_categories = [cat for cat in shared_categories if cat != 'subfuels']
 
-    # Select rows that meet condition4 and columns that are in 'other_categories'
-    df_cond4 = years_aggregated_df[condition4][other_categories + ['value_historic']]
 
-    # Print the selected rows
-    print("Rows that meet Condition 4:")
-    print(df_cond4)
+    # Apply condition 5 only to the rows that meet condition 4
+    df_cond4 = years_aggregated_df[condition4].copy()
 
-    # Calculate the sum of 'value_historic' for each combination of other_categories, excluding the current row
-    grouped_sums = df_cond4.groupby(other_categories)['value_historic'].transform(lambda x: x.sum() - x)
+    # Print out the 'value_historic' values for each group of rows with the same combination of other_categories
+    df_cond4.groupby(other_categories)['value_historic'].apply(lambda x: print(x))
 
-    # Print the calculated sums
-    print("\nCalculated sums of 'value_historic' for each combination of other_categories, excluding the current row:")
-    print(grouped_sums)
+    # Define a small tolerance
+    tolerance = 1e-3
 
-    # Check if 'value_historic' equals the calculated sum for the same combination of other_categories
-    condition5 = df_cond4['value_historic'] == grouped_sums
+    # For each row, compare its 'value_historic' to the sum of 'value_historic' for the same combination of other_categories (excluding itself)
+    df_cond4['sum_others'] = df_cond4.groupby(other_categories)['value_historic'].transform(lambda x: x.sum() - x)
+
+    # Print out 'value_historic' and 'sum_others' for each row
+    for idx, row in df_cond4.iterrows():
+        print(f"Row {idx} - Value: {row['value_historic']}, Sum of Others: {row['sum_others']}")
+
+    # Apply condition 5 
+    condition5 = np.isclose(df_cond4['value_historic'], df_cond4['sum_others'], rtol=tolerance, atol=tolerance)
+
 
     # Print Condition 5
     print("\nCondition 5:")
