@@ -170,46 +170,38 @@ def merging_results(merged_df_clean_wide):
     # Condition 2: The row has '19_total' in the 'fuels' column
     condition2 = years_aggregated_df['fuels'].str.contains('19_total')
 
+
     # Condition 4: The 'subfuels' column is exactly 'x'
     condition4 = (years_aggregated_df['subfuels'] == 'x') & \
                 years_aggregated_df['value_historic'].notna() & \
                 (years_aggregated_df['value_historic'] != 0) & \
                 ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
 
-    # # Condition 5: For each group of rows that have the same other_categories, check if there are multiple unique values in the 'subfuels' column
+    # Condition 5: For each group of rows that have the same other_categories, check if there are multiple unique values in the 'subfuels' column
     other_categories = [cat for cat in shared_categories if cat != 'subfuels']
 
-
-    # Apply condition 5 only to the rows that meet condition 4
+    # Apply condition 4
     df_cond4 = years_aggregated_df[condition4].copy()
 
-    # Print out the 'value_historic' values for each group of rows with the same combination of other_categories
-    #df_cond4.groupby(other_categories)['value_historic'].apply(lambda x: print(x))
+    grouped_data = df_cond4.groupby(other_categories)
 
+    # Function to check if the sum of 'value_historic' for all rows is equal to the 'value_historic' where 'subfuels' is 'x'
+    def check_totals(group):
+        total_row = group[group['subfuels'] == 'x']
+        other_rows = group[group['subfuels'] != 'x']
 
-    group_sizes = df_cond4.groupby(other_categories).size()
-    print(group_sizes)
+        if not total_row.empty:
+            total_value = total_row['value_historic'].values[0]
+            sum_others = other_rows['value_historic'].sum()
 
+            # You can adjust this tolerance as needed
+            tolerance = 1e-3 
 
-    # Define a small tolerance
-    tolerance = 1e-3
+            if not np.isclose(total_value, sum_others, rtol=tolerance):
+                print(f"Discrepancy detected in group {group.name}: expected total {total_value}, but got {sum_others}.")
 
-    # Calculate the total sum for each group
-    group_sums = df_cond4.groupby(other_categories)['value_historic'].transform('sum')
-
-    # Subtract each value from the total sum of its group to get the sum of the other elements
-    sum_others_series = group_sums - df_cond4['value_historic']
-
-    # Add the new series to the dataframe
-    df_cond4['sum_others'] = sum_others_series
-
-    # Print out 'value_historic' and 'sum_others' for each row
-    # for idx, row in df_cond4.iterrows():
-    #     print(f"Row {idx} - Value: {row['value_historic']}, Sum of Others: {row['sum_others']}")
-
-    # Apply condition 5 
-    condition5 = np.isclose(df_cond4['value_historic'], df_cond4['sum_others'], rtol=tolerance, atol=tolerance)
-
+    # Apply the function to each group
+    grouped_data.apply(check_totals)
 
     # Print Condition 5
     # print("\nCondition 5:")
