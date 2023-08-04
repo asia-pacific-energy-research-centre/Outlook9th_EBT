@@ -66,6 +66,10 @@ def merging_results(merged_df_clean_wide):
         # Convert columns to string type
         results_df.columns = results_df.columns.astype(str)
 
+        # # Keep columns from '2021' to '2070'
+        # years_to_keep = [str(year) for year in range(2021, 2071)]
+        # results_df = results_df[shared_categories + years_to_keep]
+
         #filter for only economies in the layout file:
         results_df = results_df[results_df['economy'].isin(economies)]
 
