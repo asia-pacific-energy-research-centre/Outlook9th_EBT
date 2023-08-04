@@ -123,6 +123,8 @@ def merging_results(merged_df_clean_wide):
 
     # Create a new DataFrame with rows that match the sectors from the results DataFrame
     new_layout_df = layout_df[layout_df['sectors'].isin(sectors_list)].copy()
+    print("Number of rows in new_layout_df:", new_layout_df.shape[0])
+    print("Number of rows in merged_results_df:", merged_results_df.shape[0])
 
     # Drop the rows that were updated in the new DataFrame from the original layout DataFrame
     dropped_layout_df = layout_df[~layout_df['sectors'].isin(sectors_list)].copy()
@@ -133,9 +135,25 @@ def merging_results(merged_df_clean_wide):
     columns_to_drop = [str(year) for year in range(2021, 2071)]
     new_layout_df.drop(columns=columns_to_drop, inplace=True)
 
-    # Merge the new_layout_df with the results_df based on shared_categories
+    # Merge the new_layout_df with the merged_results_df based on shared_categories using left merge
     merged_df = pd.merge(new_layout_df, merged_results_df, on=shared_categories, how="left")
 
+    # Check for duplicate rows in merged_results_df
+    duplicates = merged_results_df[merged_results_df.duplicated(subset=shared_categories, keep=False)]
+
+    # Check if there are any unexpected extra rows in merged_df
+    unexpected_rows = merged_df[~merged_df.index.isin(new_layout_df.index)]
+
+    # Print the number of rows in both dataframes
+    print("Number of rows in new_layout_df:", new_layout_df.shape[0])
+    print("Number of rows in merged_results_df:", merged_results_df.shape[0])
+    print("Number of rows in merged_df:", merged_df.shape[0])
+
+    # Print any duplicates and unexpected rows
+    print("Duplicates in merged_results_df:")
+    print(duplicates)
+    # print("Unexpected rows in merged_df:")
+    # print(unexpected_rows)
 
     # Combine the original layout_df with the merged_df
     results_layout_df = pd.concat([dropped_layout_df, merged_df])
