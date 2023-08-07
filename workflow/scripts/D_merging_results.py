@@ -40,7 +40,7 @@ def merging_results(merged_df_clean_wide):
     # columns = shared_categories + columns_2021_to_2070
 
     # Create an empty merged_results_df with the shared_categories
-    merged_results_df = pd.DataFrame()
+    merged_results_df = pd.DataFrame(columns=shared_categories)
 
 
     # Define the path pattern for the results data files
@@ -66,9 +66,9 @@ def merging_results(merged_df_clean_wide):
         # Convert columns to string type
         results_df.columns = results_df.columns.astype(str)
 
-        # # Keep columns from '2021' to '2070'
-        # years_to_keep = [str(year) for year in range(2021, 2071)]
-        # results_df = results_df[shared_categories + years_to_keep]
+        # Keep columns from '2021' to '2070'
+        years_to_keep = [str(year) for year in range(2021, 2071)]
+        results_df = results_df[shared_categories + years_to_keep]
 
         #filter for only economies in the layout file:
         results_df = results_df[results_df['economy'].isin(economies)]
@@ -117,14 +117,16 @@ def merging_results(merged_df_clean_wide):
         # Combine the results_df
         merged_results_df = pd.concat([merged_results_df, filtered_results_df])
 
+        #merged_results_df = merged_results_df.merge(filtered_results_df, on=shared_categories, how='left')
+
 
     # Get the unique sectors from the results_df
     sectors_list = merged_results_df['sectors'].unique().tolist()
 
     # Create a new DataFrame with rows that match the sectors from the results DataFrame
     new_layout_df = layout_df[layout_df['sectors'].isin(sectors_list)].copy()
-    print("Number of rows in new_layout_df:", new_layout_df.shape[0])
-    print("Number of rows in merged_results_df:", merged_results_df.shape[0])
+    # print("Number of rows in new_layout_df:", new_layout_df.shape[0])
+    # print("Number of rows in merged_results_df:", merged_results_df.shape[0])
 
     # Drop the rows that were updated in the new DataFrame from the original layout DataFrame
     dropped_layout_df = layout_df[~layout_df['sectors'].isin(sectors_list)].copy()
@@ -135,11 +137,25 @@ def merging_results(merged_df_clean_wide):
     columns_to_drop = [str(year) for year in range(2021, 2071)]
     new_layout_df.drop(columns=columns_to_drop, inplace=True)
 
+    # Drop rows with NA or zeros in the year columns from merged_results_df
+    year_columns = [str(year) for year in range(2021, 2071)]
+    merged_results_df.dropna(subset=year_columns, how='all', inplace=True)
+    merged_results_df = merged_results_df.loc[~(merged_results_df[year_columns] == 0).all(axis=1)]
+
+    # Check for duplicate rows in merged_results_df based on shared_categories
+    duplicates = merged_results_df[merged_results_df.duplicated(subset=shared_categories, keep=False)]
+
+    # Remove the duplicate rows from merged_results_df
+    merged_results_df = merged_results_df.drop_duplicates(subset=shared_categories, keep='first').copy()
+
+    # Print the updated number of rows in merged_results_df
+    print("Number of rows in merged_results_df after removing rows without year values and duplicates:", merged_results_df.shape[0])
+
     # Merge the new_layout_df with the merged_results_df based on shared_categories using left merge
     merged_df = pd.merge(new_layout_df, merged_results_df, on=shared_categories, how="left")
 
-    # Check for duplicate rows in merged_results_df
-    duplicates = merged_results_df[merged_results_df.duplicated(subset=shared_categories, keep=False)]
+    # # Check for duplicate rows in merged_results_df
+    # duplicates = merged_results_df[merged_results_df.duplicated(subset=shared_categories, keep=False)]
 
     # Check if there are any unexpected extra rows in merged_df
     unexpected_rows = merged_df[~merged_df.index.isin(new_layout_df.index)]
@@ -152,6 +168,7 @@ def merging_results(merged_df_clean_wide):
     # Print any duplicates and unexpected rows
     print("Duplicates in merged_results_df:")
     print(duplicates)
+    #duplicates.to_csv("duplicates.csv")
     # print("Unexpected rows in merged_df:")
     # print(unexpected_rows)
 
