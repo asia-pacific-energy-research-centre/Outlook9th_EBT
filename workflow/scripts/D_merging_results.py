@@ -42,9 +42,15 @@ def merging_results(merged_df_clean_wide):
     # Create an empty merged_results_df with the shared_categories
     merged_results_df = pd.DataFrame(columns=shared_categories)
 
+    if USE_SINGLE_ECONOMY:
+        # Define the path pattern for the results data files
+        results_data_path = 'data/demand_results_data/'+SINGLE_ECONOMY+'/*'
+        print(results_data_path)
+    else:
+        print("Not implemented yet.")
 
     # Define the path pattern for the results data files
-    results_data_path = 'data/demand_results_data/*'
+    #results_data_path = 'data/demand_results_data/*'
 
     # Get a list of all matching results data file paths
     results_data_files = glob.glob(results_data_path)
@@ -147,7 +153,7 @@ def merging_results(merged_df_clean_wide):
 
     # Remove the duplicate rows from merged_results_df
     merged_results_df = merged_results_df.drop_duplicates(subset=shared_categories, keep='first').copy()
-
+ 
     # Print the updated number of rows in merged_results_df
     print("Number of rows in merged_results_df after removing rows without year values and duplicates:", merged_results_df.shape[0])
 
