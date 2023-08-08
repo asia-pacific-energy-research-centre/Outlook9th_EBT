@@ -288,11 +288,19 @@ def merging_results(merged_df_clean_wide):
     # Combine the original layout_df with the merged_df
     layout_df = pd.concat([dropped_aggregate_layout_df, aggregate_merged_df])
 
+    # Define the folder path where you want to save the file
+    folder_path = f'results/{SINGLE_ECONOMY}'
+
+    # Check if the folder already exists
+    if not os.path.exists(folder_path):
+        # If the folder doesn't exist, create it
+        os.makedirs(folder_path)
+
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
     date_today = datetime.now().strftime('%Y%m%d')
     if USE_SINGLE_ECONOMY:
-        layout_df.to_csv(f'results/merged_file_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
+        layout_df.to_csv(f'{folder_path}/merged_file_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
     else:
         layout_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
         
