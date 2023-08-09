@@ -40,11 +40,17 @@ def merging_results(merged_df_clean_wide):
     # columns = shared_categories + columns_2021_to_2070
 
     # Create an empty merged_results_df with the shared_categories
-    merged_results_df = pd.DataFrame()
+    merged_results_df = pd.DataFrame(columns=shared_categories)
 
+    if USE_SINGLE_ECONOMY:
+        # Define the path pattern for the results data files
+        results_data_path = 'data/demand_results_data/'+SINGLE_ECONOMY+'/*'
+        print(results_data_path)
+    else:
+        print("Not implemented yet.")
 
     # Define the path pattern for the results data files
-    results_data_path = 'data/demand_results_data/*'
+    #results_data_path = 'data/demand_results_data/*'
 
     # Get a list of all matching results data file paths
     results_data_files = glob.glob(results_data_path)
