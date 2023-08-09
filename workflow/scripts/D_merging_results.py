@@ -229,7 +229,7 @@ def merging_results(merged_df_clean_wide):
 
     # # Print the number of rows that meet Condition 6
     print("Number of rows that meet Condition 4: ", condition4.sum())
-    print("Number of rows that meet Condition 5: ", condition5.sum())
+    #print("Number of rows that meet Condition 5: ", condition5.sum())
     # condition4_and_5_and_6.to_csv('condition4_and_5_and_6.csv')
 
     # Count how many 'x' there are in 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'
