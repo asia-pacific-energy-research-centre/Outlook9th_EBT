@@ -72,6 +72,10 @@ def merging_results(merged_df_clean_wide):
         # Convert columns to string type
         results_df.columns = results_df.columns.astype(str)
 
+        # Keep columns from '2021' to '2070'
+        years_to_keep = [str(year) for year in range(2021, 2071)]
+        results_df = results_df[shared_categories + years_to_keep]
+
         #filter for only economies in the layout file:
         results_df = results_df[results_df['economy'].isin(economies)]
 
@@ -119,12 +123,16 @@ def merging_results(merged_df_clean_wide):
         # Combine the results_df
         merged_results_df = pd.concat([merged_results_df, filtered_results_df])
 
+        #merged_results_df = merged_results_df.merge(filtered_results_df, on=shared_categories, how='left')
+
 
     # Get the unique sectors from the results_df
     sectors_list = merged_results_df['sectors'].unique().tolist()
 
     # Create a new DataFrame with rows that match the sectors from the results DataFrame
     new_layout_df = layout_df[layout_df['sectors'].isin(sectors_list)].copy()
+    # print("Number of rows in new_layout_df:", new_layout_df.shape[0])
+    # print("Number of rows in merged_results_df:", merged_results_df.shape[0])
 
     # Drop the rows that were updated in the new DataFrame from the original layout DataFrame
     dropped_layout_df = layout_df[~layout_df['sectors'].isin(sectors_list)].copy()
@@ -135,16 +143,48 @@ def merging_results(merged_df_clean_wide):
     columns_to_drop = [str(year) for year in range(2021, 2071)]
     new_layout_df.drop(columns=columns_to_drop, inplace=True)
 
-    # Merge the new_layout_df with the results_df based on shared_categories
+    # Drop rows with NA or zeros in the year columns from merged_results_df
+    year_columns = [str(year) for year in range(2021, 2071)]
+    merged_results_df.dropna(subset=year_columns, how='all', inplace=True)
+    merged_results_df = merged_results_df.loc[~(merged_results_df[year_columns] == 0).all(axis=1)]
+
+    # Check for duplicate rows in merged_results_df based on shared_categories
+    duplicates = merged_results_df[merged_results_df.duplicated(subset=shared_categories, keep=False)]
+
+    # Remove the duplicate rows from merged_results_df
+    merged_results_df = merged_results_df.drop_duplicates(subset=shared_categories, keep='first').copy()
+ 
+    # Print the updated number of rows in merged_results_df
+    print("Number of rows in merged_results_df after removing rows without year values and duplicates:", merged_results_df.shape[0])
+
+    # Merge the new_layout_df with the merged_results_df based on shared_categories using left merge
     merged_df = pd.merge(new_layout_df, merged_results_df, on=shared_categories, how="left")
 
+    # # Check for duplicate rows in merged_results_df
+    # duplicates = merged_results_df[merged_results_df.duplicated(subset=shared_categories, keep=False)]
+
+    # Check if there are any unexpected extra rows in merged_df
+    unexpected_rows = merged_df[~merged_df.index.isin(new_layout_df.index)]
+
+    # Print the number of rows in both dataframes
+    print("Number of rows in new_layout_df:", new_layout_df.shape[0])
+    print("Number of rows in merged_results_df:", merged_results_df.shape[0])
+    print("Number of rows in merged_df:", merged_df.shape[0])
+
+    # Print any duplicates and unexpected rows
+    print("Duplicates in merged_results_df:")
+    print(duplicates)
+    #duplicates.to_csv("duplicates.csv")
+    # print("Unexpected rows in merged_df:")
+    # print(unexpected_rows)
 
     # Combine the original layout_df with the merged_df
     results_layout_df = pd.concat([dropped_layout_df, merged_df])
 
 
 
-    # Melt the DataFramew
+
+    # Melt the DataFrame
     df_melted = results_layout_df.melt(id_vars=shared_categories, var_name='year', value_name='value')
     df_melted['year'] = df_melted['year'].astype(int)
 
@@ -175,61 +215,6 @@ def merging_results(merged_df_clean_wide):
 
     # Condition 2: The row has '19_total' in the 'fuels' column
     condition2 = years_aggregated_df['fuels'].str.contains('19_total')
-
-
-    # # Condition 4: The 'subfuels' column is exactly 'x'
-    # condition4 = (years_aggregated_df['subfuels'] == 'x') & \
-    #             years_aggregated_df['value_historic'].notna() & \
-    #             (years_aggregated_df['value_historic'] != 0) & \
-    #             ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-
-    # # Condition 5: For each group of rows that have the same other_categories, check if there are multiple unique values in the 'subfuels' column
-    # other_categories = [cat for cat in shared_categories if cat != 'subfuels']
-
-    # # Condition 4: This is just to exclude certain fuel types
-    # exclude_fuels_condition = ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-
-    # # We use the entire dataset filtered only by fuels condition
-    # filtered_df = years_aggregated_df[exclude_fuels_condition].copy()
-
-    # # Add the result to the 'subtotal' column
-    # #years_aggregated_df['subtotal'] = condition4
-
-    # # We use the same categories to group the dataframe
-    # grouped_data = filtered_df.groupby(other_categories)
-
-    # # Initialize the subtotal column with False values
-    # years_aggregated_df['subtotal'] = False
-
-    # # Function to check if the sum of 'value_historic' for all rows where subfuels isn't 'x' is equal to the 'value_historic' where 'subfuels' is 'x'
-    # def check_totals(group):
-    #     total_row = group[group['subfuels'] == 'x']
-    #     other_rows = group[group['subfuels'] != 'x']
-
-    #     if not total_row.empty:
-    #         total_value = total_row['value_historic'].values[0]
-    #         sum_others = other_rows['value_historic'].sum()
-
-    #         idx = total_row.index[0]
-
-    #         # Adjust this tolerance as needed
-    #         tolerance = 1e-3 
-
-    #         # Check Condition 4 for the current row
-    #         meets_condition4 = (
-    #             (total_row['subfuels'].values[0] == 'x') and
-    #             (total_row['value_historic'].notna().values[0]) and
-    #             (total_row['value_historic'].values[0] != 0) and
-    #             total_row['fuels'].values[0] not in ['19_total', '20_total_renewables', '21_modern_renewables']
-    #         )
-
-    #         # If the totals match and the row meets Condition 4, set the 'subtotal' column for that row to True
-    #         if np.isclose(total_value, sum_others, rtol=tolerance) and meets_condition4:
-    #             years_aggregated_df.at[idx, 'subtotal'] = True
-
-
-    # # Apply the function to each group
-    # grouped_data.apply(check_totals)
 
 
     # Condition for subfuels
@@ -318,65 +303,8 @@ def merging_results(merged_df_clean_wide):
         (condition_sub2sectors & subtotal_sub2sectors) |
         (condition_sub1sectors & subtotal_sub1sectors)
     ) & overarching_conditions | condition2
-    # Print Condition 5
-    # print("\nCondition 5:")
-    # print(condition5)
 
-
-    # Update 'condition5' column in the DataFrame
-    #years_aggregated_df.loc[condition4, 'condition5'] = condition5
-
-    # Condition 6: The 'value_historic' of rows where Condition 4 and Condition 5 are met equals the sum of 'value_historic' for the same combination of other_categories
-    #sum_values = years_aggregated_df.groupby(other_categories)['value_historic'].transform('sum')
-    # modified condition 6
-    # Get the rows that meet condition 5
-    # df_cond5 = years_aggregated_df[condition5]
-
-    # # Apply condition 6 only to the rows that meet condition 5
-    # condition6 = (df_cond5['subfuels'] == 'x') & (df_cond5.groupby(other_categories)['value_historic'].transform(lambda x: x[df_cond5['subfuels'] != 'x'].sum()) == df_cond5['value_historic'])
-    # condition4_and_5_and_6 = condition4_and_5 & condition6
-
-    # # Print the number of rows that meet Condition 6
-    #print("Number of rows that meet Condition 4: ", condition4.sum())
-    #print("Number of rows that meet Condition 5: ", condition5.sum())
-    # condition4_and_5_and_6.to_csv('condition4_and_5_and_6.csv')
-
-    # Count how many 'x' there are in 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'
-    subsectors = ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']
-    x_count = years_aggregated_df[subsectors].apply(lambda x: x.str.contains('x')).sum(axis=1)
-
-    # Initialize a series to store the results for condition 9
-    condition9_results = pd.Series(False, index=years_aggregated_df.index)
-
-    # # For each x_count from 1 to 4, check for other 'subsectors' values and 'value_historic' equality
-    # for i in range(1, 5):
-    #     # Condition 7: There is exactly i 'x' in the subsectors
-    #     condition7 = x_count == i
-
-    #     # Condition 8: If there is exactly i 'x', check if there are other 'subsectors' values for the same combination of other categories
-    #     other_categories_sub = [cat for cat in shared_categories if cat != subsectors[4 - i]]
-    #     condition8 = years_aggregated_df[condition7].groupby(other_categories_sub)[subsectors[4 - i]].transform('nunique') > 1
-    #     condition7_and_8 = condition7 & condition8
-
-    #     # Condition 9: If Condition 7 and Condition 8 are met, check if the 'value_historic' is equal to the sum of the 'value_historic' for the same conditions
-    #     condition9 = condition7_and_8 & (years_aggregated_df['value_historic'] == years_aggregated_df[condition7_and_8]['value_historic'].sum())
-
-    #     # Store the results for condition 9
-    #     condition9_results = condition9_results | condition9
-
-    # Add the result to the 'subtotal' column
-    #years_aggregated_df['subtotal'] = condition4 #& (condition2 | condition4_and_5_and_6)
-
-    # Print the number of rows where 'subtotal' is True
-    # print("Number of rows where 'subtotal' is True: ", years_aggregated_df['subtotal'].sum())
-
-
-
-    years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
-
-
-
-
+    #years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
 
 
     #Check if new_layout_df and results_df have the same number of rows
@@ -384,113 +312,120 @@ def merging_results(merged_df_clean_wide):
 
 
 
-    # # Define the year range to drop
-    # year_range = range(1980, 2021)
+    # Define the year range to drop
+    year_range = range(1980, 2021)
 
-    # # Create a list of columns to drop
-    # aggregating_columns_to_drop = ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'] + [str(year) for year in year_range if str(year) in layout_df.columns]
+    # Create a list of columns to drop
+    aggregating_columns_to_drop = ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'] + [str(year) for year in year_range if str(year) in layout_df.columns]
 
-    # # Drop the specified columns and year columns from the layout_df DataFrame
-    # filtered_df = results_layout_df.drop(aggregating_columns_to_drop, axis=1).copy()
+    # Drop the specified columns and year columns from the layout_df DataFrame
+    filtered_df = results_layout_df.drop(aggregating_columns_to_drop, axis=1).copy()
 
-    # # Filter the 'sectors' column to include only the desired sectors
-    # tfc_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use']
-    # tfc_filtered_df = filtered_df[filtered_df['sectors'].isin(tfc_desired_sectors)].copy()
+    # Filter the 'sectors' column to include only the desired sectors
+    tfc_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use']
+    tfc_filtered_df = filtered_df[filtered_df['sectors'].isin(tfc_desired_sectors)].copy()
 
-    # # Filter the 'sectors' column to include only the desired sectors
-    # tfec_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector']
-    # tfec_filtered_df = filtered_df[filtered_df['sectors'].isin(tfec_desired_sectors)].copy()
+    # Filter the 'sectors' column to include only the desired sectors
+    tfec_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector']
+    tfec_filtered_df = filtered_df[filtered_df['sectors'].isin(tfec_desired_sectors)].copy()
 
-    # # Filter the 'sectors' column to include only the desired sectors
-    # tpes_desired_sectors = ['9_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy','12_total_final_consumption']
-    # tpes_filtered_df = filtered_df[filtered_df['sectors'].isin(tpes_desired_sectors)].copy()
+    # Filter the 'sectors' column to include only the desired sectors
+    tpes_desired_sectors = ['9_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy','12_total_final_consumption']
+    tpes_filtered_df = filtered_df[filtered_df['sectors'].isin(tpes_desired_sectors)].copy()
 
-    # # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '12_total_final_consumption'
-    # tfc_grouped_df = tfc_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+    # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '12_total_final_consumption'
+    tfc_grouped_df = tfc_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
 
-    # # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '13_total_final_energy_consumption'
-    # tfec_grouped_df = tfec_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+    # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '13_total_final_energy_consumption'
+    tfec_grouped_df = tfec_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
 
-    # # Filter numeric columns only in tpes_filtered_df
-    # numeric_cols = tpes_filtered_df.select_dtypes(include=[np.number]).columns.tolist()
+    # Filter numeric columns only in tpes_filtered_df
+    numeric_cols = tpes_filtered_df.select_dtypes(include=[np.number]).columns.tolist()
 
-    # # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the absolute values in numeric columns
-    # tpes_grouped_df = tpes_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels'])[numeric_cols].apply(lambda x: np.abs(x.sum())).reset_index()
+    # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the absolute values in numeric columns
+    tpes_grouped_df = tpes_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels'])[numeric_cols].apply(lambda x: np.abs(x.sum())).reset_index()
 
-    # # Add the missing columns with 'x' as values in the same order as shared_categories
-    # for col in shared_categories:
-    #     if col not in tfc_grouped_df.columns:
-    #         tfc_grouped_df[col] = 'x'
+    # Add the missing columns with 'x' as values in the same order as shared_categories
+    for col in shared_categories:
+        if col not in tfc_grouped_df.columns:
+            tfc_grouped_df[col] = 'x'
 
-    # # Add the missing columns with 'x' as values in the same order as shared_categories
-    # for col in shared_categories:
-    #     if col not in tfec_grouped_df.columns:
-    #         tfec_grouped_df[col] = 'x'
+    # Add the missing columns with 'x' as values in the same order as shared_categories
+    for col in shared_categories:
+        if col not in tfec_grouped_df.columns:
+            tfec_grouped_df[col] = 'x'
 
-    # # Add the missing columns with 'x' as values in the same order as shared_categories
-    # for col in shared_categories:
-    #     if col not in tpes_grouped_df.columns:
-    #         tpes_grouped_df[col] = 'x'
+    # Add the missing columns with 'x' as values in the same order as shared_categories
+    for col in shared_categories:
+        if col not in tpes_grouped_df.columns:
+            tpes_grouped_df[col] = 'x'
 
-    # # Reorder the columns to match the order of shared_categories
-    # tfc_ordered_columns = shared_categories + [col for col in tfc_grouped_df.columns if col not in shared_categories]
+    # Reorder the columns to match the order of shared_categories
+    tfc_ordered_columns = shared_categories + [col for col in tfc_grouped_df.columns if col not in shared_categories]
 
-    # # Reorder the columns to match the order of shared_categories
-    # tfec_ordered_columns = shared_categories + [col for col in tfec_grouped_df.columns if col not in shared_categories]
+    # Reorder the columns to match the order of shared_categories
+    tfec_ordered_columns = shared_categories + [col for col in tfec_grouped_df.columns if col not in shared_categories]
 
-    # # Reorder the columns to match the order of shared_categories
-    # tpes_ordered_columns = shared_categories + [col for col in tpes_grouped_df.columns if col not in shared_categories]
+    # Reorder the columns to match the order of shared_categories
+    tpes_ordered_columns = shared_categories + [col for col in tpes_grouped_df.columns if col not in shared_categories]
 
-    # # Reorder the columns in grouped_df using the ordered_columns list
-    # tfc_grouped_df = tfc_grouped_df[tfc_ordered_columns]
+    # Reorder the columns in grouped_df using the ordered_columns list
+    tfc_grouped_df = tfc_grouped_df[tfc_ordered_columns]
 
-    # # Reorder the columns in grouped_df using the ordered_columns list
-    # tfec_grouped_df = tfec_grouped_df[tfec_ordered_columns]
+    # Reorder the columns in grouped_df using the ordered_columns list
+    tfec_grouped_df = tfec_grouped_df[tfec_ordered_columns]
 
-    # # Reorder the columns in grouped_df using the ordered_columns list
-    # tpes_grouped_df = tpes_grouped_df[tpes_ordered_columns]
+    # Reorder the columns in grouped_df using the ordered_columns list
+    tpes_grouped_df = tpes_grouped_df[tpes_ordered_columns]
 
-    # # Add the 'sectors' column with value '12_total_final_consumption'
-    # tfc_grouped_df['sectors'] = '12_total_final_consumption'
+    # Add the 'sectors' column with value '12_total_final_consumption'
+    tfc_grouped_df['sectors'] = '12_total_final_consumption'
 
-    # # Add the 'sectors' column with value '13_total_final_energy_consumption'
-    # tfec_grouped_df['sectors'] = '13_total_final_energy_consumption'
+    # Add the 'sectors' column with value '13_total_final_energy_consumption'
+    tfec_grouped_df['sectors'] = '13_total_final_energy_consumption'
 
-    # # Add the 'sectors' column with value '07_total_primary_energy_supply'
-    # tpes_grouped_df['sectors'] = '07_total_primary_energy_supply'
-
-
-    # # Combine the grouped_df
-    # merged_grouped_df = pd.concat([tfc_grouped_df, tfec_grouped_df, tpes_grouped_df])
+    # Add the 'sectors' column with value '07_total_primary_energy_supply'
+    tpes_grouped_df['sectors'] = '07_total_primary_energy_supply'
 
 
-
-    # # Get the unique sectors
-    # aggregate_sectors_list = merged_grouped_df['sectors'].unique().tolist()
-
-    # # Create a new DataFrame with rows that match the sectors from the results DataFrame
-    # new_aggregate_layout_df = results_layout_df[results_layout_df['sectors'].isin(aggregate_sectors_list)].copy()
-
-    # # Drop the rows that were updated in the new DataFrame from the original layout DataFrame
-    # dropped_aggregate_layout_df = results_layout_df[~results_layout_df['sectors'].isin(aggregate_sectors_list)].copy()
+    # Combine the grouped_df
+    merged_grouped_df = pd.concat([tfc_grouped_df, tfec_grouped_df, tpes_grouped_df])
 
 
-    # new_aggregate_layout_df.drop(columns=columns_to_drop, inplace=True)
 
-    # # Merge the DataFrames based on the shared category columns
-    # aggregate_merged_df = new_aggregate_layout_df.merge(merged_grouped_df, on=shared_categories, how='left')
+    # Get the unique sectors
+    aggregate_sectors_list = merged_grouped_df['sectors'].unique().tolist()
+
+    # Create a new DataFrame with rows that match the sectors from the results DataFrame
+    new_aggregate_layout_df = results_layout_df[results_layout_df['sectors'].isin(aggregate_sectors_list)].copy()
+
+    # Drop the rows that were updated in the new DataFrame from the original layout DataFrame
+    dropped_aggregate_layout_df = results_layout_df[~results_layout_df['sectors'].isin(aggregate_sectors_list)].copy()
 
 
-    # # Combine the original layout_df with the merged_df
-    # layout_df = pd.concat([dropped_aggregate_layout_df, aggregate_merged_df])
+    new_aggregate_layout_df.drop(columns=columns_to_drop, inplace=True)
 
+    # Merge the DataFrames based on the shared category columns
+    aggregate_merged_df = new_aggregate_layout_df.merge(merged_grouped_df, on=shared_categories, how='left')
+
+
+    # Combine the original layout_df with the merged_df
+    layout_df = pd.concat([dropped_aggregate_layout_df, aggregate_merged_df])
+
+    # Define the folder path where you want to save the file
+    folder_path = f'results/{SINGLE_ECONOMY}'
+
+    # Check if the folder already exists
+    if not os.path.exists(folder_path):
+        # If the folder doesn't exist, create it
+        os.makedirs(folder_path)
 
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
-    # date_today = datetime.now().strftime('%Y%m%d')
-    # if USE_SINGLE_ECONOMY:
-    #     layout_df.to_csv(f'results/merged_file_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
-    # else:
-    #     layout_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
+    date_today = datetime.now().strftime('%Y%m%d')
+    if USE_SINGLE_ECONOMY:
+        layout_df.to_csv(f'{folder_path}/merged_file_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
+    else:
+        layout_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
         
     return layout_df
