@@ -177,38 +177,147 @@ def merging_results(merged_df_clean_wide):
     condition2 = years_aggregated_df['fuels'].str.contains('19_total')
 
 
-    # Condition 4: The 'subfuels' column is exactly 'x'
-    condition4 = (years_aggregated_df['subfuels'] == 'x') & \
-                years_aggregated_df['value_historic'].notna() & \
-                (years_aggregated_df['value_historic'] != 0) & \
-                ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+    # # Condition 4: The 'subfuels' column is exactly 'x'
+    # condition4 = (years_aggregated_df['subfuels'] == 'x') & \
+    #             years_aggregated_df['value_historic'].notna() & \
+    #             (years_aggregated_df['value_historic'] != 0) & \
+    #             ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
 
-    # Condition 5: For each group of rows that have the same other_categories, check if there are multiple unique values in the 'subfuels' column
-    other_categories = [cat for cat in shared_categories if cat != 'subfuels']
+    # # Condition 5: For each group of rows that have the same other_categories, check if there are multiple unique values in the 'subfuels' column
+    # other_categories = [cat for cat in shared_categories if cat != 'subfuels']
 
-    # Apply condition 4
-    df_cond4 = years_aggregated_df[condition4].copy()
+    # # Condition 4: This is just to exclude certain fuel types
+    # exclude_fuels_condition = ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
 
-    grouped_data = df_cond4.groupby(other_categories)
+    # # We use the entire dataset filtered only by fuels condition
+    # filtered_df = years_aggregated_df[exclude_fuels_condition].copy()
 
-    # Function to check if the sum of 'value_historic' for all rows is equal to the 'value_historic' where 'subfuels' is 'x'
-    def check_totals(group):
-        total_row = group[group['subfuels'] == 'x']
-        other_rows = group[group['subfuels'] != 'x']
+    # # Add the result to the 'subtotal' column
+    # #years_aggregated_df['subtotal'] = condition4
+
+    # # We use the same categories to group the dataframe
+    # grouped_data = filtered_df.groupby(other_categories)
+
+    # # Initialize the subtotal column with False values
+    # years_aggregated_df['subtotal'] = False
+
+    # # Function to check if the sum of 'value_historic' for all rows where subfuels isn't 'x' is equal to the 'value_historic' where 'subfuels' is 'x'
+    # def check_totals(group):
+    #     total_row = group[group['subfuels'] == 'x']
+    #     other_rows = group[group['subfuels'] != 'x']
+
+    #     if not total_row.empty:
+    #         total_value = total_row['value_historic'].values[0]
+    #         sum_others = other_rows['value_historic'].sum()
+
+    #         idx = total_row.index[0]
+
+    #         # Adjust this tolerance as needed
+    #         tolerance = 1e-3 
+
+    #         # Check Condition 4 for the current row
+    #         meets_condition4 = (
+    #             (total_row['subfuels'].values[0] == 'x') and
+    #             (total_row['value_historic'].notna().values[0]) and
+    #             (total_row['value_historic'].values[0] != 0) and
+    #             total_row['fuels'].values[0] not in ['19_total', '20_total_renewables', '21_modern_renewables']
+    #         )
+
+    #         # If the totals match and the row meets Condition 4, set the 'subtotal' column for that row to True
+    #         if np.isclose(total_value, sum_others, rtol=tolerance) and meets_condition4:
+    #             years_aggregated_df.at[idx, 'subtotal'] = True
+
+
+    # # Apply the function to each group
+    # grouped_data.apply(check_totals)
+
+
+    # Condition for subfuels
+    condition_subfuels = (years_aggregated_df['subfuels'] == 'x') & \
+                        years_aggregated_df['value_historic'].notna() & \
+                        (years_aggregated_df['value_historic'] != 0) & \
+                        ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+
+    # Condition for sub4sectors being 'x'
+    condition_sub4sectors = (years_aggregated_df['sub4sectors'] == 'x') & \
+                            years_aggregated_df['value_historic'].notna() & \
+                            (years_aggregated_df['value_historic'] != 0) & \
+                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+
+    # Condition for sub3sectors being 'x'
+    condition_sub3sectors = (years_aggregated_df['sub3sectors'] == 'x') & \
+                            years_aggregated_df['value_historic'].notna() & \
+                            (years_aggregated_df['value_historic'] != 0) & \
+                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+
+    # Condition for sub2sectors being 'x'
+    condition_sub2sectors = (years_aggregated_df['sub2sectors'] == 'x') & \
+                            years_aggregated_df['value_historic'].notna() & \
+                            (years_aggregated_df['value_historic'] != 0) & \
+                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+
+    # Condition for sub1sectors being 'x'
+    condition_sub1sectors = (years_aggregated_df['sub1sectors'] == 'x') & \
+                            years_aggregated_df['value_historic'].notna() & \
+                            (years_aggregated_df['value_historic'] != 0) & \
+                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+
+    # Function to check the totals
+    def check_totals(column_name, group):
+        total_row = group[group[column_name] == 'x']
+        other_rows = group[group[column_name] != 'x']
 
         if not total_row.empty:
             total_value = total_row['value_historic'].values[0]
             sum_others = other_rows['value_historic'].sum()
 
-            # You can adjust this tolerance as needed
+            # Adjust this tolerance if needed
             tolerance = 1e-3 
 
-            if not np.isclose(total_value, sum_others, rtol=tolerance):
-                print(f"Discrepancy detected in group {group.name}: expected total {total_value}, but got {sum_others}.")
+            if np.isclose(total_value, sum_others, rtol=tolerance):
+                return True
+            else:
+                return False
 
-    # Apply the function to each group
-    grouped_data.apply(check_totals)
+    # Checking for subfuels
+    other_categories_subfuels = [cat for cat in shared_categories if cat != 'subfuels']
+    grouped_data_subfuels = years_aggregated_df.groupby(other_categories_subfuels)
+    subtotal_subfuels = grouped_data_subfuels.apply(lambda group: check_totals('subfuels', group))
 
+    # Expanding the grouped result to match the original dataframe's shape
+    subtotal_subfuels = years_aggregated_df.merge(subtotal_subfuels.reset_index(), on=other_categories_subfuels, how='left')[0].fillna(False)
+
+    # Checking for sub4sectors
+    other_categories_sub4sectors = [cat for cat in shared_categories if cat != 'sub4sectors']
+    grouped_data_sub4sectors = years_aggregated_df.groupby(other_categories_sub4sectors)
+    subtotal_sub4sectors = grouped_data_sub4sectors.apply(lambda group: check_totals('sub4sectors', group))
+
+    # Expanding the grouped result to match the original dataframe's shape
+    subtotal_sub4sectors = years_aggregated_df.merge(subtotal_sub4sectors.reset_index(), on=other_categories_sub4sectors, how='left')[0].fillna(False)
+
+    # Checking for sub3sectors
+    other_categories_sub3sectors = [cat for cat in shared_categories if cat not in ['sub3sectors', 'sub4sectors']]
+    grouped_data_sub3sectors = years_aggregated_df.groupby(other_categories_sub3sectors)
+    subtotal_sub3sectors = years_aggregated_df.merge(grouped_data_sub3sectors.apply(lambda group: check_totals('sub3sectors', group)).reset_index(), on=other_categories_sub3sectors, how='left')[0].fillna(False)
+
+    # Checking for sub2sectors
+    other_categories_sub2sectors = [cat for cat in shared_categories if cat not in ['sub2sectors', 'sub3sectors', 'sub4sectors']]
+    grouped_data_sub2sectors = years_aggregated_df.groupby(other_categories_sub2sectors)
+    subtotal_sub2sectors = years_aggregated_df.merge(grouped_data_sub2sectors.apply(lambda group: check_totals('sub2sectors', group)).reset_index(), on=other_categories_sub2sectors, how='left')[0].fillna(False)
+
+    # Checking for sub1sectors
+    other_categories_sub1sectors = [cat for cat in shared_categories if cat not in ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']]
+    grouped_data_sub1sectors = years_aggregated_df.groupby(other_categories_sub1sectors)
+    subtotal_sub1sectors = years_aggregated_df.merge(grouped_data_sub1sectors.apply(lambda group: check_totals('sub1sectors', group)).reset_index(), on=other_categories_sub1sectors, how='left')[0].fillna(False)
+
+    # Combine the results
+    years_aggregated_df['subtotal'] = (
+        (condition_subfuels & subtotal_subfuels) |
+        (condition_sub3sectors & subtotal_sub3sectors) |
+        (condition_sub4sectors & subtotal_sub4sectors) |
+        (condition_sub2sectors & subtotal_sub2sectors) |
+        (condition_sub1sectors & subtotal_sub1sectors)
+    ) & overarching_conditions | condition2
     # Print Condition 5
     # print("\nCondition 5:")
     # print(condition5)
@@ -228,7 +337,7 @@ def merging_results(merged_df_clean_wide):
     # condition4_and_5_and_6 = condition4_and_5 & condition6
 
     # # Print the number of rows that meet Condition 6
-    print("Number of rows that meet Condition 4: ", condition4.sum())
+    #print("Number of rows that meet Condition 4: ", condition4.sum())
     #print("Number of rows that meet Condition 5: ", condition5.sum())
     # condition4_and_5_and_6.to_csv('condition4_and_5_and_6.csv')
 
@@ -256,7 +365,7 @@ def merging_results(merged_df_clean_wide):
     #     condition9_results = condition9_results | condition9
 
     # Add the result to the 'subtotal' column
-    years_aggregated_df['subtotal'] = condition4 #& (condition2 | condition4_and_5_and_6)
+    #years_aggregated_df['subtotal'] = condition4 #& (condition2 | condition4_and_5_and_6)
 
     # Print the number of rows where 'subtotal' is True
     # print("Number of rows where 'subtotal' is True: ", years_aggregated_df['subtotal'].sum())
