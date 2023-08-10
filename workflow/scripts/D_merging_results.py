@@ -306,6 +306,94 @@ def merging_results(merged_df_clean_wide):
 
     #years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
 
+    # Merge the 'subtotal' column
+    results_layout_df = pd.merge(results_layout_df, 
+                                years_aggregated_df[shared_categories + ['subtotal']], 
+                                on=shared_categories, 
+                                how='left')
+
+
+    other_categories_fuels = [cat for cat in shared_categories if cat not in ['fuels', 'subfuels']]
+
+
+    # Melt the DataFrame
+    df_for_aggregating = results_layout_df.melt(id_vars=shared_categories + ['subtotal'], var_name='year', value_name='value')
+    df_for_aggregating['year'] = df_for_aggregating['year'].astype(int)
+
+    # Drop the historic rows
+    df_for_aggregating = df_for_aggregating.loc[~df_for_aggregating['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)]
+
+    def sum_values_for_subtotal_rows(other_categories_column):
+        # Identify the columns that need to have matching values
+        other_categories = other_categories_column + ['year']
+
+        # Separate rows where subtotal is True and False
+        non_subtotal_rows = df_for_aggregating[df_for_aggregating['subtotal'] == False].copy()
+
+        # Group by the 'other_categories' and sum up the values
+        summarized_df = non_subtotal_rows.groupby(other_categories).agg({'value': 'sum'}).reset_index()
+
+        # Add the 'subtotal' column and set to True
+        summarized_df['subtotal'] = True
+
+        # Return the final DataFrame
+        return summarized_df
+
+
+    # Generate the summarized values
+    summed_values_for_subfuels = sum_values_for_subtotal_rows(other_categories_subfuels)
+    summed_values_for_sub4sectors = sum_values_for_subtotal_rows(other_categories_sub4sectors)
+    summed_values_for_sub3sectors = sum_values_for_subtotal_rows(other_categories_sub3sectors)
+    summed_values_for_sub2sectors = sum_values_for_subtotal_rows(other_categories_sub2sectors)
+    summed_values_for_sub1sectors = sum_values_for_subtotal_rows(other_categories_sub1sectors)
+    
+    # Add the missing column with 'x'
+    summed_values_for_subfuels['subfuels'] = 'x'
+    summed_values_for_sub4sectors['sub4sectors'] = 'x'
+    summed_values_for_sub3sectors['sub3sectors'] = 'x'
+    summed_values_for_sub3sectors['sub4sectors'] = 'x'
+    summed_values_for_sub2sectors['sub2sectors'] = 'x'
+    summed_values_for_sub2sectors['sub3sectors'] = 'x'
+    summed_values_for_sub2sectors['sub4sectors'] = 'x'
+    summed_values_for_sub1sectors['sub1sectors'] = 'x'
+    summed_values_for_sub1sectors['sub2sectors'] = 'x'
+    summed_values_for_sub1sectors['sub3sectors'] = 'x'
+    summed_values_for_sub1sectors['sub4sectors'] = 'x'
+    
+    # Rearrange columns
+    summed_values_for_subfuels = summed_values_for_subfuels[df_for_aggregating.columns]
+    summed_values_for_sub4sectors = summed_values_for_sub4sectors[df_for_aggregating.columns]
+    summed_values_for_sub3sectors = summed_values_for_sub3sectors[df_for_aggregating.columns]
+    summed_values_for_sub2sectors = summed_values_for_sub2sectors[df_for_aggregating.columns]
+    summed_values_for_sub1sectors = summed_values_for_sub1sectors[df_for_aggregating.columns]
+
+    
+    # summed_values_for_subfuels.to_csv('summed_values_for_subfuels.csv', index=False)
+    # summed_values_for_sub4sectors.to_csv('summed_values_for_sub4sectors.csv', index=False)
+    # summed_values_for_sub3sectors.to_csv('summed_values_for_sub3sectors.csv', index=False)
+    # summed_values_for_sub2sectors.to_csv('summed_values_for_sub2sectors.csv', index=False)
+    # summed_values_for_sub1sectors.to_csv('summed_values_for_sub1sectors.csv', index=False)
+    
+    # Filter out 'True' subtotal rows
+    df_for_aggregating = df_for_aggregating[df_for_aggregating['subtotal'] == False]
+    
+    # Combine the summarized values
+    df_for_aggregating = pd.concat([df_for_aggregating, 
+                                    summed_values_for_subfuels, 
+                                    summed_values_for_sub4sectors, 
+                                    summed_values_for_sub3sectors, 
+                                    summed_values_for_sub2sectors, 
+                                    summed_values_for_sub1sectors])
+
+    df_for_aggregating.to_csv('df_for_aggregating.csv', index=False)
+
+    pivoted_df = df_for_aggregating.pivot_table(index=shared_categories+['subtotal'], columns='year', values='value').reset_index()
+
+    # Change columns to str and reorder columns
+    pivoted_df = pivoted_df.columns.astype(str)
+    pivoted_df = pivoted_df[shared_categories + [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)] + ['subtotal']]
+
+    results_layout_df.merge(pivoted_df, on=shared_categories+['subtotal'], how='left').to_csv('results_layout_df.csv', index=False)
 
     #Check if new_layout_df and results_df have the same number of rows
     #assert new_layout_df.shape[0] == results_df.shape[0], f"Layout dataframe and {file} do not have the same number of rows.\nLayout dataframe rows: {new_layout_df.shape[0]}\n{file} rows: {results_df.shape[0]}"
