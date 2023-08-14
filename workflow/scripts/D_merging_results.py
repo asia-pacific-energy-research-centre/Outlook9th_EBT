@@ -281,17 +281,17 @@ def merging_results(merged_df_clean_wide):
     subtotal_sub4sectors = years_aggregated_df.merge(subtotal_sub4sectors.reset_index(), on=other_categories_sub4sectors, how='left')[0].fillna(False)
 
     # Checking for sub3sectors
-    other_categories_sub3sectors = [cat for cat in shared_categories if cat not in ['sub3sectors', 'sub4sectors']]
+    other_categories_sub3sectors = [cat for cat in shared_categories if cat not in ['sub3sectors']]
     grouped_data_sub3sectors = years_aggregated_df.groupby(other_categories_sub3sectors)
     subtotal_sub3sectors = years_aggregated_df.merge(grouped_data_sub3sectors.apply(lambda group: check_totals('sub3sectors', group)).reset_index(), on=other_categories_sub3sectors, how='left')[0].fillna(False)
 
     # Checking for sub2sectors
-    other_categories_sub2sectors = [cat for cat in shared_categories if cat not in ['sub2sectors', 'sub3sectors', 'sub4sectors']]
+    other_categories_sub2sectors = [cat for cat in shared_categories if cat not in ['sub2sectors']]
     grouped_data_sub2sectors = years_aggregated_df.groupby(other_categories_sub2sectors)
     subtotal_sub2sectors = years_aggregated_df.merge(grouped_data_sub2sectors.apply(lambda group: check_totals('sub2sectors', group)).reset_index(), on=other_categories_sub2sectors, how='left')[0].fillna(False)
 
     # Checking for sub1sectors
-    other_categories_sub1sectors = [cat for cat in shared_categories if cat not in ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']]
+    other_categories_sub1sectors = [cat for cat in shared_categories if cat not in ['sub1sectors']]
     grouped_data_sub1sectors = years_aggregated_df.groupby(other_categories_sub1sectors)
     subtotal_sub1sectors = years_aggregated_df.merge(grouped_data_sub1sectors.apply(lambda group: check_totals('sub1sectors', group)).reset_index(), on=other_categories_sub1sectors, how='left')[0].fillna(False)
 
@@ -304,7 +304,7 @@ def merging_results(merged_df_clean_wide):
         (condition_sub1sectors & subtotal_sub1sectors)
     ) & overarching_conditions | condition2
 
-    #years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
+    years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
 
 
     #Check if new_layout_df and results_df have the same number of rows
