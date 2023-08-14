@@ -332,6 +332,8 @@ def merging_results(merged_df_clean_wide):
         
         # Group by the 'other_categories' and sum up the values
         summarized_df = non_subtotal_rows.groupby(other_categories).agg({'value': 'sum'}).reset_index()
+        
+        summarized_df.to_csv(f'summarized_df{other_categories_column}.csv', index=False)
 
         # Set the subtotal rows value based on the computed sum
         df_for_aggregating.set_index(other_categories, inplace=True)
