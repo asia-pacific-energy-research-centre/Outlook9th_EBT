@@ -323,45 +323,93 @@ def merging_results(merged_df_clean_wide):
     # Drop the historic rows
     df_for_aggregating = df_for_aggregating.loc[~df_for_aggregating['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)]
 
-    def sum_values_for_subtotal_rows(other_categories_column):
+    # def sum_values_for_subtotal_rows(other_categories_column):
+    #     # Identify the columns that need to have matching values
+    #     other_categories = other_categories_column + ['year']
+
+    #     # Separate rows where subtotal is True and False
+    #     non_subtotal_rows = df_for_aggregating[df_for_aggregating['subtotal'] == False].copy()
+        
+    #     # Group by the 'other_categories' and sum up the values
+    #     summarized_df = non_subtotal_rows.groupby(other_categories).agg({'value': 'sum'}).reset_index()
+        
+    #     summarized_df.to_csv(f'summarized_df{other_categories_column}.csv', index=False)
+
+    #     # Set the subtotal rows value based on the computed sum
+    #     df_for_aggregating.set_index(other_categories, inplace=True)
+    #     df_for_aggregating.update(summarized_df.set_index(other_categories))
+    #     df_for_aggregating.reset_index(inplace=True)
+
+    #     return df_for_aggregating
+
+
+
+    def aggregate_and_map(df, column):
         # Identify the columns that need to have matching values
-        other_categories = other_categories_column + ['year']
-
-        # Separate rows where subtotal is True and False
-        non_subtotal_rows = df_for_aggregating[df_for_aggregating['subtotal'] == False].copy()
+        group_columns = [cat for cat in shared_categories if cat != column] + ['year']
         
-        # Group by the 'other_categories' and sum up the values
-        summarized_df = non_subtotal_rows.groupby(other_categories).agg({'value': 'sum'}).reset_index()
+        # Exclude specified values in the 'fuels' column
+        exclude_fuels = ['19_total', '20_total_renewables', '21_modern_renewables']
         
-        summarized_df.to_csv(f'summarized_df{other_categories_column}.csv', index=False)
+        # Calculate the aggregated sum for each group where subtotal is False
+        valid_rows = df['subtotal'] == False
+        for fuel in exclude_fuels:
+            valid_rows &= df['fuels'] != fuel
+        sum_df = df[valid_rows].groupby(group_columns)['value'].sum()
 
-        # Set the subtotal rows value based on the computed sum
-        df_for_aggregating.set_index(other_categories, inplace=True)
-        df_for_aggregating.update(summarized_df.set_index(other_categories))
-        df_for_aggregating.reset_index(inplace=True)
+        # Map the sum to the subtotal rows using the indices, also ensure rows with excluded fuels are not included in the mask
+        mask = df['subtotal'] & df['value'].isin([0, None, np.nan])
+        for fuel in exclude_fuels:
+            mask &= df['fuels'] != fuel
+        df.loc[mask, 'value'] = df[mask][group_columns].set_index(group_columns).index.map(sum_df).values
 
-        return df_for_aggregating
+        return df
+
+    def aggregate_for_19_total(df):
+        # Group by all columns except for 'fuels' and sum up
+        group_columns = [cat for cat in shared_categories if cat != 'fuels'] + ['year']
+        
+        sum_df = df[(df['fuels'] != '19_total') & (df['subtotal'] == False)].groupby(group_columns)['value'].sum()
+
+        # Map the sum to the rows with '19_total'
+        mask = (df['fuels'] == '19_total') & df['value'].isin([0, None, np.nan])
+        df.loc[mask, 'value'] = df[mask][group_columns].set_index(group_columns).index.map(sum_df).values
+        
+        return df
+
+    # Use the function for each set of categories
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'subfuels')
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub4sectors')
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub3sectors')
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub2sectors')
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub1sectors')
+
+    # Using the aggregate_for_19_total function to handle '19_total' calculations
+    df_for_aggregating = aggregate_for_19_total(df_for_aggregating)
+
+    df_for_aggregating.to_csv('df_for_aggregating.csv', index=False)
 
 
-    # Generate the summarized values
-    summed_values_for_subfuels = sum_values_for_subtotal_rows(other_categories_subfuels)
-    summed_values_for_sub4sectors = sum_values_for_subtotal_rows(other_categories_sub4sectors)
-    summed_values_for_sub3sectors = sum_values_for_subtotal_rows(other_categories_sub3sectors)
-    summed_values_for_sub2sectors = sum_values_for_subtotal_rows(other_categories_sub2sectors)
-    summed_values_for_sub1sectors = sum_values_for_subtotal_rows(other_categories_sub1sectors)
+
+    # # Generate the summarized values
+    # summed_values_for_subfuels = sum_values_for_subtotal_rows(other_categories_subfuels)
+    # summed_values_for_sub4sectors = sum_values_for_subtotal_rows(other_categories_sub4sectors)
+    # summed_values_for_sub3sectors = sum_values_for_subtotal_rows(other_categories_sub3sectors)
+    # summed_values_for_sub2sectors = sum_values_for_subtotal_rows(other_categories_sub2sectors)
+    # summed_values_for_sub1sectors = sum_values_for_subtotal_rows(other_categories_sub1sectors)
     
-    # Add the missing column with 'x'
-    summed_values_for_subfuels['subfuels'] = 'x'
-    summed_values_for_sub4sectors['sub4sectors'] = 'x'
-    summed_values_for_sub3sectors['sub3sectors'] = 'x'
-    summed_values_for_sub3sectors['sub4sectors'] = 'x'
-    summed_values_for_sub2sectors['sub2sectors'] = 'x'
-    summed_values_for_sub2sectors['sub3sectors'] = 'x'
-    summed_values_for_sub2sectors['sub4sectors'] = 'x'
-    summed_values_for_sub1sectors['sub1sectors'] = 'x'
-    summed_values_for_sub1sectors['sub2sectors'] = 'x'
-    summed_values_for_sub1sectors['sub3sectors'] = 'x'
-    summed_values_for_sub1sectors['sub4sectors'] = 'x'
+    # # Add the missing column with 'x'
+    # summed_values_for_subfuels['subfuels'] = 'x'
+    # summed_values_for_sub4sectors['sub4sectors'] = 'x'
+    # summed_values_for_sub3sectors['sub3sectors'] = 'x'
+    # summed_values_for_sub3sectors['sub4sectors'] = 'x'
+    # summed_values_for_sub2sectors['sub2sectors'] = 'x'
+    # summed_values_for_sub2sectors['sub3sectors'] = 'x'
+    # summed_values_for_sub2sectors['sub4sectors'] = 'x'
+    # summed_values_for_sub1sectors['sub1sectors'] = 'x'
+    # summed_values_for_sub1sectors['sub2sectors'] = 'x'
+    # summed_values_for_sub1sectors['sub3sectors'] = 'x'
+    # summed_values_for_sub1sectors['sub4sectors'] = 'x'
     
     # Rearrange columns
     # summed_values_for_subfuels = summed_values_for_subfuels[df_for_aggregating.columns]
