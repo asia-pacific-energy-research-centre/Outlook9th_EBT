@@ -248,68 +248,96 @@ def merging_results(merged_df_clean_wide):
                             (years_aggregated_df['value_historic'] != 0) & \
                             ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
 
-    # Function to check the totals
+    # Function to check the totals for both 'value_historic' and 'value_predicted'
     def check_totals(column_name, group):
         total_row = group[group[column_name] == 'x']
         other_rows = group[group[column_name] != 'x']
 
+        # Initialize the results
+        check_historic = False
+        check_predicted = False
+
         if not total_row.empty:
-            total_value = total_row['value_historic'].values[0]
-            sum_others = other_rows['value_historic'].sum()
-
             # Adjust this tolerance if needed
-            tolerance = 1e-3 
+            tolerance = 1e-3
 
-            if np.isclose(total_value, sum_others, rtol=tolerance):
-                return True
-            else:
-                return False
+            # Check 'value_historic'
+            total_value_historic = total_row['value_historic'].values[0]
+            sum_others_historic = other_rows['value_historic'].sum()
+            check_historic = np.isclose(total_value_historic, sum_others_historic, rtol=tolerance)
+
+            # Check 'value_predicted'
+            total_value_predicted = total_row['value_predicted'].values[0]
+            sum_others_predicted = other_rows['value_predicted'].sum()
+            check_predicted = np.isclose(total_value_predicted, sum_others_predicted, rtol=tolerance)
+
+        return check_historic, check_predicted
+
+
 
     # Checking for subfuels
     other_categories_subfuels = [cat for cat in shared_categories if cat != 'subfuels']
     grouped_data_subfuels = years_aggregated_df.groupby(other_categories_subfuels)
-    subtotal_subfuels = grouped_data_subfuels.apply(lambda group: check_totals('subfuels', group))
+    results_subfuels = grouped_data_subfuels.apply(lambda group: check_totals('subfuels', group))
+    subtotal_subfuels_historic = years_aggregated_df.merge(results_subfuels.reset_index(), on=other_categories_subfuels, how='left')[0].apply(lambda x: x[0]).fillna(False)
+    subtotal_subfuels_predicted = years_aggregated_df.merge(results_subfuels.reset_index(), on=other_categories_subfuels, how='left')[0].apply(lambda x: x[1]).fillna(False)
 
-    # Expanding the grouped result to match the original dataframe's shape
-    subtotal_subfuels = years_aggregated_df.merge(subtotal_subfuels.reset_index(), on=other_categories_subfuels, how='left')[0].fillna(False)
-
-    # Checking for sub4sectors
+    # For sub4sectors
     other_categories_sub4sectors = [cat for cat in shared_categories if cat != 'sub4sectors']
     grouped_data_sub4sectors = years_aggregated_df.groupby(other_categories_sub4sectors)
-    subtotal_sub4sectors = grouped_data_sub4sectors.apply(lambda group: check_totals('sub4sectors', group))
+    results_sub4sectors = grouped_data_sub4sectors.apply(lambda group: check_totals('sub4sectors', group))
+    subtotal_sub4sectors_historic = years_aggregated_df.merge(results_sub4sectors.reset_index(), on=other_categories_sub4sectors, how='left')[0].apply(lambda x: x[0]).fillna(False)
+    subtotal_sub4sectors_predicted = years_aggregated_df.merge(results_sub4sectors.reset_index(), on=other_categories_sub4sectors, how='left')[0].apply(lambda x: x[1]).fillna(False)
 
-    # Expanding the grouped result to match the original dataframe's shape
-    subtotal_sub4sectors = years_aggregated_df.merge(subtotal_sub4sectors.reset_index(), on=other_categories_sub4sectors, how='left')[0].fillna(False)
-
-    # Checking for sub3sectors
-    other_categories_sub3sectors = [cat for cat in shared_categories if cat not in ['sub3sectors']]
+    # For sub3sectors
+    other_categories_sub3sectors = [cat for cat in shared_categories if cat != 'sub3sectors']
     grouped_data_sub3sectors = years_aggregated_df.groupby(other_categories_sub3sectors)
-    subtotal_sub3sectors = years_aggregated_df.merge(grouped_data_sub3sectors.apply(lambda group: check_totals('sub3sectors', group)).reset_index(), on=other_categories_sub3sectors, how='left')[0].fillna(False)
+    results_sub3sectors = grouped_data_sub3sectors.apply(lambda group: check_totals('sub3sectors', group))
+    subtotal_sub3sectors_historic = years_aggregated_df.merge(results_sub3sectors.reset_index(), on=other_categories_sub3sectors, how='left')[0].apply(lambda x: x[0]).fillna(False)
+    subtotal_sub3sectors_predicted = years_aggregated_df.merge(results_sub3sectors.reset_index(), on=other_categories_sub3sectors, how='left')[0].apply(lambda x: x[1]).fillna(False)
 
-    # Checking for sub2sectors
-    other_categories_sub2sectors = [cat for cat in shared_categories if cat not in ['sub2sectors']]
+    # For sub2sectors
+    other_categories_sub2sectors = [cat for cat in shared_categories if cat != 'sub2sectors']
     grouped_data_sub2sectors = years_aggregated_df.groupby(other_categories_sub2sectors)
-    subtotal_sub2sectors = years_aggregated_df.merge(grouped_data_sub2sectors.apply(lambda group: check_totals('sub2sectors', group)).reset_index(), on=other_categories_sub2sectors, how='left')[0].fillna(False)
+    results_sub2sectors = grouped_data_sub2sectors.apply(lambda group: check_totals('sub2sectors', group))
+    subtotal_sub2sectors_historic = years_aggregated_df.merge(results_sub2sectors.reset_index(), on=other_categories_sub2sectors, how='left')[0].apply(lambda x: x[0]).fillna(False)
+    subtotal_sub2sectors_predicted = years_aggregated_df.merge(results_sub2sectors.reset_index(), on=other_categories_sub2sectors, how='left')[0].apply(lambda x: x[1]).fillna(False)
 
-    # Checking for sub1sectors
-    other_categories_sub1sectors = [cat for cat in shared_categories if cat not in ['sub1sectors']]
+    # For sub1sectors
+    other_categories_sub1sectors = [cat for cat in shared_categories if cat != 'sub1sectors']
     grouped_data_sub1sectors = years_aggregated_df.groupby(other_categories_sub1sectors)
-    subtotal_sub1sectors = years_aggregated_df.merge(grouped_data_sub1sectors.apply(lambda group: check_totals('sub1sectors', group)).reset_index(), on=other_categories_sub1sectors, how='left')[0].fillna(False)
+    results_sub1sectors = grouped_data_sub1sectors.apply(lambda group: check_totals('sub1sectors', group))
+    subtotal_sub1sectors_historic = years_aggregated_df.merge(results_sub1sectors.reset_index(), on=other_categories_sub1sectors, how='left')[0].apply(lambda x: x[0]).fillna(False)
+    subtotal_sub1sectors_predicted = years_aggregated_df.merge(results_sub1sectors.reset_index(), on=other_categories_sub1sectors, how='left')[0].apply(lambda x: x[1]).fillna(False)
 
     # Combine the results
-    years_aggregated_df['subtotal'] = (
-        (condition_subfuels & subtotal_subfuels) |
-        (condition_sub3sectors & subtotal_sub3sectors) |
-        (condition_sub4sectors & subtotal_sub4sectors) |
-        (condition_sub2sectors & subtotal_sub2sectors) |
-        (condition_sub1sectors & subtotal_sub1sectors)
+    # Combining results based on whether any of the historic OR predicted subtotals are True
+    years_aggregated_df['subtotal_historic'] = (
+        (condition_subfuels & subtotal_subfuels_historic) |
+        (condition_sub4sectors & subtotal_sub4sectors_historic) |
+        (condition_sub3sectors & subtotal_sub3sectors_historic) |
+        (condition_sub2sectors & subtotal_sub2sectors_historic) |
+        (condition_sub1sectors & subtotal_sub1sectors_historic)
     ) & overarching_conditions | condition2
 
-    years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
+    years_aggregated_df['subtotal_predicted'] = (
+        (condition_subfuels & subtotal_subfuels_predicted) |
+        (condition_sub4sectors & subtotal_sub4sectors_predicted) |
+        (condition_sub3sectors & subtotal_sub3sectors_predicted) |
+        (condition_sub2sectors & subtotal_sub2sectors_predicted) |
+        (condition_sub1sectors & subtotal_sub1sectors_predicted)
+    ) & overarching_conditions | condition2
+
+    # Subtotal column for aggregating
+    years_aggregated_df['subtotal'] = ~((years_aggregated_df['subtotal_historic'] == False) & (years_aggregated_df['subtotal_predicted'] == False))
+
+
+
+    #years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
     
     # Merge the 'subtotal' column
     layout_df = pd.merge(results_layout_df, 
-                                years_aggregated_df[shared_categories + ['subtotal']], 
+                                years_aggregated_df[shared_categories + ['subtotal_historic', 'subtotal_predicted', 'subtotal']], 
                                 on=shared_categories, 
                                 how='left')
 
