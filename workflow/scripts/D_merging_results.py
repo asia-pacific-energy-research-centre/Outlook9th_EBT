@@ -205,12 +205,14 @@ def merging_results(merged_df_clean_wide):
 
     # Condition 1: 'value_historic' is not NA and not 0
     condition1 = years_aggregated_df['value_historic'].notna() & (years_aggregated_df['value_historic'] != 0)
+    condition1_predicted = years_aggregated_df['value_predicted'].notna() & (years_aggregated_df['value_predicted'] != 0)
 
     # Condition 3: There is at least one 'x' in the row
     condition3 = years_aggregated_df.apply(lambda row: row.astype(str).str.contains('x').any(), axis=1)
 
     # Overarching conditions
     overarching_conditions = condition1 & condition3
+    overarching_conditions_predicted = condition1_predicted & condition3
     #print("Number of rows that meet the overarching conditions: ", overarching_conditions.sum())
 
     # Condition 2: The row has '19_total', '20_total_renewables', '21_modern_renewables' in the 'fuels' column
@@ -223,11 +225,19 @@ def merging_results(merged_df_clean_wide):
                         years_aggregated_df['value_historic'].notna() & \
                         (years_aggregated_df['value_historic'] != 0) & \
                         ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+    condition_subfuels_predicted = (years_aggregated_df['subfuels'] == 'x') & \
+                        years_aggregated_df['value_predicted'].notna() & \
+                        (years_aggregated_df['value_predicted'] != 0) & \
+                        ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
 
     # Condition for sub4sectors being 'x'
     condition_sub4sectors = (years_aggregated_df['sub4sectors'] == 'x') & \
                             years_aggregated_df['value_historic'].notna() & \
                             (years_aggregated_df['value_historic'] != 0) & \
+                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+    condition_sub4sectors_predicted = (years_aggregated_df['sub4sectors'] == 'x') & \
+                            years_aggregated_df['value_predicted'].notna() & \
+                            (years_aggregated_df['value_predicted'] != 0) & \
                             ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
 
     # Condition for sub3sectors being 'x'
@@ -235,11 +245,19 @@ def merging_results(merged_df_clean_wide):
                             years_aggregated_df['value_historic'].notna() & \
                             (years_aggregated_df['value_historic'] != 0) & \
                             ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+    condition_sub3sectors_predicted = (years_aggregated_df['sub3sectors'] == 'x') & \
+                            years_aggregated_df['value_predicted'].notna() & \
+                            (years_aggregated_df['value_predicted'] != 0) & \
+                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
 
     # Condition for sub2sectors being 'x'
     condition_sub2sectors = (years_aggregated_df['sub2sectors'] == 'x') & \
                             years_aggregated_df['value_historic'].notna() & \
                             (years_aggregated_df['value_historic'] != 0) & \
+                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+    condition_sub2sectors_predicted = (years_aggregated_df['sub2sectors'] == 'x') & \
+                            years_aggregated_df['value_predicted'].notna() & \
+                            (years_aggregated_df['value_predicted'] != 0) & \
                             ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
 
     # Condition for sub1sectors being 'x'
@@ -247,6 +265,11 @@ def merging_results(merged_df_clean_wide):
                             years_aggregated_df['value_historic'].notna() & \
                             (years_aggregated_df['value_historic'] != 0) & \
                             ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+    condition_sub1sectors_predicted = (years_aggregated_df['sub1sectors'] == 'x') & \
+                            years_aggregated_df['value_predicted'].notna() & \
+                            (years_aggregated_df['value_predicted'] != 0) & \
+                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
+
 
     # Function to check the totals for both 'value_historic' and 'value_predicted'
     def check_totals(column_name, group):
@@ -310,6 +333,7 @@ def merging_results(merged_df_clean_wide):
     subtotal_sub1sectors_historic = years_aggregated_df.merge(results_sub1sectors.reset_index(), on=other_categories_sub1sectors, how='left')[0].apply(lambda x: x[0]).fillna(False)
     subtotal_sub1sectors_predicted = years_aggregated_df.merge(results_sub1sectors.reset_index(), on=other_categories_sub1sectors, how='left')[0].apply(lambda x: x[1]).fillna(False)
 
+
     # Combine the results
     # Combining results based on whether any of the historic OR predicted subtotals are True
     years_aggregated_df['subtotal_historic'] = (
@@ -321,12 +345,12 @@ def merging_results(merged_df_clean_wide):
     ) & overarching_conditions | condition2
 
     years_aggregated_df['subtotal_predicted'] = (
-        (condition_subfuels & subtotal_subfuels_predicted) |
-        (condition_sub4sectors & subtotal_sub4sectors_predicted) |
-        (condition_sub3sectors & subtotal_sub3sectors_predicted) |
-        (condition_sub2sectors & subtotal_sub2sectors_predicted) |
-        (condition_sub1sectors & subtotal_sub1sectors_predicted)
-    ) & overarching_conditions | condition2
+        (condition_subfuels_predicted & subtotal_subfuels_predicted) |
+        (condition_sub4sectors_predicted & subtotal_sub4sectors_predicted) |
+        (condition_sub3sectors_predicted & subtotal_sub3sectors_predicted) |
+        (condition_sub2sectors_predicted & subtotal_sub2sectors_predicted) |
+        (condition_sub1sectors_predicted & subtotal_sub1sectors_predicted)
+    ) & overarching_conditions_predicted | condition2
 
     # Subtotal column for aggregating
     years_aggregated_df['subtotal'] = ~((years_aggregated_df['subtotal_historic'] == False) & (years_aggregated_df['subtotal_predicted'] == False))
