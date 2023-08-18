@@ -366,6 +366,80 @@ def merging_results(merged_df_clean_wide):
                                 how='left')
 
 
+
+
+
+
+
+    def aggregate_and_map(df, column):
+        # Identify the columns that need to have matching values
+        group_columns = [cat for cat in shared_categories if cat != column] + ['year']
+        
+        # Exclude specified values in the 'fuels' column
+        exclude_fuels = ['19_total', '20_total_renewables', '21_modern_renewables']
+        
+        # Calculate the aggregated sum for each group where subtotal is False
+        valid_rows = df['subtotal'] == False
+        for fuel in exclude_fuels:
+            valid_rows &= df['fuels'] != fuel
+        sum_df = df[valid_rows].groupby(group_columns)['value'].sum()
+
+        # Map the sum to the subtotal rows using the indices, also ensure rows with excluded fuels are not included in the mask
+        mask = df['subtotal'] & df['value'].isin([0, None, np.nan])
+        for fuel in exclude_fuels:
+            mask &= df['fuels'] != fuel
+        df.loc[mask, 'value'] = df[mask][group_columns].set_index(group_columns).index.map(sum_df).values
+
+        return df
+
+    def aggregate_for_19_total(df):
+        # Group by all columns except for 'fuels' and sum up
+        group_columns = [cat for cat in shared_categories if cat != 'fuels'] + ['year']
+        
+        sum_df = df[(df['fuels'] != '19_total') & (df['subtotal'] == False)].groupby(group_columns)['value'].sum()
+
+        # Map the sum to the rows with '19_total'
+        mask = (df['fuels'] == '19_total') & df['value'].isin([0, None, np.nan])
+        df.loc[mask, 'value'] = df[mask][group_columns].set_index(group_columns).index.map(sum_df).values
+        
+        return df
+
+    # Use the function for each set of categories
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'subfuels')
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub4sectors')
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub3sectors')
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub2sectors')
+    df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub1sectors')
+
+    # Using the aggregate_for_19_total function to handle '19_total' calculations
+    df_for_aggregating = aggregate_for_19_total(df_for_aggregating)
+
+    df_for_aggregating.to_csv('df_for_aggregating.csv', index=False)
+
+
+    df_for_aggregating.to_csv('df_for_aggregating.csv', index=False)
+
+    pivoted_df = df_for_aggregating.pivot_table(index=shared_categories+['subtotal'], columns='year', values='value').reset_index()
+
+    # Change columns to str
+    pivoted_df.columns = pivoted_df.columns.astype(str)
+
+    # Reorder columns
+    pivoted_columns_order = shared_categories + [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]# + ['subtotal']
+    pivoted_df = pivoted_df[pivoted_columns_order]
+    pivoted_df.to_csv('pivoted_df.csv', index=False)
+
+    # Drop the projected year columns
+    results_layout_df = results_layout_df.drop(columns=[str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)], errors='ignore')
+
+    results_layout_df.merge(pivoted_df, on=shared_categories, how='left').to_csv('results_layout_df.csv', index=False)
+
+
+
+
+
+
+
     #Check if new_layout_df and results_df have the same number of rows
     #assert new_layout_df.shape[0] == results_df.shape[0], f"Layout dataframe and {file} do not have the same number of rows.\nLayout dataframe rows: {new_layout_df.shape[0]}\n{file} rows: {results_df.shape[0]}"
 
