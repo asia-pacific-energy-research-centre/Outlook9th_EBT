@@ -50,10 +50,10 @@ def subset_data(merged_df_clean_wide):
     ine_df2 = ine_df[~((ine_df['fuels'].isin(ine_fuels)) &
                     (ine_df['subfuels'].isin(ine_subfuels)))].copy()
 
-    # drop if all na
-    ine_df2 = ine_df2.dropna(subset = year_list).copy()
-    # drop if all zero
-    ine_df2 = ine_df2.loc[~(ine_df2.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
+    # # drop if all na
+    # ine_df2 = ine_df2.dropna(subset = year_list).copy()
+    # # drop if all zero
+    # ine_df2 = ine_df2.loc[~(ine_df2.select_dtypes(include = ['number']) == 0).all(axis = 'columns'), :].copy()
 
     ine_df = pd.concat([ine_df1, ine_df2]).copy()
 
