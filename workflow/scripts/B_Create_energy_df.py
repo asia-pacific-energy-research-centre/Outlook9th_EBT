@@ -361,6 +361,10 @@ def create_energy_df(df_no_year_econ_index):
     # - We will replace them with np.nan after ```pivot_table```
     # - BTW, replacing with string may cause problem in ```pivot_table```
 
+
+    # merged_df_clean['value'] = pd.to_numeric(merged_df_clean['value'], errors='coerce')
+
+
     value_not_in_the_range = merged_df_clean['value'].min() - 1
     #merged_df_clean = merged_df_clean.fillna(value_not_in_the_range)
 
