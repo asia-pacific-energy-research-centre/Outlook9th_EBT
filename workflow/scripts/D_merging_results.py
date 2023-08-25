@@ -79,22 +79,23 @@ def merging_results(merged_df_clean_wide):
         #filter for only economies in the layout file:
         results_df = results_df[results_df['economy'].isin(economies)]
 
-        # Check for non-null values under the year column '2070'
-        has_2070_values = results_df['2070'].notnull()
+        # Check for non-null values in each year column and combine them with the or operator
+        has_non_null_values = results_df[years_to_keep].notnull().any(axis=1)
 
-        # Create a list of unique sectors where '2070' has non-null values with no duplicates
-        unique_sectors_2070 = results_df.loc[has_2070_values, 'sectors'].unique().tolist()
+        # Create a list of unique sectors where there are non-null values for the years 2021-2070
+        unique_sectors = results_df.loc[has_non_null_values, 'sectors'].unique().tolist()
 
         # Check if 'sectors' column contains '16_other_sector'
-        if '16_other_sector' in unique_sectors_2070:
-            # Create a list of unique sub1sectors where '2070' is not null and 'sectors' is '16_other_sector'
-            unique_sub1sectors = results_df.loc[has_2070_values & (results_df['sectors'] == '16_other_sector'), 'sub1sectors'].unique().tolist()
+        if '16_other_sector' in unique_sectors:
+            # Create a list of unique sub1sectors where there are non-null values for the years 2021-2070 and 'sectors' is '16_other_sector'
+            unique_sub1sectors = results_df.loc[has_non_null_values & (results_df['sectors'] == '16_other_sector'), 'sub1sectors'].unique().tolist()
 
             # Filter 'results_df' to keep only the rows with '16_other_sector' in 'sectors' and unique sub1sectors
             filtered_results_df = results_df[results_df['sectors'].isin(['16_other_sector']) & results_df['sub1sectors'].isin(unique_sub1sectors)].copy()
         else:
-            # If '16_other_sector' is not present, just filter based on 'sectors' with non-null '2070' values
-            filtered_results_df = results_df[results_df['sectors'].isin(unique_sectors_2070)].copy()
+            # If '16_other_sector' is not present, just filter based on 'sectors' with non-null values for the years 2021-2070
+            filtered_results_df = results_df[results_df['sectors'].isin(unique_sectors)].copy()
+
 
         # Drop columns with years within 1980 and 2020 in the results DataFrame
         filtered_results_df.drop(columns=[col for col in filtered_results_df.columns if any(str(year) in col for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1))], inplace=True)
@@ -369,12 +370,64 @@ def merging_results(merged_df_clean_wide):
 
 
 
-    # # Melt the DataFrame
-    # df_for_aggregating = results_layout_df.melt(id_vars=shared_categories + ['subtotal_historic', 'subtotal_predicted', 'subtotal'], var_name='year', value_name='value')
-    # df_for_aggregating['year'] = df_for_aggregating['year'].astype(int)
+    # Melt the DataFrame
+    df_for_aggregating = results_layout_df.melt(id_vars=shared_categories + ['subtotal_historic', 'subtotal_predicted', 'subtotal'], var_name='year', value_name='value')
+    df_for_aggregating['year'] = df_for_aggregating['year'].astype(int)
 
-    # # Drop the historic rows
-    # df_for_aggregating = df_for_aggregating.loc[~df_for_aggregating['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)]
+    # Drop the historic rows
+    df_for_aggregating = df_for_aggregating.loc[~df_for_aggregating['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)]
+
+
+    # # Function to check the totals for both 'value_historic' and 'value_predicted'
+    # def calculate_and_update_totals(column_name, group):
+    #     total_row = group[group[column_name] == True]
+    #     other_rows = group[group[column_name] == False]
+
+    #     if not total_row.empty:
+    #         # Calculate the total using rows set to 'false' in 'subtotal' column
+    #         sum_others = other_rows['value'].sum()
+
+    #         # Update the total value into the row set to 'true' in 'subtotal' column
+    #         group.loc[group['subtotal'] == True, 'value'] = sum_others
+
+    #     return group
+
+
+    # # Calculating for subfuels
+    # other_categories_subfuels = [cat for cat in shared_categories if cat != 'subfuels'] + ['year']
+    # grouped_data_subfuels = df_for_aggregating.groupby(other_categories_subfuels, group_keys=False)  # Add group_keys=False to maintain original indexing
+    # df_for_aggregating = grouped_data_subfuels.apply(lambda group: calculate_and_update_totals('subfuels', group))
+
+
+    # def calculate_totals(df):
+    #     # Create a mask to filter out rows
+    #     mask_true = (df['fuels'] == '19_total') & (df['subtotal'] == 'true')
+    #     true_rows = df[mask_true].copy()
+        
+    #     # Aggregate values for rows where 'subtotal' is 'false'
+    #     agg_values = df[df['subtotal'] == 'false'].groupby(shared_categories + ['year']).sum()
+    #     agg_values.to_csv('agg_values.csv')
+        
+    #     # For each row where 'fuels' is '19_total' and 'subtotal' is 'true', determine the effective grouping columns
+    #     for idx, row in true_rows.iterrows():
+    #         effective_grouping_columns = [col for col in shared_categories if row[col] != 'x']
+    #         effective_grouping_columns.append('year')
+            
+    #         # Fetch aggregated value based on effective grouping columns
+    #         group_key = tuple(row[col] for col in effective_grouping_columns)
+    #         if group_key in agg_values.index:
+    #             for col in df.columns:
+    #                 if col not in shared_categories + ['subtotal']:
+    #                     df.at[idx, col] = agg_values.loc[group_key, col]
+
+    #     return df
+
+    # result = calculate_totals(df_for_aggregating)
+
+
+    result.to_csv('test.csv', index=False)
+
+
 
     # def aggregate_and_map(df, column):
     #     # Initial columns for grouping
@@ -488,76 +541,6 @@ def merging_results(merged_df_clean_wide):
 
     # Drop the specified columns and year columns from the layout_df DataFrame
     filtered_df = results_layout_df.drop(aggregating_columns_to_drop, axis=1).copy()
-
-    # # Filter the 'sectors' column to include only the desired sectors
-    # tfc_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use']
-    # tfc_filtered_df = filtered_df[filtered_df['sectors'].isin(tfc_desired_sectors)].copy()
-
-    # # Filter the 'sectors' column to include only the desired sectors
-    # tfec_desired_sectors = ['14_industry_sector', '15_transport_sector', '16_other_sector']
-    # tfec_filtered_df = filtered_df[filtered_df['sectors'].isin(tfec_desired_sectors)].copy()
-
-    # # Filter the 'sectors' column to include only the desired sectors
-    # tpes_desired_sectors = ['9_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy','12_total_final_consumption']
-    # tpes_filtered_df = filtered_df[filtered_df['sectors'].isin(tpes_desired_sectors)].copy()
-
-    # # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '12_total_final_consumption'
-    # tfc_grouped_df = tfc_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
-
-    # # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the values in '13_total_final_energy_consumption'
-    # tfec_grouped_df = tfec_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
-
-    # # Filter numeric columns only in tpes_filtered_df
-    # numeric_cols = tpes_filtered_df.select_dtypes(include=[np.number]).columns.tolist()
-
-    # # Group by 'scenarios', 'economy', 'fuels', and 'subfuels' and sum the absolute values in numeric columns
-    # tpes_grouped_df = tpes_filtered_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels'])[numeric_cols].apply(lambda x: np.abs(x.sum())).reset_index()
-
-    # # Add the missing columns with 'x' as values in the same order as shared_categories
-    # for col in shared_categories:
-    #     if col not in tfc_grouped_df.columns:
-    #         tfc_grouped_df[col] = 'x'
-
-    # # Add the missing columns with 'x' as values in the same order as shared_categories
-    # for col in shared_categories:
-    #     if col not in tfec_grouped_df.columns:
-    #         tfec_grouped_df[col] = 'x'
-
-    # # Add the missing columns with 'x' as values in the same order as shared_categories
-    # for col in shared_categories:
-    #     if col not in tpes_grouped_df.columns:
-    #         tpes_grouped_df[col] = 'x'
-
-    # # Reorder the columns to match the order of shared_categories
-    # tfc_ordered_columns = shared_categories + [col for col in tfc_grouped_df.columns if col not in shared_categories]
-
-    # # Reorder the columns to match the order of shared_categories
-    # tfec_ordered_columns = shared_categories + [col for col in tfec_grouped_df.columns if col not in shared_categories]
-
-    # # Reorder the columns to match the order of shared_categories
-    # tpes_ordered_columns = shared_categories + [col for col in tpes_grouped_df.columns if col not in shared_categories]
-
-    # # Reorder the columns in grouped_df using the ordered_columns list
-    # tfc_grouped_df = tfc_grouped_df[tfc_ordered_columns]
-
-    # # Reorder the columns in grouped_df using the ordered_columns list
-    # tfec_grouped_df = tfec_grouped_df[tfec_ordered_columns]
-
-    # # Reorder the columns in grouped_df using the ordered_columns list
-    # tpes_grouped_df = tpes_grouped_df[tpes_ordered_columns]
-
-    # # Add the 'sectors' column with value '12_total_final_consumption'
-    # tfc_grouped_df['sectors'] = '12_total_final_consumption'
-
-    # # Add the 'sectors' column with value '13_total_final_energy_consumption'
-    # tfec_grouped_df['sectors'] = '13_total_final_energy_consumption'
-
-    # # Add the 'sectors' column with value '07_total_primary_energy_supply'
-    # tpes_grouped_df['sectors'] = '07_total_primary_energy_supply'
-
-
-    # # Combine the grouped_df
-    # merged_grouped_df = pd.concat([tfc_grouped_df, tfec_grouped_df, tpes_grouped_df])
 
 
     # Create a function to streamline the process for each category
