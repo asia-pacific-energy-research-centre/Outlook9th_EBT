@@ -425,7 +425,49 @@ def merging_results(merged_df_clean_wide):
     # result = calculate_totals(df_for_aggregating)
 
 
-    result.to_csv('test.csv', index=False)
+    def aggregate_for_19_total(df, columns_to_exclude=[]):
+        # Base columns to always exclude
+        base_excluded_cols = ['fuels', 'subfuels']
+        
+        # Combine base excluded columns with the ones provided
+        excluded_cols = base_excluded_cols + columns_to_exclude
+        
+        group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
+        
+        sum_df = df[df['subtotal'] == False].groupby(group_columns)['value'].sum().reset_index()
+        
+        # Drop rows from sum_df where 'value' is NaN or 0
+        sum_df = sum_df.dropna(subset=['value'])
+        sum_df = sum_df[sum_df['value'] != 0]
+        
+        # Add back the removed columns with specified values
+        sum_df['fuels'] = '19_total'
+        for col in columns_to_exclude+['subfuels']:
+            sum_df[col] = 'x'
+        
+        # Create a mapper based on shared_categories+['year'] and 'value' for faster look-up
+        value_mapper = sum_df.set_index(shared_categories+['year'])['value'].to_dict()
+
+        # Update the original dataframe only if 'fuels' is '19_total' and the value is 0 or NaN
+        mask = (df['fuels'] == '19_total') & df['value'].isin([0, None, np.nan])
+        df.loc[mask, 'value'] = df[mask][shared_categories+['year']].apply(tuple, axis=1).map(value_mapper)
+        
+        return df
+
+    # Using the function with various excluded columns
+    df_for_aggregating = aggregate_for_19_total(df_for_aggregating, columns_to_exclude=['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
+    df_for_aggregating = aggregate_for_19_total(df_for_aggregating, columns_to_exclude=['sub2sectors', 'sub3sectors', 'sub4sectors'])
+    df_for_aggregating = aggregate_for_19_total(df_for_aggregating, columns_to_exclude=['sub3sectors', 'sub4sectors'])
+    df_for_aggregating = aggregate_for_19_total(df_for_aggregating, columns_to_exclude=['sub4sectors'])
+    df_for_aggregating = aggregate_for_19_total(df_for_aggregating)
+
+
+
+
+
+
+
+    df_for_aggregating.to_csv('test.csv', index=False)
 
 
 
@@ -507,20 +549,24 @@ def merging_results(merged_df_clean_wide):
 
 
 
-    # pivoted_df = df_for_aggregating.pivot_table(index=shared_categories+['subtotal'], columns='year', values='value').reset_index()
+    pivoted_df = df_for_aggregating.pivot_table(index=shared_categories+['subtotal'], columns='year', values='value').reset_index()
 
-    # # Change columns to str
-    # pivoted_df.columns = pivoted_df.columns.astype(str)
+    # Change columns to str
+    pivoted_df.columns = pivoted_df.columns.astype(str)
 
-    # # Reorder columns
-    # pivoted_columns_order = shared_categories + [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]# + ['subtotal']
-    # pivoted_df = pivoted_df[pivoted_columns_order]
-    # pivoted_df.to_csv('pivoted_df.csv', index=False)
+    # Reorder columns
+    pivoted_columns_order = shared_categories + [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]# + ['subtotal']
+    pivoted_df = pivoted_df[pivoted_columns_order]
+    pivoted_df.to_csv('pivoted_df.csv', index=False)
 
-    # # Drop the projected year columns
-    # results_layout_df = results_layout_df.drop(columns=[str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)], errors='ignore')
-
-    # results_layout_df.merge(pivoted_df, on=shared_categories, how='left').to_csv('results_layout_df.csv', index=False)
+    # Drop the projected year columns
+    results_layout_df = results_layout_df.drop(columns=[str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)], errors='ignore')
+    
+    
+    results_layout_df = results_layout_df.merge(pivoted_df, on=shared_categories, how='left')
+    layout_columns_order = shared_categories + [str(year) for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)] + ['subtotal_historic', 'subtotal_predicted', 'subtotal']
+    results_layout_df = results_layout_df[layout_columns_order]
+    results_layout_df.to_csv('results_layout_df.csv', index=False)
 
 
 
@@ -575,8 +621,96 @@ def merging_results(merged_df_clean_wide):
 
     # Combine the grouped DataFrames
     merged_grouped_df = pd.concat([tfc_grouped_df, tfec_grouped_df, tpes_grouped_df])
+    merged_grouped_df.drop(columns=['subtotal_historic', 'subtotal_predicted', 'subtotal'], inplace=True)
 
     merged_grouped_df.to_csv('merged_grouped_df.csv')
+
+
+
+    def aggregating_19_total(df):
+        # Melt the dataframe
+        df_melted = df.melt(id_vars=[col for col in df.columns if col not in df.columns[df.columns.str.isnumeric()]],
+                            value_vars=[col for col in df.columns[df.columns.str.isnumeric()]],
+                            var_name='year',
+                            value_name='value')
+
+        # List of columns to be excluded during aggregation
+        excluded_cols = ['fuels', 'subfuels', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']
+
+        # Columns to be used for aggregation
+        group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
+
+        # Aggregate based on group_columns
+        sum_df = df_melted.groupby(group_columns)['value'].sum().reset_index()
+
+        # Add back the removed columns with specified values
+        sum_df['fuels'] = '19_total'
+        for col in excluded_cols[1:]:  # We start from 1 as 'fuels' is already addressed above
+            sum_df[col] = 'x'
+
+        # Concatenate the aggregation results back to the melted dataframe
+        df_melted = pd.concat([df_melted, sum_df], ignore_index=True)
+
+        # Pivot the dataframe back to its original format
+        df_pivoted = df_melted.pivot_table(index=[col for col in df_melted.columns if col not in ['year', 'value']],
+                                        columns='year',
+                                        values='value',
+                                        aggfunc='sum').reset_index()
+
+        return df_pivoted
+
+    # Using the function
+    merged_grouped_df = aggregating_19_total(merged_grouped_df)
+
+    merged_grouped_df.to_csv('merged_grouped_df3.csv', index=False)
+
+
+
+    def aggregating_aggregates(df):
+        # Melt the dataframe
+        df_melted = df.melt(id_vars=[col for col in df.columns if col not in df.columns[df.columns.str.isnumeric()]],
+                            value_vars=[col for col in df.columns[df.columns.str.isnumeric()]],
+                            var_name='year',
+                            value_name='value')
+
+        excluded_cols = ['subfuels']
+
+        group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
+
+        sum_df = df_melted.groupby(group_columns)['value'].sum().reset_index()
+
+        # Add back the removed columns with specified values
+        for col in excluded_cols:
+            sum_df[col] = 'x'
+
+        # Filter out rows where 'value' is 0 before merging
+        sum_df = sum_df[sum_df['value'] != 0]
+
+        # Merge the aggregation results back to the melted dataframe
+        df_melted = pd.merge(df_melted, sum_df, on=group_columns+['subfuels'], how='left', suffixes=('', '_aggregated'))
+
+        # Only replace 'value' with 'value_aggregated' where 'value_aggregated' is not NaN
+        mask = ~df_melted['value_aggregated'].isna()
+        df_melted.loc[mask, 'value'] = df_melted.loc[mask, 'value_aggregated']
+
+        # Drop the extra columns created during merge
+        df_melted.drop(['value_aggregated', 'year_aggregated'] if 'year_aggregated' in df_melted else 'value_aggregated', axis=1, inplace=True)
+
+        # Pivot the dataframe back to its original format
+        df_pivoted = df_melted.pivot_table(index=[col for col in df_melted.columns if col not in ['year', 'value']],
+                                        columns='year',
+                                        values='value',
+                                        aggfunc='sum').reset_index()
+
+        return df_pivoted
+
+    # Using the function
+    merged_grouped_df = aggregating_aggregates(merged_grouped_df)
+
+    
+    merged_grouped_df.to_csv('merged_grouped_df2.csv', index=False)
+
+
 
 
 
@@ -595,7 +729,7 @@ def merging_results(merged_df_clean_wide):
     new_aggregate_layout_df.drop(columns=columns_to_drop, inplace=True)
 
     # Merge the DataFrames based on the shared category columns
-    aggregate_merged_df = new_aggregate_layout_df.merge(merged_grouped_df, on=shared_categories+['subtotal_historic', 'subtotal_predicted', 'subtotal'], how='left')
+    aggregate_merged_df = new_aggregate_layout_df.merge(merged_grouped_df, on=shared_categories, how='left')
 
 
     # Combine the original layout_df with the merged_df
