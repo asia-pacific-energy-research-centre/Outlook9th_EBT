@@ -101,6 +101,16 @@ def merging_results(merged_df_clean_wide):
         filtered_results_df.drop(columns=[col for col in filtered_results_df.columns if any(str(year) in col for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1))], inplace=True)
 
 
+        ###############TEMP################
+        # Filter rows where the sector is '05_international_aviation_bunkers'
+        filtered_rows = filtered_results_df['sectors'] == '05_international_aviation_bunkers'
+
+        # For each year from 2021 to 2070, check if the value is positive, if yes, make it negative
+        for year in range(2021, 2071):
+            filtered_results_df.loc[filtered_rows, str(year)] = filtered_results_df.loc[filtered_rows, str(year)].apply(lambda x: -abs(x))
+        ###################################
+
+
         # Compare the shared categories between layout and results DataFrame
         layout_shared_categories = layout_df[shared_categories]
         results_shared_categories = filtered_results_df[shared_categories]
