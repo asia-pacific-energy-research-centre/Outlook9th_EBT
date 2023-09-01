@@ -348,16 +348,17 @@ def subset_data(merged_df_clean_wide):
 
     folder_path = './results'
     os.makedirs(folder_path, exist_ok=True)
+    os.makedirs(folder_path + '/' + SINGLE_ECONOMY + '/layout', exist_ok=True)
 
 
     if USE_SINGLE_ECONOMY:
         file_name = 'model_df_wide_' + SINGLE_ECONOMY + '_' + date_today +'.csv'
             
-        result_path = os.path.join(folder_path, file_name)
+        result_path = os.path.join(folder_path + '/' + SINGLE_ECONOMY, file_name)
         merged_df_clean_wide.to_csv(result_path, index = False)
         
-        reference_df.to_csv(folder_path + '/model_df_wide_ref_' +SINGLE_ECONOMY+'_'+ date_today + '.csv', index = False)
-        target_df.to_csv(folder_path + '/model_df_wide_tgt_' +SINGLE_ECONOMY+'_'+ date_today + '.csv', index = False)
+        reference_df.to_csv(folder_path + '/' + SINGLE_ECONOMY + '/model_df_wide_ref_' +SINGLE_ECONOMY+'_'+ date_today + '.csv', index = False)
+        target_df.to_csv(folder_path + '/' + SINGLE_ECONOMY + '/model_df_wide_tgt_' +SINGLE_ECONOMY+'_'+ date_today + '.csv', index = False)
     else:
         file_name = 'model_df_wide_' + date_today +'.csv'
         

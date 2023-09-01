@@ -55,6 +55,12 @@ def merging_results(merged_df_clean_wide):
     # Get a list of all matching results data file paths
     results_data_files = glob.glob(results_data_path)
 
+    # Check if results_data_files is empty
+    if not results_data_files:
+        print("No files found in the specified path.")
+        # Exit the function
+        return None
+
     # Iterate over the results files
     for file in results_data_files:
         # Read the results file
