@@ -752,7 +752,7 @@ def merging_results(merged_df_clean_wide):
     layout_df = pd.concat([dropped_aggregate_layout_df, aggregate_merged_df])
 
     # Define the folder path where you want to save the file
-    folder_path = f'results/{SINGLE_ECONOMY}'
+    folder_path = f'results/{SINGLE_ECONOMY}/merged'
 
     # Check if the folder already exists
     if not os.path.exists(folder_path):
