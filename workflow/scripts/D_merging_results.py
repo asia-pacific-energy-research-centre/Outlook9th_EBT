@@ -170,7 +170,7 @@ def merging_results(merged_df_clean_wide):
 
     # Remove the duplicate rows from merged_results_df
     merged_results_df = merged_results_df.drop_duplicates(subset=shared_categories, keep='first').copy()
- 
+
     # Print the updated number of rows in merged_results_df
     print("Number of rows in merged_results_df after removing rows without year values and duplicates:", merged_results_df.shape[0])
 
@@ -370,8 +370,12 @@ def merging_results(merged_df_clean_wide):
     ) & overarching_conditions_predicted | condition2
 
     # Subtotal column for aggregating
-    years_aggregated_df['subtotal'] = ~((years_aggregated_df['subtotal_historic'] == False) & (years_aggregated_df['subtotal_predicted'] == False))
+    # years_aggregated_df['subtotal'] = ~((years_aggregated_df['subtotal_historic'] == False) & (years_aggregated_df['subtotal_predicted'] == False))
 
+    years_aggregated_df['subtotal'] = ~((years_aggregated_df['subtotal_historic'] == False) & 
+                                        (years_aggregated_df['subtotal_predicted'] == False)) & \
+                                    ~((years_aggregated_df['sectors'] == '17_nonenergy_use') & 
+                                        (years_aggregated_df['subtotal_predicted'] == False))
 
 
     #years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
