@@ -617,8 +617,22 @@ def merging_results(merged_df_clean_wide):
         # Filter based on desired sectors
         desired_df = filtered_df_subtotal_false[filtered_df_subtotal_false['sectors'].isin(desired_sectors)].copy()
 
-        # Group by necessary columns and aggregate
-        grouped_df = desired_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+
+        if sector_value == '07_total_primary_energy_supply':
+            desired_df_tfc = filtered_df_subtotal_false[filtered_df_subtotal_false['sectors'].isin(['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'])].copy()
+            grouped_df_tfc = desired_df_tfc.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+            # Multiplies all numeric columns by -1 to turn the values into negative
+            numeric_cols = grouped_df_tfc.select_dtypes(include=[np.number]).columns
+            grouped_df_tfc[numeric_cols] = grouped_df_tfc[numeric_cols] * -1
+            # Concatenating the two DataFrames
+            tpes_df = pd.concat([desired_df, grouped_df_tfc], ignore_index=True)
+            grouped_df = tpes_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+            # Multiplying all numeric columns by -1 to flip the values
+            numeric_cols = grouped_df.select_dtypes(include=[np.number]).columns
+            grouped_df[numeric_cols] = grouped_df[numeric_cols] * -1
+        else:
+            # Group by necessary columns and aggregate
+            grouped_df = desired_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
 
         # Add missing columns with 'x'
         for col in shared_categories:
@@ -637,7 +651,7 @@ def merging_results(merged_df_clean_wide):
     # Apply the function for each of the categories
     tfc_grouped_df = process_data(filtered_df, ['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '12_total_final_consumption')
     tfec_grouped_df = process_data(filtered_df, ['14_industry_sector', '15_transport_sector', '16_other_sector'], '13_total_final_energy_consumption')
-    tpes_grouped_df = process_data(filtered_df, ['9_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy', '12_total_final_consumption'], '07_total_primary_energy_supply')
+    tpes_grouped_df = process_data(filtered_df, ['09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy'], '07_total_primary_energy_supply')
 
     # Combine the grouped DataFrames
     merged_grouped_df = pd.concat([tfc_grouped_df, tfec_grouped_df, tpes_grouped_df])

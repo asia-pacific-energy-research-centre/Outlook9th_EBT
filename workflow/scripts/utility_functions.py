@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 USE_SINGLE_ECONOMY = True
-SINGLE_ECONOMY = '19_THA'
+SINGLE_ECONOMY = '08_JPN'
 
 EBT_EARLIEST_YEAR = 1980
 OUTLOOK_BASE_YEAR = 2020
