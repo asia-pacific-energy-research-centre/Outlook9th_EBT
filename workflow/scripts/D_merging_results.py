@@ -61,6 +61,117 @@ def merging_results(merged_df_clean_wide):
         # Exit the function
         return None
 
+
+    def aggregating_x(df):
+    
+        def process_column(data, omit_cols):
+            group_cols = [col for col in data.columns if col not in data.columns[data.columns.str.isnumeric()] and col not in omit_cols]
+
+            # Ensure all columns in omit_cols are filtered
+            # for omit_col in omit_cols:
+            #     data = data[data[omit_col] != 'x']
+
+            # Melt the dataframe
+            melted_df = data.melt(id_vars=shared_categories,
+                                value_vars=[col for col in data.columns[data.columns.str.isnumeric()]],
+                                var_name='year',
+                                value_name='value')
+
+            # Filter rows that don't have 'x' in any of the omit_cols for aggregation
+            # aggregate_rows = melted_df
+            # for omit_col in omit_cols:
+            #     aggregate_rows = aggregate_rows[aggregate_rows[omit_col] != 'x']
+
+
+            # Perform aggregation
+            agg_df = melted_df.groupby(group_cols + ['year'])['value'].sum().reset_index()
+
+            # Add back the omitted columns with 'x' as the value
+            for omit_col in omit_cols:
+                agg_df[omit_col] = 'x'
+
+            # Merge melted_df and agg_df
+            merged_df = pd.concat([melted_df, agg_df], ignore_index=True)
+
+            # Pivot the merged dataframe back to its original format
+            pivoted_df = merged_df.pivot_table(index=group_cols + omit_cols,
+                                            columns='year',
+                                            values='value',
+                                            aggfunc='sum').reset_index()
+
+            return pivoted_df
+
+        sector_name = df['sectors'].iloc[0]
+
+        # Process columns sequentially
+        df_copy = df.copy()
+        results_subfuels = process_column(df_copy, ['subfuels'])
+        results_subfuels.to_csv(f'results_subfuels_{sector_name}.csv', index=False)
+        results_sub4sectors = process_column(df_copy, ['sub4sectors'])
+        results_sub4sectors.to_csv(f'results_sub4sectors_{sector_name}.csv', index=False)
+        results_sub3sectors = process_column(df_copy, ['sub3sectors', 'sub4sectors'])
+        results_sub3sectors.to_csv(f'results_sub3sectors_{sector_name}.csv', index=False)
+        results_sub2sectors = process_column(df_copy, ['sub2sectors', 'sub3sectors', 'sub4sectors'])
+        results_sub2sectors.to_csv(f'results_sub2sectors_{sector_name}.csv', index=False)
+        results_sub1sectors = process_column(df_copy, ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
+        results_sub1sectors.to_csv(f'results_sub1sectors_{sector_name}.csv', index=False)
+        
+        results_subfuels_and_sub4sectors = process_column(df_copy, ['subfuels', 'sub4sectors'])
+        results_subfuels_and_sub4sectors.to_csv(f'results_subfuels_and_sub4sectors_{sector_name}.csv', index=False)
+        results_subfuels_and_sub3sectors = process_column(df_copy, ['subfuels', 'sub3sectors', 'sub4sectors'])
+        results_subfuels_and_sub3sectors.to_csv(f'results_subfuels_and_sub3sectors_{sector_name}.csv', index=False)
+        results_subfuels_and_sub2sectors = process_column(df_copy, ['subfuels', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
+        results_subfuels_and_sub2sectors.to_csv(f'results_subfuels_and_sub2sectors_{sector_name}.csv', index=False)
+        results_subfuels_and_sub1sectors = process_column(df_copy, ['subfuels', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
+        results_subfuels_and_sub1sectors.to_csv(f'results_subfuels_and_sub1sectors_{sector_name}.csv', index=False)
+        
+        # Now compare the resulting dataframes with the original dataframe
+        merge_cols = shared_categories
+        original_keys = set(df[merge_cols].apply(tuple, axis=1))
+        subfuels_keys = set(results_subfuels[merge_cols].apply(tuple, axis=1))
+        sub4sectors_keys = set(results_sub4sectors[merge_cols].apply(tuple, axis=1))
+        sub3sectors_keys = set(results_sub3sectors[merge_cols].apply(tuple, axis=1))
+        sub2sectors_keys = set(results_sub2sectors[merge_cols].apply(tuple, axis=1))
+        sub1sectors_keys = set(results_sub1sectors[merge_cols].apply(tuple, axis=1))
+        
+        subfuels_and_sub4sectors_keys = set(results_subfuels_and_sub4sectors[merge_cols].apply(tuple, axis=1))
+        subfuels_and_sub3sectors_keys = set(results_subfuels_and_sub3sectors[merge_cols].apply(tuple, axis=1))
+        subfuels_and_sub2sectors_keys = set(results_subfuels_and_sub2sectors[merge_cols].apply(tuple, axis=1))
+        subfuels_and_sub1sectors_keys = set(results_subfuels_and_sub1sectors[merge_cols].apply(tuple, axis=1))
+
+        def drop_keys_from_df(results_df, keys_set):
+            for key in keys_set:
+                if key in original_keys:
+                    results_df = results_df.drop(results_df[results_df[merge_cols].apply(tuple, axis=1) == key].index)
+            return results_df
+
+        results_subfuels = drop_keys_from_df(results_subfuels, subfuels_keys)
+        results_sub4sectors = drop_keys_from_df(results_sub4sectors, sub4sectors_keys)
+        results_sub3sectors = drop_keys_from_df(results_sub3sectors, sub3sectors_keys)
+        results_sub2sectors = drop_keys_from_df(results_sub2sectors, sub2sectors_keys)
+        results_sub1sectors = drop_keys_from_df(results_sub1sectors, sub1sectors_keys)
+        
+        results_subfuels_and_sub4sectors = drop_keys_from_df(results_subfuels_and_sub4sectors, subfuels_and_sub4sectors_keys)
+        results_subfuels_and_sub3sectors = drop_keys_from_df(results_subfuels_and_sub3sectors, subfuels_and_sub3sectors_keys)
+        results_subfuels_and_sub2sectors = drop_keys_from_df(results_subfuels_and_sub2sectors, subfuels_and_sub2sectors_keys)
+        results_subfuels_and_sub1sectors = drop_keys_from_df(results_subfuels_and_sub1sectors, subfuels_and_sub1sectors_keys)
+
+        # Concatenate results back to original dataframe
+        final_df = pd.concat([df, results_subfuels, results_sub4sectors, results_sub3sectors, 
+                          results_sub2sectors, results_sub1sectors, 
+                          results_subfuels_and_sub4sectors, results_subfuels_and_sub3sectors, 
+                          results_subfuels_and_sub2sectors, results_subfuels_and_sub1sectors], ignore_index=True)
+        final_df.to_csv(f'final_df_{sector_name}.csv', index=False)
+
+
+        return final_df
+
+
+
+
+
+
+
     # Iterate over the results files
     for file in results_data_files:
         # Read the results file
@@ -137,8 +248,12 @@ def merging_results(merged_df_clean_wide):
         assert len(differences) == 0, f"Differences found in results file: {file_name}\n\nDifferences:\n" + '\n'.join([f"There is no '{variable}' in '{category}'" for variable, category in differences])
 
 
+        aggregated_x_df = aggregating_x(filtered_results_df)
+
+
+
         # Combine the results_df
-        merged_results_df = pd.concat([merged_results_df, filtered_results_df])
+        merged_results_df = pd.concat([merged_results_df, aggregated_x_df])
 
         #merged_results_df = merged_results_df.merge(filtered_results_df, on=shared_categories, how='left')
 
@@ -487,7 +602,7 @@ def merging_results(merged_df_clean_wide):
 
 
 
-    df_for_aggregating.to_csv('test.csv', index=False)
+    # df_for_aggregating.to_csv('test.csv', index=False)
 
 
 
@@ -577,7 +692,7 @@ def merging_results(merged_df_clean_wide):
     # Reorder columns
     pivoted_columns_order = shared_categories + [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]# + ['subtotal']
     pivoted_df = pivoted_df[pivoted_columns_order]
-    pivoted_df.to_csv('pivoted_df.csv', index=False)
+    # pivoted_df.to_csv('pivoted_df.csv', index=False)
 
     # Drop the projected year columns
     results_layout_df = results_layout_df.drop(columns=[str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)], errors='ignore')
@@ -586,7 +701,7 @@ def merging_results(merged_df_clean_wide):
     results_layout_df = results_layout_df.merge(pivoted_df, on=shared_categories, how='left')
     layout_columns_order = shared_categories + [str(year) for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)] + ['subtotal_historic', 'subtotal_predicted', 'subtotal']
     results_layout_df = results_layout_df[layout_columns_order]
-    results_layout_df.to_csv('results_layout_df.csv', index=False)
+    # results_layout_df.to_csv('results_layout_df.csv', index=False)
 
 
 
@@ -696,7 +811,7 @@ def merging_results(merged_df_clean_wide):
     # Using the function
     merged_grouped_df = aggregating_19_total(merged_grouped_df)
 
-    merged_grouped_df.to_csv('merged_grouped_df3.csv', index=False)
+    # merged_grouped_df.to_csv('merged_grouped_df3.csv', index=False)
 
 
 
@@ -742,7 +857,7 @@ def merging_results(merged_df_clean_wide):
     merged_grouped_df = aggregating_aggregates(merged_grouped_df)
 
     
-    merged_grouped_df.to_csv('merged_grouped_df2.csv', index=False)
+    # merged_grouped_df.to_csv('merged_grouped_df2.csv', index=False)
 
 
 
@@ -767,7 +882,12 @@ def merging_results(merged_df_clean_wide):
 
 
     # Combine the original layout_df with the merged_df
-    layout_df = pd.concat([dropped_aggregate_layout_df, aggregate_merged_df])
+    messy_layout_df = pd.concat([dropped_aggregate_layout_df, aggregate_merged_df])
+
+    # Layout_df with rows ordered in the same sequence as merged_df_clean_wide based on the columns in shared_categories
+    layout_df = merged_df_clean_wide[shared_categories].merge(messy_layout_df, on=shared_categories, sort=False)
+
+
 
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY}/merged'
