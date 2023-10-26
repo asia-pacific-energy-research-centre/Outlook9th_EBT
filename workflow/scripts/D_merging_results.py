@@ -106,24 +106,24 @@ def merging_results(merged_df_clean_wide):
         # Process columns sequentially
         df_copy = df.copy()
         results_subfuels = process_column(df_copy, ['subfuels'])
-        results_subfuels.to_csv(f'results_subfuels_{sector_name}.csv', index=False)
+        # results_subfuels.to_csv(f'results_subfuels_{sector_name}.csv', index=False)
         results_sub4sectors = process_column(df_copy, ['sub4sectors'])
-        results_sub4sectors.to_csv(f'results_sub4sectors_{sector_name}.csv', index=False)
+        # results_sub4sectors.to_csv(f'results_sub4sectors_{sector_name}.csv', index=False)
         results_sub3sectors = process_column(df_copy, ['sub3sectors', 'sub4sectors'])
-        results_sub3sectors.to_csv(f'results_sub3sectors_{sector_name}.csv', index=False)
+        # results_sub3sectors.to_csv(f'results_sub3sectors_{sector_name}.csv', index=False)
         results_sub2sectors = process_column(df_copy, ['sub2sectors', 'sub3sectors', 'sub4sectors'])
-        results_sub2sectors.to_csv(f'results_sub2sectors_{sector_name}.csv', index=False)
+        # results_sub2sectors.to_csv(f'results_sub2sectors_{sector_name}.csv', index=False)
         results_sub1sectors = process_column(df_copy, ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
-        results_sub1sectors.to_csv(f'results_sub1sectors_{sector_name}.csv', index=False)
+        # results_sub1sectors.to_csv(f'results_sub1sectors_{sector_name}.csv', index=False)
         
         results_subfuels_and_sub4sectors = process_column(df_copy, ['subfuels', 'sub4sectors'])
-        results_subfuels_and_sub4sectors.to_csv(f'results_subfuels_and_sub4sectors_{sector_name}.csv', index=False)
+        # results_subfuels_and_sub4sectors.to_csv(f'results_subfuels_and_sub4sectors_{sector_name}.csv', index=False)
         results_subfuels_and_sub3sectors = process_column(df_copy, ['subfuels', 'sub3sectors', 'sub4sectors'])
-        results_subfuels_and_sub3sectors.to_csv(f'results_subfuels_and_sub3sectors_{sector_name}.csv', index=False)
+        # results_subfuels_and_sub3sectors.to_csv(f'results_subfuels_and_sub3sectors_{sector_name}.csv', index=False)
         results_subfuels_and_sub2sectors = process_column(df_copy, ['subfuels', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
-        results_subfuels_and_sub2sectors.to_csv(f'results_subfuels_and_sub2sectors_{sector_name}.csv', index=False)
+        # results_subfuels_and_sub2sectors.to_csv(f'results_subfuels_and_sub2sectors_{sector_name}.csv', index=False)
         results_subfuels_and_sub1sectors = process_column(df_copy, ['subfuels', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
-        results_subfuels_and_sub1sectors.to_csv(f'results_subfuels_and_sub1sectors_{sector_name}.csv', index=False)
+        # results_subfuels_and_sub1sectors.to_csv(f'results_subfuels_and_sub1sectors_{sector_name}.csv', index=False)
         
         # Now compare the resulting dataframes with the original dataframe
         merge_cols = shared_categories
@@ -158,10 +158,10 @@ def merging_results(merged_df_clean_wide):
 
         # Concatenate results back to original dataframe
         final_df = pd.concat([df, results_subfuels, results_sub4sectors, results_sub3sectors, 
-                          results_sub2sectors, results_sub1sectors, 
-                          results_subfuels_and_sub4sectors, results_subfuels_and_sub3sectors, 
-                          results_subfuels_and_sub2sectors, results_subfuels_and_sub1sectors], ignore_index=True)
-        final_df.to_csv(f'final_df_{sector_name}.csv', index=False)
+                            results_sub2sectors, results_sub1sectors, 
+                            results_subfuels_and_sub4sectors, results_subfuels_and_sub3sectors, 
+                            results_subfuels_and_sub2sectors, results_subfuels_and_sub1sectors], ignore_index=True)
+        # final_df.to_csv(f'final_df_{sector_name}.csv', index=False)
 
 
         return final_df
@@ -767,9 +767,11 @@ def merging_results(merged_df_clean_wide):
     tfc_grouped_df = process_data(filtered_df, ['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '12_total_final_consumption')
     tfec_grouped_df = process_data(filtered_df, ['14_industry_sector', '15_transport_sector', '16_other_sector'], '13_total_final_energy_consumption')
     tpes_grouped_df = process_data(filtered_df, ['09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy'], '07_total_primary_energy_supply')
+    total_transformation_df = process_data(filtered_df, ['09_total_transformation_sector'], '09_total_transformation_sector')
+    other_sector_df = process_data(filtered_df, ['16_other_sector'], '16_other_sector')
 
     # Combine the grouped DataFrames
-    merged_grouped_df = pd.concat([tfc_grouped_df, tfec_grouped_df, tpes_grouped_df])
+    merged_grouped_df = pd.concat([tfc_grouped_df, tfec_grouped_df, tpes_grouped_df, total_transformation_df, other_sector_df])
     merged_grouped_df.drop(columns=['subtotal_historic', 'subtotal_predicted', 'subtotal'], inplace=True)
 
     merged_grouped_df.to_csv('merged_grouped_df.csv')
@@ -865,16 +867,21 @@ def merging_results(merged_df_clean_wide):
 
 
 
-    # Get the unique sectors
+    # Get the unique sectors and sub1sectors
     aggregate_sectors_list = merged_grouped_df['sectors'].unique().tolist()
+    aggregate_sub1sectors_list = merged_grouped_df['sub1sectors'].unique().tolist()
 
-    # Create a new DataFrame with rows that match the sectors from the results DataFrame
-    new_aggregate_layout_df = results_layout_df[results_layout_df['sectors'].isin(aggregate_sectors_list)].copy()
+    # Create conditions for checking both 'sectors' and 'sub1sectors'
+    sector_condition = results_layout_df['sectors'].isin(aggregate_sectors_list)
+    sub1sector_condition = results_layout_df['sub1sectors'].isin(aggregate_sub1sectors_list)
+
+    # Create a new DataFrame with rows that match both the sectors and sub1sectors from the results DataFrame
+    new_aggregate_layout_df = results_layout_df[sector_condition & sub1sector_condition].copy()
 
     # Drop the rows that were updated in the new DataFrame from the original layout DataFrame
-    dropped_aggregate_layout_df = results_layout_df[~results_layout_df['sectors'].isin(aggregate_sectors_list)].copy()
+    dropped_aggregate_layout_df = results_layout_df[~(sector_condition & sub1sector_condition)].copy()
 
-
+    # Drop specified columns from the new aggregated DataFrame
     new_aggregate_layout_df.drop(columns=columns_to_drop, inplace=True)
 
     # Merge the DataFrames based on the shared category columns
