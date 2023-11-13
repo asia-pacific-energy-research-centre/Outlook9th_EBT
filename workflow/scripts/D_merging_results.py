@@ -1,19 +1,33 @@
 """A script to merge the layout file and the demand output results files."""
-
+#%%
 import pandas as pd
 import numpy as np
 import os
 import glob
 from datetime import datetime
 from utility_functions import *
+import merging_functions
 
-def merging_results(merged_df_clean_wide):
+def merging_results(original_layout_df, previous_merged_df_filename=None):
+    """todo explain why this is so big and what it does. defintiely want to explain the issues with the x's. 
+    
+    Some useful definitiions:
+    catergories are the names of the columns in the layout file that arent years or values. eg.['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
+
+    Returns:
+        _type_: _description_
+    """
     # #read the layout file
     # if USE_SINGLE_ECONOMY:
     #     layout_file = glob.glob(f'../../results/model_df_wide_{SINGLE_ECONOMY}_202*.csv')
     # else:
     #     layout_file = glob.glob('../../results/model_df_wide_202*.csv')
-
+    
+    # try:
+    #     original_layout_df = pd.read_csv('a.csv')
+    # except:
+    #     os.chdir('../../')
+    #     original_layout_df = pd.read_csv('a.csv')
     # if len(layout_file) == 0:
     #     print("Layout file not found.")
     #     exit()
@@ -21,7 +35,7 @@ def merging_results(merged_df_clean_wide):
     # layout_file = layout_file[0]
 
     # layout_df = pd.read_csv(layout_file)
-    layout_df = merged_df_clean_wide.copy()
+    layout_df = original_layout_df.copy()
 
     #convert all col names to str since loaded csvs will have int columns
     layout_df.columns = layout_df.columns.astype(str)
@@ -39,8 +53,8 @@ def merging_results(merged_df_clean_wide):
     # # Combine the shared_categories and year columns
     # columns = shared_categories + columns_2021_to_2070
 
-    # Create an empty merged_results_df with the shared_categories
-    merged_results_df = pd.DataFrame(columns=shared_categories)
+    # Create an empty concatted_results_df with the shared_categories
+    concatted_results_df = pd.DataFrame(columns=shared_categories)
 
     if USE_SINGLE_ECONOMY:
         # Define the path pattern for the results data files
@@ -51,126 +65,13 @@ def merging_results(merged_df_clean_wide):
 
     # Define the path pattern for the results data files
     #results_data_path = 'data/demand_results_data/*'
-
     # Get a list of all matching results data file paths
-    results_data_files = glob.glob(results_data_path)
-
+    results_data_files = [f for f in glob.glob(results_data_path) if os.path.isfile(f)]
     # Check if results_data_files is empty
     if not results_data_files:
         print("No files found in the specified path.")
         # Exit the function
         return None
-
-
-    def aggregating_x(df):
-    
-        def process_column(data, omit_cols):
-            group_cols = [col for col in data.columns if col not in data.columns[data.columns.str.isnumeric()] and col not in omit_cols]
-
-            # Ensure all columns in omit_cols are filtered
-            # for omit_col in omit_cols:
-            #     data = data[data[omit_col] != 'x']
-
-            # Melt the dataframe
-            melted_df = data.melt(id_vars=shared_categories,
-                                value_vars=[col for col in data.columns[data.columns.str.isnumeric()]],
-                                var_name='year',
-                                value_name='value')
-
-            # Filter rows that don't have 'x' in any of the omit_cols for aggregation
-            # aggregate_rows = melted_df
-            # for omit_col in omit_cols:
-            #     aggregate_rows = aggregate_rows[aggregate_rows[omit_col] != 'x']
-
-
-            # Perform aggregation
-            agg_df = melted_df.groupby(group_cols + ['year'])['value'].sum().reset_index()
-
-            # Add back the omitted columns with 'x' as the value
-            for omit_col in omit_cols:
-                agg_df[omit_col] = 'x'
-
-            # Merge melted_df and agg_df
-            merged_df = pd.concat([melted_df, agg_df], ignore_index=True)
-
-            # Pivot the merged dataframe back to its original format
-            pivoted_df = merged_df.pivot_table(index=group_cols + omit_cols,
-                                            columns='year',
-                                            values='value',
-                                            aggfunc='sum').reset_index()
-
-            return pivoted_df
-
-        sector_name = df['sectors'].iloc[0]
-
-        # Process columns sequentially
-        df_copy = df.copy()
-        results_subfuels = process_column(df_copy, ['subfuels'])
-        # results_subfuels.to_csv(f'results_subfuels_{sector_name}.csv', index=False)
-        results_sub4sectors = process_column(df_copy, ['sub4sectors'])
-        # results_sub4sectors.to_csv(f'results_sub4sectors_{sector_name}.csv', index=False)
-        results_sub3sectors = process_column(df_copy, ['sub3sectors', 'sub4sectors'])
-        # results_sub3sectors.to_csv(f'results_sub3sectors_{sector_name}.csv', index=False)
-        results_sub2sectors = process_column(df_copy, ['sub2sectors', 'sub3sectors', 'sub4sectors'])
-        # results_sub2sectors.to_csv(f'results_sub2sectors_{sector_name}.csv', index=False)
-        results_sub1sectors = process_column(df_copy, ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
-        # results_sub1sectors.to_csv(f'results_sub1sectors_{sector_name}.csv', index=False)
-        
-        results_subfuels_and_sub4sectors = process_column(df_copy, ['subfuels', 'sub4sectors'])
-        # results_subfuels_and_sub4sectors.to_csv(f'results_subfuels_and_sub4sectors_{sector_name}.csv', index=False)
-        results_subfuels_and_sub3sectors = process_column(df_copy, ['subfuels', 'sub3sectors', 'sub4sectors'])
-        # results_subfuels_and_sub3sectors.to_csv(f'results_subfuels_and_sub3sectors_{sector_name}.csv', index=False)
-        results_subfuels_and_sub2sectors = process_column(df_copy, ['subfuels', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
-        # results_subfuels_and_sub2sectors.to_csv(f'results_subfuels_and_sub2sectors_{sector_name}.csv', index=False)
-        results_subfuels_and_sub1sectors = process_column(df_copy, ['subfuels', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
-        # results_subfuels_and_sub1sectors.to_csv(f'results_subfuels_and_sub1sectors_{sector_name}.csv', index=False)
-        
-        # Now compare the resulting dataframes with the original dataframe
-        merge_cols = shared_categories
-        original_keys = set(df[merge_cols].apply(tuple, axis=1))
-        subfuels_keys = set(results_subfuels[merge_cols].apply(tuple, axis=1))
-        sub4sectors_keys = set(results_sub4sectors[merge_cols].apply(tuple, axis=1))
-        sub3sectors_keys = set(results_sub3sectors[merge_cols].apply(tuple, axis=1))
-        sub2sectors_keys = set(results_sub2sectors[merge_cols].apply(tuple, axis=1))
-        sub1sectors_keys = set(results_sub1sectors[merge_cols].apply(tuple, axis=1))
-        
-        subfuels_and_sub4sectors_keys = set(results_subfuels_and_sub4sectors[merge_cols].apply(tuple, axis=1))
-        subfuels_and_sub3sectors_keys = set(results_subfuels_and_sub3sectors[merge_cols].apply(tuple, axis=1))
-        subfuels_and_sub2sectors_keys = set(results_subfuels_and_sub2sectors[merge_cols].apply(tuple, axis=1))
-        subfuels_and_sub1sectors_keys = set(results_subfuels_and_sub1sectors[merge_cols].apply(tuple, axis=1))
-
-        def drop_keys_from_df(results_df, keys_set):
-            for key in keys_set:
-                if key in original_keys:
-                    results_df = results_df.drop(results_df[results_df[merge_cols].apply(tuple, axis=1) == key].index)
-            return results_df
-
-        results_subfuels = drop_keys_from_df(results_subfuels, subfuels_keys)
-        results_sub4sectors = drop_keys_from_df(results_sub4sectors, sub4sectors_keys)
-        results_sub3sectors = drop_keys_from_df(results_sub3sectors, sub3sectors_keys)
-        results_sub2sectors = drop_keys_from_df(results_sub2sectors, sub2sectors_keys)
-        results_sub1sectors = drop_keys_from_df(results_sub1sectors, sub1sectors_keys)
-        
-        results_subfuels_and_sub4sectors = drop_keys_from_df(results_subfuels_and_sub4sectors, subfuels_and_sub4sectors_keys)
-        results_subfuels_and_sub3sectors = drop_keys_from_df(results_subfuels_and_sub3sectors, subfuels_and_sub3sectors_keys)
-        results_subfuels_and_sub2sectors = drop_keys_from_df(results_subfuels_and_sub2sectors, subfuels_and_sub2sectors_keys)
-        results_subfuels_and_sub1sectors = drop_keys_from_df(results_subfuels_and_sub1sectors, subfuels_and_sub1sectors_keys)
-
-        # Concatenate results back to original dataframe
-        final_df = pd.concat([df, results_subfuels, results_sub4sectors, results_sub3sectors, 
-                            results_sub2sectors, results_sub1sectors, 
-                            results_subfuels_and_sub4sectors, results_subfuels_and_sub3sectors, 
-                            results_subfuels_and_sub2sectors, results_subfuels_and_sub1sectors], ignore_index=True)
-        # final_df.to_csv(f'final_df_{sector_name}.csv', index=False)
-
-
-        return final_df
-
-
-
-
-
-
 
     # Iterate over the results files
     for file in results_data_files:
@@ -182,621 +83,170 @@ def merging_results(merged_df_clean_wide):
         else:
             print(f"Unsupported file format: {file}")
             continue
-
+        print(f"Processing {file}...")
         # Reorder the shared categories in the results DataFrame
         results_df = results_df[shared_categories + list(results_df.columns.difference(shared_categories))]
 
         # Convert columns to string type
         results_df.columns = results_df.columns.astype(str)
 
-        # Keep columns from '2021' to '2070'
-        years_to_keep = [str(year) for year in range(2021, 2071)]
-        results_df = results_df[shared_categories + years_to_keep]
-
+        # # Keep columns from oulook_base_year to outlook_last_year
+        # years_to_keep = [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
+        # results_df = results_df[shared_categories + years_to_keep]
+        
         #filter for only economies in the layout file:
         results_df = results_df[results_df['economy'].isin(economies)]
 
-        # Check for non-null values in each year column and combine them with the or operator
-        has_non_null_values = results_df[years_to_keep].notnull().any(axis=1)
-
-        # Create a list of unique sectors where there are non-null values for the years 2021-2070
-        unique_sectors = results_df.loc[has_non_null_values, 'sectors'].unique().tolist()
-
-        # Check if 'sectors' column contains '16_other_sector'
-        if '16_other_sector' in unique_sectors:
-            # Create a list of unique sub1sectors where there are non-null values for the years 2021-2070 and 'sectors' is '16_other_sector'
-            unique_sub1sectors = results_df.loc[has_non_null_values & (results_df['sectors'] == '16_other_sector'), 'sub1sectors'].unique().tolist()
-
-            # Filter 'results_df' to keep only the rows with '16_other_sector' in 'sectors' and unique sub1sectors
-            filtered_results_df = results_df[results_df['sectors'].isin(['16_other_sector']) & results_df['sub1sectors'].isin(unique_sub1sectors)].copy()
-        else:
-            # If '16_other_sector' is not present, just filter based on 'sectors' with non-null values for the years 2021-2070
-            filtered_results_df = results_df[results_df['sectors'].isin(unique_sectors)].copy()
-
-
-        # Drop columns with years within 1980 and 2020 in the results DataFrame
-        filtered_results_df.drop(columns=[col for col in filtered_results_df.columns if any(str(year) in col for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1))], inplace=True)
-
-
-        ###############TEMP################
-        # Filter rows where the sector is '05_international_aviation_bunkers'
-        filtered_rows = filtered_results_df['sectors'] == '05_international_aviation_bunkers'
-
-        # For each year from 2021 to 2070, check if the value is positive, if yes, make it negative
-        for year in range(2021, 2071):
-            filtered_results_df.loc[filtered_rows, str(year)] = filtered_results_df.loc[filtered_rows, str(year)].apply(lambda x: -abs(x))
-        ###################################
-
-
-        # Compare the shared categories between layout and results DataFrame
-        layout_shared_categories = layout_df[shared_categories]
-        results_shared_categories = filtered_results_df[shared_categories]
-
-        # Create a list to store the differences
-        differences = []
-
-        # Check if there are differences between the layout DataFrame and the results DataFrame
-        for category in shared_categories:
-            diff_variables = results_shared_categories.loc[~results_shared_categories[category].isin(layout_shared_categories[category]), category].unique()
-            for variable in diff_variables:
-                differences.append((variable, category))
-
-        # Extract the file name from the file path
-        file_name = os.path.basename(file)
-
-        # Use assert to check if there are any differences
-        assert len(differences) == 0, f"Differences found in results file: {file_name}\n\nDifferences:\n" + '\n'.join([f"There is no '{variable}' in '{category}'" for variable, category in differences])
-
-
-        aggregated_x_df = aggregating_x(filtered_results_df)
-
-
-
-        # Combine the results_df
-        merged_results_df = pd.concat([merged_results_df, aggregated_x_df])
-
-        #merged_results_df = merged_results_df.merge(filtered_results_df, on=shared_categories, how='left')
-
-
-    # Get the unique sectors from the results_df
-    sectors_list = merged_results_df['sectors'].unique().tolist()
-
-    # Create a new DataFrame with rows that match the sectors from the results DataFrame
-    new_layout_df = layout_df[layout_df['sectors'].isin(sectors_list)].copy()
-    # print("Number of rows in new_layout_df:", new_layout_df.shape[0])
-    # print("Number of rows in merged_results_df:", merged_results_df.shape[0])
-
-    # Drop the rows that were updated in the new DataFrame from the original layout DataFrame
-    dropped_layout_df = layout_df[~layout_df['sectors'].isin(sectors_list)].copy()
-
-
-
-    # Drop columns 2021 to 2070 from new_layout_df
-    columns_to_drop = [str(year) for year in range(2021, 2071)]
-    new_layout_df.drop(columns=columns_to_drop, inplace=True)
-
-    # Drop rows with NA or zeros in the year columns from merged_results_df
-    year_columns = [str(year) for year in range(2021, 2071)]
-    merged_results_df.dropna(subset=year_columns, how='all', inplace=True)
-    merged_results_df = merged_results_df.loc[~(merged_results_df[year_columns] == 0).all(axis=1)]
-
-    # Check for duplicate rows in merged_results_df based on shared_categories
-    duplicates = merged_results_df[merged_results_df.duplicated(subset=shared_categories, keep=False)]
-
-    # Remove the duplicate rows from merged_results_df
-    merged_results_df = merged_results_df.drop_duplicates(subset=shared_categories, keep='first').copy()
-
-    # Print the updated number of rows in merged_results_df
-    print("Number of rows in merged_results_df after removing rows without year values and duplicates:", merged_results_df.shape[0])
-
-    # Merge the new_layout_df with the merged_results_df based on shared_categories using left merge
-    merged_df = pd.merge(new_layout_df, merged_results_df, on=shared_categories, how="left")
-
-    # # Check for duplicate rows in merged_results_df
-    # duplicates = merged_results_df[merged_results_df.duplicated(subset=shared_categories, keep=False)]
-
-    # Check if there are any unexpected extra rows in merged_df
-    unexpected_rows = merged_df[~merged_df.index.isin(new_layout_df.index)]
-
-    # Print the number of rows in both dataframes
-    print("Number of rows in new_layout_df:", new_layout_df.shape[0])
-    print("Number of rows in merged_results_df:", merged_results_df.shape[0])
-    print("Number of rows in merged_df:", merged_df.shape[0])
-
-    # Print any duplicates and unexpected rows
-    print("Duplicates in merged_results_df:")
-    print(duplicates)
-    #duplicates.to_csv("duplicates.csv")
-    # print("Unexpected rows in merged_df:")
-    # print(unexpected_rows)
-
-    # Combine the original layout_df with the merged_df
-    results_layout_df = pd.concat([dropped_layout_df, merged_df])
-
-
-
-
-    # Melt the DataFrame
-    df_melted = results_layout_df.melt(id_vars=shared_categories, var_name='year', value_name='value')
-    df_melted['year'] = df_melted['year'].astype(int)
-
-    # Split the DataFrame into historic and predicted
-    historic_df = df_melted[df_melted['year'] <= 2020].copy()
-    predicted_df = df_melted[df_melted['year'] > 2020].copy()
-
-    # Drop the 'year' column
-    historic_df = historic_df.drop(columns='year')
-    predicted_df = predicted_df.drop(columns='year')
-
-    # Sum the 'value' for each unique combination of 'shared_categories'
-    historic_df = historic_df.groupby(shared_categories)['value'].sum().reset_index()
-    predicted_df = predicted_df.groupby(shared_categories)['value'].sum().reset_index()
-
-    # Merge the two dataframes on 'shared_categories'
-    years_aggregated_df = pd.merge(historic_df, predicted_df, on=shared_categories, suffixes=('_historic', '_predicted'))
-
-    # Condition 1: 'value_historic' is not NA and not 0
-    condition1 = years_aggregated_df['value_historic'].notna() & (years_aggregated_df['value_historic'] != 0)
-    condition1_predicted = years_aggregated_df['value_predicted'].notna() & (years_aggregated_df['value_predicted'] != 0)
-
-    # Condition 3: There is at least one 'x' in the row
-    condition3 = years_aggregated_df.apply(lambda row: row.astype(str).str.contains('x').any(), axis=1)
-
-    # Overarching conditions
-    overarching_conditions = condition1 & condition3
-    overarching_conditions_predicted = condition1_predicted & condition3
-    #print("Number of rows that meet the overarching conditions: ", overarching_conditions.sum())
-
-    # Condition 2: The row has '19_total', '20_total_renewables', '21_modern_renewables' in the 'fuels' column
-    condition2 = years_aggregated_df['fuels'].str.contains('19_total|20_total_renewables|21_modern_renewables')
-
-
-
-    # Condition for subfuels
-    condition_subfuels = (years_aggregated_df['subfuels'] == 'x') & \
-                        years_aggregated_df['value_historic'].notna() & \
-                        (years_aggregated_df['value_historic'] != 0) & \
-                        ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-    condition_subfuels_predicted = (years_aggregated_df['subfuels'] == 'x') & \
-                        years_aggregated_df['value_predicted'].notna() & \
-                        (years_aggregated_df['value_predicted'] != 0) & \
-                        ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-
-    # Condition for sub4sectors being 'x'
-    condition_sub4sectors = (years_aggregated_df['sub4sectors'] == 'x') & \
-                            years_aggregated_df['value_historic'].notna() & \
-                            (years_aggregated_df['value_historic'] != 0) & \
-                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-    condition_sub4sectors_predicted = (years_aggregated_df['sub4sectors'] == 'x') & \
-                            years_aggregated_df['value_predicted'].notna() & \
-                            (years_aggregated_df['value_predicted'] != 0) & \
-                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-
-    # Condition for sub3sectors being 'x'
-    condition_sub3sectors = (years_aggregated_df['sub3sectors'] == 'x') & \
-                            years_aggregated_df['value_historic'].notna() & \
-                            (years_aggregated_df['value_historic'] != 0) & \
-                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-    condition_sub3sectors_predicted = (years_aggregated_df['sub3sectors'] == 'x') & \
-                            years_aggregated_df['value_predicted'].notna() & \
-                            (years_aggregated_df['value_predicted'] != 0) & \
-                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-
-    # Condition for sub2sectors being 'x'
-    condition_sub2sectors = (years_aggregated_df['sub2sectors'] == 'x') & \
-                            years_aggregated_df['value_historic'].notna() & \
-                            (years_aggregated_df['value_historic'] != 0) & \
-                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-    condition_sub2sectors_predicted = (years_aggregated_df['sub2sectors'] == 'x') & \
-                            years_aggregated_df['value_predicted'].notna() & \
-                            (years_aggregated_df['value_predicted'] != 0) & \
-                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-
-    # Condition for sub1sectors being 'x'
-    condition_sub1sectors = (years_aggregated_df['sub1sectors'] == 'x') & \
-                            years_aggregated_df['value_historic'].notna() & \
-                            (years_aggregated_df['value_historic'] != 0) & \
-                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-    condition_sub1sectors_predicted = (years_aggregated_df['sub1sectors'] == 'x') & \
-                            years_aggregated_df['value_predicted'].notna() & \
-                            (years_aggregated_df['value_predicted'] != 0) & \
-                            ~years_aggregated_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])
-
-
-    # Function to check the totals for both 'value_historic' and 'value_predicted'
-    def check_totals(column_name, group):
-        total_row = group[group[column_name] == 'x']
-        other_rows = group[group[column_name] != 'x']
-
-        # Initialize the results
-        check_historic = False
-        check_predicted = False
-
-        if not total_row.empty:
-            # Adjust this tolerance if needed
-            tolerance = 1e-3
-
-            # Check 'value_historic'
-            total_value_historic = total_row['value_historic'].values[0]
-            sum_others_historic = other_rows['value_historic'].sum()
-            check_historic = np.isclose(total_value_historic, sum_others_historic, rtol=tolerance)
-
-            # Check 'value_predicted'
-            total_value_predicted = total_row['value_predicted'].values[0]
-            sum_others_predicted = other_rows['value_predicted'].sum()
-            check_predicted = np.isclose(total_value_predicted, sum_others_predicted, rtol=tolerance)
-
-        return check_historic, check_predicted
-
-
-
-    # Checking for subfuels
-    other_categories_subfuels = [cat for cat in shared_categories if cat != 'subfuels']
-    grouped_data_subfuels = years_aggregated_df.groupby(other_categories_subfuels)
-    results_subfuels = grouped_data_subfuels.apply(lambda group: check_totals('subfuels', group))
-    subtotal_subfuels_historic = years_aggregated_df.merge(results_subfuels.reset_index(), on=other_categories_subfuels, how='left')[0].apply(lambda x: x[0]).fillna(False)
-    subtotal_subfuels_predicted = years_aggregated_df.merge(results_subfuels.reset_index(), on=other_categories_subfuels, how='left')[0].apply(lambda x: x[1]).fillna(False)
-
-    # For sub4sectors
-    other_categories_sub4sectors = [cat for cat in shared_categories if cat != 'sub4sectors']
-    grouped_data_sub4sectors = years_aggregated_df.groupby(other_categories_sub4sectors)
-    results_sub4sectors = grouped_data_sub4sectors.apply(lambda group: check_totals('sub4sectors', group))
-    subtotal_sub4sectors_historic = years_aggregated_df.merge(results_sub4sectors.reset_index(), on=other_categories_sub4sectors, how='left')[0].apply(lambda x: x[0]).fillna(False)
-    subtotal_sub4sectors_predicted = years_aggregated_df.merge(results_sub4sectors.reset_index(), on=other_categories_sub4sectors, how='left')[0].apply(lambda x: x[1]).fillna(False)
-
-    # For sub3sectors
-    other_categories_sub3sectors = [cat for cat in shared_categories if cat != 'sub3sectors']
-    grouped_data_sub3sectors = years_aggregated_df.groupby(other_categories_sub3sectors)
-    results_sub3sectors = grouped_data_sub3sectors.apply(lambda group: check_totals('sub3sectors', group))
-    subtotal_sub3sectors_historic = years_aggregated_df.merge(results_sub3sectors.reset_index(), on=other_categories_sub3sectors, how='left')[0].apply(lambda x: x[0]).fillna(False)
-    subtotal_sub3sectors_predicted = years_aggregated_df.merge(results_sub3sectors.reset_index(), on=other_categories_sub3sectors, how='left')[0].apply(lambda x: x[1]).fillna(False)
-
-    # For sub2sectors
-    other_categories_sub2sectors = [cat for cat in shared_categories if cat != 'sub2sectors']
-    grouped_data_sub2sectors = years_aggregated_df.groupby(other_categories_sub2sectors)
-    results_sub2sectors = grouped_data_sub2sectors.apply(lambda group: check_totals('sub2sectors', group))
-    subtotal_sub2sectors_historic = years_aggregated_df.merge(results_sub2sectors.reset_index(), on=other_categories_sub2sectors, how='left')[0].apply(lambda x: x[0]).fillna(False)
-    subtotal_sub2sectors_predicted = years_aggregated_df.merge(results_sub2sectors.reset_index(), on=other_categories_sub2sectors, how='left')[0].apply(lambda x: x[1]).fillna(False)
-
-    # For sub1sectors
-    other_categories_sub1sectors = [cat for cat in shared_categories if cat != 'sub1sectors']
-    grouped_data_sub1sectors = years_aggregated_df.groupby(other_categories_sub1sectors)
-    results_sub1sectors = grouped_data_sub1sectors.apply(lambda group: check_totals('sub1sectors', group))
-    subtotal_sub1sectors_historic = years_aggregated_df.merge(results_sub1sectors.reset_index(), on=other_categories_sub1sectors, how='left')[0].apply(lambda x: x[0]).fillna(False)
-    subtotal_sub1sectors_predicted = years_aggregated_df.merge(results_sub1sectors.reset_index(), on=other_categories_sub1sectors, how='left')[0].apply(lambda x: x[1]).fillna(False)
-
-
-    # Combine the results
-    # Combining results based on whether any of the historic OR predicted subtotals are True
-    years_aggregated_df['subtotal_historic'] = (
-        (condition_subfuels & subtotal_subfuels_historic) |
-        (condition_sub4sectors & subtotal_sub4sectors_historic) |
-        (condition_sub3sectors & subtotal_sub3sectors_historic) |
-        (condition_sub2sectors & subtotal_sub2sectors_historic) |
-        (condition_sub1sectors & subtotal_sub1sectors_historic)
-    ) & overarching_conditions | condition2
-
-    years_aggregated_df['subtotal_predicted'] = (
-        (condition_subfuels_predicted & subtotal_subfuels_predicted) |
-        (condition_sub4sectors_predicted & subtotal_sub4sectors_predicted) |
-        (condition_sub3sectors_predicted & subtotal_sub3sectors_predicted) |
-        (condition_sub2sectors_predicted & subtotal_sub2sectors_predicted) |
-        (condition_sub1sectors_predicted & subtotal_sub1sectors_predicted)
-    ) & overarching_conditions_predicted | condition2
-
-    # Subtotal column for aggregating
-    # years_aggregated_df['subtotal'] = ~((years_aggregated_df['subtotal_historic'] == False) & (years_aggregated_df['subtotal_predicted'] == False))
-
-    years_aggregated_df['subtotal'] = ~((years_aggregated_df['subtotal_historic'] == False) & 
-                                        (years_aggregated_df['subtotal_predicted'] == False)) & \
-                                    ~((years_aggregated_df['sectors'] == '17_nonenergy_use') & 
-                                        (years_aggregated_df['subtotal_predicted'] == False))
-
-
-    #years_aggregated_df.to_csv('years_aggregated_df.csv', index=False)
+        #TEMP# 
+        #buildings file currently includes all sectors historical data, just like the layout file, not just buildings. This is a temporary fix to remove the non-buildings sectors from the results file.
+        results_df = merging_functions.filter_for_only_buildings_data_in_buildings_file(results_df)
+        #TEMP#
+        # find sectors where there are null values for all the years base_year->end_year. This will help to identify where perhaps the results file is missing data or has been incorrectly formatted.
+        null_sectors = results_df.loc[results_df.isnull().all(axis=1), 'sectors'].unique().tolist()#[years_to_keep]
+        if null_sectors:
+            print(f"Full rows of null values found in {file} for the following sectors:")
+            print(null_sectors)
+        filtered_results_df = results_df[~results_df['sectors'].isin(null_sectors)].copy()
+        
+        # # Drop columns with years within 1980 and 2020 in the results DataFrame
+        # filtered_results_df.drop(columns=[col for col in filtered_results_df.columns if any(str(year) in col for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1))], inplace=True)
+
+        #########RUN COMMON CHECKS ON THE RESULTS FILE.#########
+        merging_functions.check_bunkers_are_negative(filtered_results_df, file)
+        merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)#TODO WILL THIS STILL WORK IF WE KEEP ALL YEARS IN THE RESULTS FILE? I THINK SO.
+        #########RUN COMMON CHECKS ON THE RESULTS FILE OVER.#########
+        
+        aggregated_x_df = merging_functions.calculate_subtotals(filtered_results_df, shared_categories, file)
+        # Combine the results_df with all the other results_dfs we have read so far
+        concatted_results_df = pd.concat([concatted_results_df, aggregated_x_df])
     
-    # Merge the 'subtotal' column
-    results_layout_df = pd.merge(results_layout_df, 
-                                years_aggregated_df[shared_categories + ['subtotal_historic', 'subtotal_predicted', 'subtotal']], 
-                                on=shared_categories, 
-                                how='left')
-
-
-
-
-
-    # Melt the DataFrame
-    df_for_aggregating = results_layout_df.melt(id_vars=shared_categories + ['subtotal_historic', 'subtotal_predicted', 'subtotal'], var_name='year', value_name='value')
-    df_for_aggregating['year'] = df_for_aggregating['year'].astype(int)
-
-    # Drop the historic rows
-    df_for_aggregating = df_for_aggregating.loc[~df_for_aggregating['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)]
-
-
-    # # Function to check the totals for both 'value_historic' and 'value_predicted'
-    # def calculate_and_update_totals(column_name, group):
-    #     total_row = group[group[column_name] == True]
-    #     other_rows = group[group[column_name] == False]
-
-    #     if not total_row.empty:
-    #         # Calculate the total using rows set to 'false' in 'subtotal' column
-    #         sum_others = other_rows['value'].sum()
-
-    #         # Update the total value into the row set to 'true' in 'subtotal' column
-    #         group.loc[group['subtotal'] == True, 'value'] = sum_others
-
-    #     return group
-
-
-    # # Calculating for subfuels
-    # other_categories_subfuels = [cat for cat in shared_categories if cat != 'subfuels'] + ['year']
-    # grouped_data_subfuels = df_for_aggregating.groupby(other_categories_subfuels, group_keys=False)  # Add group_keys=False to maintain original indexing
-    # df_for_aggregating = grouped_data_subfuels.apply(lambda group: calculate_and_update_totals('subfuels', group))
-
-
-    # def calculate_totals(df):
-    #     # Create a mask to filter out rows
-    #     mask_true = (df['fuels'] == '19_total') & (df['subtotal'] == 'true')
-    #     true_rows = df[mask_true].copy()
-        
-    #     # Aggregate values for rows where 'subtotal' is 'false'
-    #     agg_values = df[df['subtotal'] == 'false'].groupby(shared_categories + ['year']).sum()
-    #     agg_values.to_csv('agg_values.csv')
-        
-    #     # For each row where 'fuels' is '19_total' and 'subtotal' is 'true', determine the effective grouping columns
-    #     for idx, row in true_rows.iterrows():
-    #         effective_grouping_columns = [col for col in shared_categories if row[col] != 'x']
-    #         effective_grouping_columns.append('year')
-            
-    #         # Fetch aggregated value based on effective grouping columns
-    #         group_key = tuple(row[col] for col in effective_grouping_columns)
-    #         if group_key in agg_values.index:
-    #             for col in df.columns:
-    #                 if col not in shared_categories + ['subtotal']:
-    #                     df.at[idx, col] = agg_values.loc[group_key, col]
-
-    #     return df
-
-    # result = calculate_totals(df_for_aggregating)
-
-
-    def aggregate_for_19_total(df, columns_to_exclude=[]):
-        # Base columns to always exclude
-        base_excluded_cols = ['fuels', 'subfuels']
-        
-        # Combine base excluded columns with the ones provided
-        excluded_cols = base_excluded_cols + columns_to_exclude
-        
-        group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
-        
-        sum_df = df[df['subtotal'] == False].groupby(group_columns)['value'].sum().reset_index()
-        
-        # Drop rows from sum_df where 'value' is NaN or 0
-        sum_df = sum_df.dropna(subset=['value'])
-        sum_df = sum_df[sum_df['value'] != 0]
-        
-        # Add back the removed columns with specified values
-        sum_df['fuels'] = '19_total'
-        for col in columns_to_exclude+['subfuels']:
-            sum_df[col] = 'x'
-        
-        # Create a mapper based on shared_categories+['year'] and 'value' for faster look-up
-        value_mapper = sum_df.set_index(shared_categories+['year'])['value'].to_dict()
-
-        # Update the original dataframe only if 'fuels' is '19_total' and the value is 0 or NaN
-        mask = (df['fuels'] == '19_total') & df['value'].isin([0, None, np.nan])
-        df.loc[mask, 'value'] = df[mask][shared_categories+['year']].apply(tuple, axis=1).map(value_mapper)
-        
-        return df
-
-    # Using the function with various excluded columns
-    df_for_aggregating = aggregate_for_19_total(df_for_aggregating, columns_to_exclude=['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'])
-    df_for_aggregating = aggregate_for_19_total(df_for_aggregating, columns_to_exclude=['sub2sectors', 'sub3sectors', 'sub4sectors'])
-    df_for_aggregating = aggregate_for_19_total(df_for_aggregating, columns_to_exclude=['sub3sectors', 'sub4sectors'])
-    df_for_aggregating = aggregate_for_19_total(df_for_aggregating, columns_to_exclude=['sub4sectors'])
-    df_for_aggregating = aggregate_for_19_total(df_for_aggregating)
-
-
-
-
-
-
-
-    # df_for_aggregating.to_csv('test.csv', index=False)
-
-
-
-    # def aggregate_and_map(df, column):
-    #     # Initial columns for grouping
-    #     group_columns_init = [cat for cat in shared_categories if cat != column] + ['year']
-
-    #     # Exclude specified values in the 'fuels' column
-    #     exclude_fuels = ['19_total', '20_total_renewables', '21_modern_renewables']
-
-    #     # Create a mask for columns that have 'x'
-    #     x_mask = (df[group_columns_init] == 'x')
-
-    #     # Find the columns that don't have 'x' for each row and store them
-    #     df['dynamic_group'] = x_mask.apply(lambda row: ','.join([col for idx, col in enumerate(group_columns_init) if not row[idx]]), axis=1)
-
-    #     # Compute sum based on the dynamic grouping
-    #     valid_rows = df['subtotal'] == False
-    #     for fuel in exclude_fuels:
-    #         valid_rows &= df['fuels'] != fuel
-    #     sum_df = df[valid_rows].groupby(['dynamic_group', 'year'])['value'].sum()
-
-    #     # Map the sum to the subtotal rows using the dynamic group
-    #     mask = df['subtotal'] & df['value'].isin([0, None, np.nan])
-    #     for fuel in exclude_fuels:
-    #         mask &= df['fuels'] != fuel
-    #     df.loc[mask, 'value'] = df[mask].set_index(['dynamic_group', 'year']).index.map(sum_df).values
-
-    #     # Drop the helper column
-    #     df.drop('dynamic_group', axis=1, inplace=True)
-
-    #     return df
-
-
-    # def aggregate_for_19_total(df):
-    #     # Determine columns for dynamic grouping (excluding 'fuels' and 'subtotal')
-    #     consider_columns = [col for col in shared_categories if col not in ['fuels', 'subfuels', 'subtotal']]
-        
-    #     # Step 1: Determine dynamic grouping for subtotal rows
-    #     subtotal_mask = (df['fuels'] == '19_total') & df['subtotal']
-    #     non_x_mask = (df[consider_columns] != 'x')
-    #     df['dynamic_grouping'] = non_x_mask.apply(lambda row: ','.join(row.index[row]), axis=1)
-        
-    #     # Only focus on rows where subtotal is False and not 19_total for Step 2
-    #     non_subtotal_mask = ~df['subtotal'] & (df['fuels'] != '19_total')
-        
-    #     # Step 2: Aggregate values based on dynamic groupings
-    #     aggregated_values = df[non_subtotal_mask].groupby(df['dynamic_grouping'].tolist() + ['year'])['value'].sum()
-        
-    #     # Step 3: Assign sums to the relevant rows
-    #     df['group_year'] = df['dynamic_grouping'] + ',' + df['year'].astype(str)
-    #     subtotal_rows_group_year = df.loc[subtotal_mask, 'group_year']
-
-    #     df.loc[subtotal_mask, 'value'] = subtotal_rows_group_year.map(aggregated_values.to_dict())
-        
-    #     # Cleanup: Remove the helper columns
-    #     df.drop(['dynamic_grouping', 'group_year'], axis=1, inplace=True)
-            
-    #     return df
-
-
-
-
-
-
-
-
-    # # # Use the function for each set of categories
-    # # df_for_aggregating = aggregate_and_map(df_for_aggregating, 'subfuels')
-    # # df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub4sectors')
-    # # df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub3sectors')
-    # # df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub2sectors')
-    # # df_for_aggregating = aggregate_and_map(df_for_aggregating, 'sub1sectors')
-
-    # # Using the aggregate_for_19_total function to handle '19_total' calculations
-    # df_for_aggregating = aggregate_for_19_total(df_for_aggregating)
-
-    # df_for_aggregating.to_csv('df_for_aggregating.csv', index=False)
-
-
-
-    pivoted_df = df_for_aggregating.pivot_table(index=shared_categories+['subtotal'], columns='year', values='value').reset_index()
-
-    # Change columns to str
-    pivoted_df.columns = pivoted_df.columns.astype(str)
-
-    # Reorder columns
-    pivoted_columns_order = shared_categories + [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]# + ['subtotal']
-    pivoted_df = pivoted_df[pivoted_columns_order]
-    # pivoted_df.to_csv('pivoted_df.csv', index=False)
-
-    # Drop the projected year columns
-    results_layout_df = results_layout_df.drop(columns=[str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)], errors='ignore')
+    ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
+    layout_df = layout_df[layout_df['economy'].isin(economies)].copy()
     
+    trimmed_layout_df, missing_sectors_df = merging_functions.trim_layout_before_merging_with_results(layout_df,concatted_results_df)
+    trimmed_layout_df = merging_functions.calculate_subtotals(trimmed_layout_df, shared_categories, 'layout_df')
     
-    results_layout_df = results_layout_df.merge(pivoted_df, on=shared_categories, how='left')
-    layout_columns_order = shared_categories + [str(year) for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)] + ['subtotal_historic', 'subtotal_predicted', 'subtotal']
-    results_layout_df = results_layout_df[layout_columns_order]
-    # results_layout_df.to_csv('results_layout_df.csv', index=False)
-
-
-
-
-
-
-
-    #Check if new_layout_df and results_df have the same number of rows
-    #assert new_layout_df.shape[0] == results_df.shape[0], f"Layout dataframe and {file} do not have the same number of rows.\nLayout dataframe rows: {new_layout_df.shape[0]}\n{file} rows: {results_df.shape[0]}"
-
-
-
-    # Define the year range to drop
-    year_range = range(1980, 2021)
+    trimmed_concatted_results_df = merging_functions.trim_results_before_merging_with_layout(concatted_results_df, shared_categories)
+    
+    # Merge the new_layout_df with the concatted_results_df based on shared_categories using outer merge (so we can see which rows are missing/extra from the results_df)
+    
+    merged_df = pd.merge(trimmed_layout_df, trimmed_concatted_results_df, on=shared_categories, how="outer", indicator=True)
+    
+    merged_df = merging_functions.run_checks_on_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df)
+    
+    # Combine the remainign rows form the original layout_df with the merged_df
+    results_layout_df = pd.concat([missing_sectors_df, merged_df])
+    #### FIND SUBTOALS HERE. ITS IMPORTANT BECAUSE WE DONT WANT TO INCLUDE THEM IN CALCUALTIONS WITH NON SUBTOTALS###
+    
+    results_layout_df = merging_functions.identify_and_label_subtotals(results_layout_df, shared_categories)
+    
+    #label where there is a subtotal in either layout or results, or the value is in the 17_nonenergy_use sector. this is so we can calcualte the energy aggregates next.
+    # results_layout_df['not_included_in_energy_aggregate'] = ~((results_layout_df['subtotal_historic'] == False) & (results_layout_df['subtotal_predicted'] == False))# | (results_layout_df['sectors'] == '17_nonenergy_use')
+    #add subtotals to shared_categories now its in all the dfs
+    shared_categories = shared_categories + ['subtotal_layout', 'subtotal_results']#, 'not_included_in_energy_aggregate']
+    #########################
 
     # Create a list of columns to drop
-    aggregating_columns_to_drop = ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'] + [str(year) for year in year_range if str(year) in layout_df.columns]
+    aggregating_columns_to_drop = ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'] + [year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1) if year in layout_df.columns]
 
     # Drop the specified columns and year columns from the layout_df DataFrame
-    filtered_df = results_layout_df.drop(aggregating_columns_to_drop, axis=1).copy()
+    aggregates_df = results_layout_df.drop(aggregating_columns_to_drop, axis=1).copy()
 
+    #separate results_layout_df into the layout and results dfs before calculating the aggregates. this is because they have different detail levels
+    
+    
+    # Define a dictionary that maps each sector group to its corresponding total column
+    sector_mappings = [
+        (['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '12_total_final_consumption'),
+        (['14_industry_sector', '15_transport_sector', '16_other_sector'], '13_total_final_energy_consumption'),
+        (['09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy'], '07_total_primary_energy_supply'),
+        (['09_total_transformation_sector'], '09_total_transformation_sector')
+    ]
 
-    # Create a function to streamline the process for each category
-    def process_data(df, desired_sectors, sector_value):
-        # Filter based on subtotal == False
-        filtered_df_subtotal_false = df[df['subtotal'] == False]
+    # Initialize an empty dictionary to store the resulting DataFrames
+    concatted_grouped_df = pd.DataFrame()
+    # Loop over the sector mappings and process the data for each sector group
+    for (sectors, aggregate_sector) in sector_mappings:
+        sector_df = merging_functions.calculate_sector_aggregates(aggregates_df, sectors, aggregate_sector, shared_categories)
+        concatted_grouped_df = pd.concat([concatted_grouped_df, sector_df])
+        
+    # concatted_grouped_df.drop(columns=['subtotal'], inplace=True)
+    # Ensure the index is consistent after concatenation if needed
+    concatted_grouped_df.reset_index(drop=True, inplace=True)
+    
+    concatted_grouped_df = merging_functions.aggregate_19_total(concatted_grouped_df, shared_categories)
+    concatted_grouped_df = merging_functions.aggregate_aggregates(concatted_grouped_df, shared_categories)
+    
+    #######################################
+    #finalise the data by merging the layout and results dataframes. 
 
-        # Filter based on desired sectors
-        desired_df = filtered_df_subtotal_false[filtered_df_subtotal_false['sectors'].isin(desired_sectors)].copy()
+    # Get the unique sectors and sub1sectors
+    aggregate_sectors_list = concatted_grouped_df['sectors'].unique().tolist()
+    aggregate_sub1sectors_list = concatted_grouped_df['sub1sectors'].unique().tolist()
 
+    # Create conditions for checking both 'sectors' and 'sub1sectors'
+    sector_condition = results_layout_df['sectors'].isin(aggregate_sectors_list)
+    sub1sector_condition = results_layout_df['sub1sectors'].isin(aggregate_sub1sectors_list)
 
-        if sector_value == '07_total_primary_energy_supply':
-            desired_df_tfc = filtered_df_subtotal_false[filtered_df_subtotal_false['sectors'].isin(['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'])].copy()
-            grouped_df_tfc = desired_df_tfc.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
-            # Multiplies all numeric columns by -1 to turn the values into negative
-            numeric_cols = grouped_df_tfc.select_dtypes(include=[np.number]).columns
-            grouped_df_tfc[numeric_cols] = grouped_df_tfc[numeric_cols] * -1
-            # Concatenating the two DataFrames
-            tpes_df = pd.concat([desired_df, grouped_df_tfc], ignore_index=True)
-            grouped_df = tpes_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
-            # Multiplying all numeric columns by -1 to flip the values
-            numeric_cols = grouped_df.select_dtypes(include=[np.number]).columns
-            grouped_df[numeric_cols] = grouped_df[numeric_cols] * -1
-        else:
-            # Group by necessary columns and aggregate
-            grouped_df = desired_df.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum().reset_index()
+    # Create a new DataFrame with rows that match both the sectors and sub1sectors from the results DataFrame
+    new_aggregate_results_layout_df = results_layout_df[sector_condition & sub1sector_condition].copy()
 
-    # Add the missing columns with 'x' as values in the same order as shared_categories
-    for col in shared_categories:
-        if col not in tfc_grouped_df.columns:
-            tfc_grouped_df[col] = 'x'
-            
-    # Add the missing columns with 'x' as values in the same order as shared_categories
-    for col in shared_categories:
-        if col not in tfec_grouped_df.columns:
-            tfec_grouped_df[col] = 'x'
+    # Drop the rows that were updated in the new DataFrame from the original layout DataFrame
+    non_aggregates_results_layout_df = results_layout_df[~(sector_condition & sub1sector_condition)].copy()#TODO CHECK THAT THERE ARE NO AGGREGATES HERE
 
-    # Reorder the columns to match the order of shared_categories
-    tfc_ordered_columns = shared_categories + [col for col in tfc_grouped_df.columns if col not in shared_categories]
+    # Drop columns outllook_base_year to outlook_last_year from  the new aggregated DataFrame
+    new_aggregate_layout_df = new_aggregate_results_layout_df.drop(columns=[year for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)])#.copy()
+    #i think we drop pre base year years from concatted_grouped_df now
+    concatted_grouped_df.drop(columns=[year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1)], inplace=True)
+    # Merge the DataFrames based on the shared category columns
+    aggregate_merged_df = new_aggregate_layout_df.merge(concatted_grouped_df, on=shared_categories, how='left')
 
-    # Reorder the columns to match the order of shared_categories
-    tfec_ordered_columns = shared_categories + [col for col in tfec_grouped_df.columns if col not in shared_categories]
+    # Combine the original layout_df with the merged_df
+    new_results_layout_df = pd.concat([non_aggregates_results_layout_df, aggregate_merged_df])
+    
+    # Merge onto the categorical columns of our original Layout_df with rows ordered in the same sequence as it, based on the columns in shared_categories (except subtotal). Also do an outer with indicator to identify any extra rows coming from the new_results_layout_df. this shouldnt happen
+    shared_categories.remove('subtotal_layout')
+    shared_categories.remove('subtotal_results')
+    final_df = original_layout_df[shared_categories].merge(new_results_layout_df, on=shared_categories, how='outer', indicator=True)
+    right_only = final_df[final_df['_merge'] == 'right_only']#WE NEED TO GET RID OF UNNAMED 0 COLUMNS HERE
+    if right_only.shape[0] > 0:
+        print(right_only)
+        breakpoint()
+        raise Exception("There are extra rows in the new_results_layout_df that arent in the layout df. This should not happen.")
+    # keep everything else:
+    final_df = final_df[final_df['_merge'] != 'right_only'].copy()
+    # Drop the _merge column
+    final_df.drop(columns=['_merge'], inplace=True)
 
-    # Reorder the columns in grouped_df using the ordered_columns list
-    tfc_grouped_df = tfc_grouped_df[tfc_ordered_columns]
-
-    # Reorder the columns in grouped_df using the ordered_columns list
-    tfec_grouped_df = tfec_grouped_df[tfec_ordered_columns]
-
-    # Add the 'sectors' column with value '12_total_final_consumption'
-    tfc_grouped_df['sectors'] = '12_total_final_consumption'
-
-    # Add the 'sectors' column with value '13_total_final_energy_consumption'
-    tfec_grouped_df['sectors'] = '13_total_final_energy_consumption'
-
-    # Set the index for both DataFrames using the shared category columns
-    layout_df.set_index(shared_categories, inplace=True)
-    tfc_grouped_df.set_index(shared_categories, inplace=True)
-    tfec_grouped_df.set_index(shared_categories, inplace=True)
-
-    # Update the layout_df with the values from grouped_df
-    layout_df.update(tfc_grouped_df)
-    layout_df.update(tfec_grouped_df)
-
-    # Reset the index of the layout DataFrame
-    layout_df.reset_index(inplace=True)
+    #set up the order of columns to be shared_cateogires, subtotal_results, subtotal_layout, then the years in order
+    final_df = final_df[shared_categories + ['subtotal_layout', 'subtotal_results'] + [col for col in final_df.columns if col not in shared_categories + ['subtotal_layout', 'subtotal_results']]]
+    
+    # Define the folder path where you want to save the file
+    folder_path = f'results/{SINGLE_ECONOMY}/merged'
+    # Check if the folder already exists
+    if not os.path.exists(folder_path) and USE_SINGLE_ECONOMY:
+        # If the folder doesn't exist, create it
+        os.makedirs(folder_path)
+    
+    merging_functions.compare_to_previous_merge(final_df, shared_categories, results_data_path=folder_path,previous_merged_df_filename=previous_merged_df_filename, new_subtotal_columns=['subtotal_layout', 'subtotal_results'], previous_subtotal_columns=['subtotal_historic','subtotal_predicted','subtotal'])
 
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
     date_today = datetime.now().strftime('%Y%m%d')
     if USE_SINGLE_ECONOMY:
-        layout_df.to_csv(f'{folder_path}/merged_file_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
+        final_df.to_csv(f'{folder_path}/merged_file_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
     else:
-        layout_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
+        final_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
         
-    return layout_df
+    return final_df
 
 
+# #%%
+# a = merging_results()
+# a.to_csv('new.csv')
+#%%
+
+
+
+
+# %%
