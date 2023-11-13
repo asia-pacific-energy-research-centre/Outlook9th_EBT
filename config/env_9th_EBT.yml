@@ -1,0 +1,11 @@
+name: env_9th_visualisation
+dependencies:
+  - plotly
+  - pandas
+  - numpy
+  - matplotlib
+  - xlsxwriter
+  - pip
+  - jupyter
+  - openpyxl #guessing this wil install properly
+# conda env create --prefix ./env_9th_visualisation --file ./config/env_9th_visualisation.yml
