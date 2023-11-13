@@ -353,6 +353,10 @@ def create_energy_df(df_no_year_econ_index):
     merged_df_clean = merged_df_clean.reindex(columns = ['economy', 'year', 'sectors', 'sub1sectors', 'sub2sectors', 
                                                         'sub3sectors', 'sub4sectors', 'fuels', 'subfuels', 'value'])
 
+    # Non-energy sub1sectors to drop
+    values_to_drop = ['17_01_transformation_sector', '17_02_industry_sector', '17_03_transport_sector', '17_04_other_sector']
+    merged_df_clean = merged_df_clean[~merged_df_clean['sub1sectors'].isin(values_to_drop)]
+
     # Export merged
 
     ## pivot the data first to save time
@@ -360,6 +364,10 @@ def create_energy_df(df_no_year_econ_index):
     # - ```value_not_in_the_range``` is assigned to a value that is differnt from the current dataframe. (series) 
     # - We will replace them with np.nan after ```pivot_table```
     # - BTW, replacing with string may cause problem in ```pivot_table```
+
+
+    # merged_df_clean['value'] = pd.to_numeric(merged_df_clean['value'], errors='coerce')
+
 
     value_not_in_the_range = merged_df_clean['value'].min() - 1
     #merged_df_clean = merged_df_clean.fillna(value_not_in_the_range)
