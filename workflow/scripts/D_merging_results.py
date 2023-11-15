@@ -115,18 +115,25 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
         merging_functions.check_bunkers_are_negative(filtered_results_df, file)
         merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)#TODO WILL THIS STILL WORK IF WE KEEP ALL YEARS IN THE RESULTS FILE? I THINK SO.
         #########RUN COMMON CHECKS ON THE RESULTS FILE OVER.#########
+        #TESTING, WILL THIS HELP WITH AVOIDING CALCULATING SUBTOTALS USING PREEXISTING SUBTOTALS? IF THERE IS ALREADY A SUBTOTAL SHOULD WE RECALCAULTE IT? PERHAPS WE ALSO NEED TO HAVE A COLUMN FOR SPECIFIYING THE MOST SPECIFIC DATA LEVEL FOR EACH ROW
+        filtered_results_df = merging_functions.label_subtotals_handler(filtered_results_df, shared_categories)
         
-        aggregated_x_df = merging_functions.calculate_subtotals(filtered_results_df, shared_categories, file)
+        aggregated_x_df = merging_functions.calculate_subtotals(filtered_results_df, shared_categories)
         # Combine the results_df with all the other results_dfs we have read so far
         concatted_results_df = pd.concat([concatted_results_df, aggregated_x_df])
     
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
     layout_df = layout_df[layout_df['economy'].isin(economies)].copy()
     
-    trimmed_layout_df, missing_sectors_df = merging_functions.trim_layout_before_merging_with_results(layout_df,concatted_results_df)
-    trimmed_layout_df = merging_functions.calculate_subtotals(trimmed_layout_df, shared_categories, 'layout_df')
+    layout_df = merging_functions.label_subtotals_handler(layout_df, shared_categories)
+    layout_df = merging_functions.calculate_subtotals(layout_df, shared_categories) 
     
+    trimmed_layout_df, missing_sectors_df = merging_functions.trim_layout_before_merging_with_results(layout_df,concatted_results_df)
     trimmed_concatted_results_df = merging_functions.trim_results_before_merging_with_layout(concatted_results_df, shared_categories)
+    
+    #rename subtotal columns before merging:
+    trimmed_concatted_results_df.rename(columns={'subtotal': 'subtotal_results'}, inplace=True)
+    trimmed_layout_df.rename(columns={'subtotal': 'subtotal_layout'}, inplace=True)
     
     # Merge the new_layout_df with the concatted_results_df based on shared_categories using outer merge (so we can see which rows are missing/extra from the results_df)
     
@@ -136,12 +143,12 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     
     # Combine the remainign rows form the original layout_df with the merged_df
     results_layout_df = pd.concat([missing_sectors_df, merged_df])
-    #### FIND SUBTOALS HERE. ITS IMPORTANT BECAUSE WE DONT WANT TO INCLUDE THEM IN CALCUALTIONS WITH NON SUBTOTALS###
+    # #### FIND SUBTOALS HERE. ITS IMPORTANT BECAUSE WE DONT WANT TO INCLUDE THEM IN CALCUALTIONS WITH NON SUBTOTALS###
     
-    results_layout_df = merging_functions.identify_and_label_subtotals(results_layout_df, shared_categories)
+    # results_layout_df = merging_functions.identify_and_label_subtotals_handler(results_layout_df, shared_categories)
     
-    #label where there is a subtotal in either layout or results, or the value is in the 17_nonenergy_use sector. this is so we can calcualte the energy aggregates next.
-    # results_layout_df['not_included_in_energy_aggregate'] = ~((results_layout_df['subtotal_historic'] == False) & (results_layout_df['subtotal_predicted'] == False))# | (results_layout_df['sectors'] == '17_nonenergy_use')
+    # #label where there is a subtotal in either layout or results, or the value is in the 17_nonenergy_use sector. this is so we can calcualte the energy aggregates next.
+    # # results_layout_df['not_included_in_energy_aggregate'] = ~((results_layout_df['subtotal_historic'] == False) & (results_layout_df['subtotal_predicted'] == False))# | (results_layout_df['sectors'] == '17_nonenergy_use')
     #add subtotals to shared_categories now its in all the dfs
     shared_categories = shared_categories + ['subtotal_layout', 'subtotal_results']#, 'not_included_in_energy_aggregate']
     #########################
