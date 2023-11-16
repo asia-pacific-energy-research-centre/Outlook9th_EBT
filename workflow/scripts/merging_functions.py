@@ -485,7 +485,6 @@ def load_previous_merged_df(results_data_path, expected_columns, previous_merged
             #check the columns are as we expect:
             missing_cols = [col for col in expected_columns if col not in previous_merged_df.columns.tolist()]
             if len(missing_cols) > 0:
-                breakpoint()
                 print("WARNING: The previous merged df does not have the expected columns. Skipping comparison.")
                 return None
             else:
