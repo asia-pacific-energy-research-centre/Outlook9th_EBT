@@ -11,6 +11,14 @@ from utility_functions import *
 set_working_directory()#from utility_functions.py
 
 def subset_data(merged_df_clean_wide):
+    """WHAT DOES THIS DO?
+
+    Args:
+        merged_df_clean_wide (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     # interim save
     interim_path = './data/interim/'
     os.makedirs(interim_path, exist_ok = True)
@@ -212,7 +220,7 @@ def subset_data(merged_df_clean_wide):
                                     pow_df, ref_df, hyd_df]).copy().reset_index(drop = True)
 
     ############################################################################################################
-
+    #TODO WHY DOES THIS NEED TO BE DONE? WHY ARE THEY NOT REQUESTED
     # Now subset and remove transformation data rows that have not been requested as per above
     # I.e. remove all zero and np.nan rows in these categories
     # Level 0

@@ -95,6 +95,7 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
         # Combine the results_df with all the other results_dfs we have read so far
         concatted_results_df = pd.concat([concatted_results_df, filtered_results_df])
     
+    breakpoint()
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories)
     
