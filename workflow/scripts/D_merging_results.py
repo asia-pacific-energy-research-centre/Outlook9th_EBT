@@ -94,8 +94,7 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
         filtered_results_df = merging_functions.label_subtotals(filtered_results_df, shared_categories)
         # Combine the results_df with all the other results_dfs we have read so far
         concatted_results_df = pd.concat([concatted_results_df, filtered_results_df])
-    
-    breakpoint()
+
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories)
     
@@ -113,7 +112,6 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     trimmed_concatted_results_df.rename(columns={'is_subtotal': 'subtotal_results'}, inplace=True)
     trimmed_layout_df.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
     missing_sectors_df.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
-    
     # Merge the new_layout_df with the concatted_results_df based on shared_categories using outer merge (so we can see which rows are missing/extra from the results_df)
     merged_df = pd.merge(trimmed_layout_df, trimmed_concatted_results_df, on=shared_categories, how="outer", indicator=True)
     merged_df['subtotal_layout'] = merged_df['subtotal_layout'].fillna(False)
@@ -126,47 +124,45 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     results_layout_df = pd.concat([missing_sectors_df, merged_df])
     
     #add subtotals to shared_categories now its in all the dfs
-    shared_categories = shared_categories + ['subtotal_layout', 'subtotal_results']
+    shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']
     #########################
 
     #NOW CALCAULTE THE AGGREGATES WHICH ARE COMBINATIONS OF SECTORS FROM DIFFERENT MODELLERS RESULTS. EVEN THOUGH THE LAYOUT DATA ALREADY CONTAINS THESE AGGREGATES, WE WILL RECALCULATE THEM AS A WAY OF TESTING THAT THE MERGES DONE UNTIL NOW ARE CORRECT. 
     #now, in case they are there, drop the aggregate sectors (except total transformation) from the merged data so we can recalculate them
     new_aggregate_sectors = ['12_total_final_consumption', '13_total_final_energy_consumption', '07_total_primary_energy_supply', '19_total']
     results_layout_df = results_layout_df.loc[~results_layout_df['sectors'].isin(new_aggregate_sectors)].copy()
+    #and drop 19_total fuel since we will recalculate it
+    results_layout_df = results_layout_df.loc[~results_layout_df['fuels'].isin(['19_total'])].copy()
 
     # Define a dictionary that maps each sector group to its corresponding total column
     sector_mappings = [
         (['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '12_total_final_consumption'),
         (['14_industry_sector', '15_transport_sector', '16_other_sector'], '13_total_final_energy_consumption'),
-        (['09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy'], '07_total_primary_energy_supply')#,
+        (['01_production','02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers','05_international_aviation_bunkers'], '07_total_primary_energy_supply')#'09_total_transformation_sector', #TODO IM NOT SURE IF IVE CALCUALTED TPES RIGHT 
+        #'10_losses_and_own_use', '11_statistical_discrepancy',#,
         # (['09_total_transformation_sector'], '09_total_transformation_sector')
     ]
 
     # Initialize an empty dictionary to store the resulting DataFrames
-    new_aggregates_df = pd.DataFrame()
+    sector_aggregates_df = pd.DataFrame()
     # Loop over the sector mappings and process the data for each sector group
     for (sectors, aggregate_sector) in sector_mappings:
         sector_df = merging_functions.calculate_sector_aggregates(results_layout_df, sectors, aggregate_sector, shared_categories)
-        new_aggregates_df = pd.concat([new_aggregates_df, sector_df])
+        sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
         
-    # new_aggregates_df.drop(columns=['is_subtotal'], inplace=True)
     # Ensure the index is consistent after concatenation if needed
-    new_aggregates_df.reset_index(drop=True, inplace=True)
+    sector_aggregates_df.reset_index(drop=True, inplace=True)
+    fuel_total_df = merging_functions.aggregate_19_total(sector_aggregates_df, results_layout_df, shared_categories)
     
-    new_aggregates_df = merging_functions.aggregate_19_total(new_aggregates_df, shared_categories)
-    new_aggregates_df = merging_functions.aggregate_aggregates(new_aggregates_df, shared_categories)
-    
-    #now combine new_aggregates_df with results_layout_df, sicne we've recalculated the aggregates
-    results_layout_df = pd.concat([results_layout_df, new_aggregates_df])
-    
+    final_df = merging_functions.create_final_energy_df(sector_aggregates_df, fuel_total_df,results_layout_df, shared_categories)
     #now check for issues with the new aggregates and subtotals by using the layout file as the reference    
-    merging_functions.check_for_issues_by_comparing_to_layout_df(layout_df, results_layout_df, shared_categories)
+    merging_functions.check_for_issues_by_comparing_to_layout_df(layout_df, final_df, shared_categories_w_subtotals, new_aggregate_sectors)
     #######################################
     #FINALISE THE DATA
     
     #set up the order of columns to be shared_cateogires, subtotal_results, subtotal_layout, then the years in order
-    results_layout_df = results_layout_df[shared_categories +  [col for col in results_layout_df.columns if col not in shared_categories + ['subtotal_layout', 'subtotal_results']]]
-    
+    final_df = final_df[shared_categories_w_subtotals +  [col for col in final_df.columns if col not in shared_categories_w_subtotals]]
+    breakpoint()
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY}/merged'
     # Check if the folder already exists
@@ -174,17 +170,17 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
         # If the folder doesn't exist, create it
         os.makedirs(folder_path)
     
-    merging_functions.compare_to_previous_merge(results_layout_df, shared_categories, results_data_path=folder_path,previous_merged_df_filename=previous_merged_df_filename, new_subtotal_columns=['subtotal_layout', 'subtotal_results'], previous_subtotal_columns=['subtotal_historic','subtotal_predicted','subtotal'])
+    merging_functions.compare_to_previous_merge(final_df, shared_categories_w_subtotals, results_data_path=folder_path,previous_merged_df_filename=previous_merged_df_filename, new_subtotal_columns=['subtotal_layout', 'subtotal_results'], previous_subtotal_columns=['subtotal_historic','subtotal_predicted','subtotal'])
 
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
     date_today = datetime.now().strftime('%Y%m%d')
     if USE_SINGLE_ECONOMY:
-        results_layout_df.to_csv(f'{folder_path}/merged_file_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
+        final_df.to_csv(f'{folder_path}/merged_file_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
     else:
-        results_layout_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
+        final_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
         
-    return results_layout_df
+    return final_df
 
 
 # #%%
