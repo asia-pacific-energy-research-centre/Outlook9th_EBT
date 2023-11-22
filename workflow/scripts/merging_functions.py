@@ -80,9 +80,9 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     
     # Process the DataFrame with each cols_to_sum combination so you get a subtotal calculated for every level of detail.
     for cols_to_sum in sets_of_cols_to_sum:
-        subtotalled_results = pd.concat([subtotalled_results,calculate_subtotal_for_columns(melted_df, cols_to_sum, melted_df)], ignore_index=True)
+        subtotalled_results = pd.concat([subtotalled_results,calculate_subtotal_for_columns(melted_df, cols_to_sum)], ignore_index=True)
     #then run it to calauclte a subtotl of each group, including the new subtotals for subsectors, where the subfuel is x. 
-    subtotalled_results = pd.concat([subtotalled_results,calculate_subtotal_for_columns(pd.concat([subtotalled_results,melted_df]), ['subfuels'],melted_df)], ignore_index=True)
+    subtotalled_results = pd.concat([subtotalled_results,calculate_subtotal_for_columns(pd.concat([subtotalled_results,melted_df]), ['subfuels'])], ignore_index=True)
     
         
     # Fill 'x' for the aggregated levels as they will just be nas
@@ -133,19 +133,20 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     # merged_data = melted_df.merge(subtotalled_results, on=shared_categories+['year'], how='outer', suffixes=('_original', '_subtotalled'), indicator=True)
     
     values_to_keep_in_original = merged_data[(merged_data['_merge'] == 'both') & (merged_data['is_subtotal'] == False)].copy()
+    values_only_in_original = merged_data[(merged_data['_merge'] == 'left_only')].copy()
     new_subtotalled_values = merged_data[(merged_data['_merge'] == 'right_only')].copy()
+    subtotal_values_in_both= merged_data[(merged_data['_merge'] == 'both') & (merged_data['is_subtotal'] == True)].copy()
     
-    original_values = merged_data[(merged_data['_merge'] == 'left_only')].copy()
-    most_specific_values['value'] = most_specific_values['value_original']
-    subtotalled_values['value'] = subtotalled_values['value_subtotalled']
-    original_values['value'] = original_values['value_original']
+    values_to_keep_in_original['value'] = values_to_keep_in_original['value_original']
+    values_only_in_original['value'] = values_only_in_original['value_original']
+    new_subtotalled_values['value'] = new_subtotalled_values['value_subtotalled']
+    subtotal_values_in_both['value'] = subtotal_values_in_both['value_original']
     
-    most_specific_values['is_subtotal'] = False
-    subtotalled_values['is_subtotal'] = True
-    original_values['is_subtotal'] = False
+    new_subtotalled_values['is_subtotal'] = True
+    subtotal_values_in_both['is_subtotal'] = True
     
     #concat all together
-    final_df = pd.concat([most_specific_values, subtotalled_values, original_values], ignore_index=True)
+    final_df = pd.concat([values_to_keep_in_original, values_only_in_original, new_subtotalled_values, subtotal_values_in_both], ignore_index=True)
     #drop merge and value_original and value_subtotalled
     final_df.drop(columns=['_merge', 'value_original', 'value_subtotalled'], inplace=True)
     
@@ -164,18 +165,18 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     return final_df
 
 
-    def identify_subtotals_that_dont_sum_correctly(df_melted_sum):
-        """To add to the complexity, we have values in the layout df which get labelled as subttotals because they dont appear to be the most specific values. this is because the layout data has values for which the ESTO team doesnt know where to put them. so we need to idenitfy any subttoals for which the next level of values dont sum up to them. where this is the case, relabel them because they aren't subttotals. 
+    # def identify_subtotals_that_dont_sum_correctly(df_melted_sum):
+    #     """To add to the complexity, we have values in the layout df which get labelled as subttotals because they dont appear to be the most specific values. this is because the layout data has values for which the ESTO team doesnt know where to put them. so we need to idenitfy any subttoals for which the next level of values dont sum up to them. where this is the case, relabel them because they aren't subttotals. 
         
-        Note that because we have a primary goal of cutting down on user error, we will treat any instances of this in the results data as an error, rather than assuming the value is not a subtotal. 
+    #     Note that because we have a primary goal of cutting down on user error, we will treat any instances of this in the results data as an error, rather than assuming the value is not a subtotal. 
 
-        we can do this using df_melted_sum, which contains data grouped and summed by everything except the year col. this will make things a bit more simple.
+    #     we can do this using df_melted_sum, which contains data grouped and summed by everything except the year col. this will make things a bit more simple.
         
-        to account for rounding errors, if the difference is less than 1% of the subtotal value, we will assume that it is a subtotal. otherwise, we will assume that it is not a subtotal.
-        Returns:
-            _type_: _description_
-        """
-        #so we will want to move down the columns, calcaulting each subt
+    #     to account for rounding errors, if the difference is less than 1% of the subtotal value, we will assume that it is a subtotal. otherwise, we will assume that it is not a subtotal.
+    #     Returns:
+    #         _type_: _description_
+    #     """
+    #     #so we will want to move down the columns, calcaulting each subt
 def remove_all_zeros(results_df, years_to_keep_in_results):
     #since the layout file contains all possible rows (once we run calculate_subtotals on it), we can remove all rows where the values for a row are all zero in the results file, since when we merge we will still be able to keep those rows from the layout file in the final df. This wil help to significantly reduce the size of resutls files as well as ignore any issues that arent issues because they are all zeros. For example we had an issue where a subfuel was being sued for a subtotal where the sectors it was subtotaling didnt have that subfuel. But since the values were all zeros, it didnt matter.
     results_df = results_df.loc[~(results_df[years_to_keep_in_results] == 0).all(axis=1)].copy()
