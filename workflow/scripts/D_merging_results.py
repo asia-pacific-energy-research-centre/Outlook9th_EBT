@@ -91,23 +91,21 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
         merging_functions.check_bunkers_are_negative(filtered_results_df, file)
         merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
         #########RUN COMMON CHECKS ON THE RESULTS FILE OVER.#########
-        filtered_results_df = merging_functions.label_subtotals(filtered_results_df, shared_categories)
+        filtered_results_df_subtotals_labelled = merging_functions.label_subtotals(filtered_results_df, shared_categories)
         # Combine the results_df with all the other results_dfs we have read so far
-        concatted_results_df = pd.concat([concatted_results_df, filtered_results_df])
+        concatted_results_df = pd.concat([concatted_results_df, filtered_results_df_subtotals_labelled])
 
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
-    concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories)
+    concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories, DATAFRAME_ORIGIN='results')
     
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
     layout_df = layout_df[layout_df['economy'].isin(economies)].copy()
     
-    layout_df_subtotals_recalculated = merging_functions.label_subtotals(layout_df, shared_categories)
+    layout_df_subtotals_labelled = merging_functions.label_subtotals(layout_df, shared_categories)
     
-    layout_df_subtotals_recalculated = merging_functions.calculate_subtotals(layout_df_subtotals_recalculated, shared_categories, df_name='layout') #technically we dont need to do this since the layout file already has subtotals. but we do it anyway to check that the subtotals labelling and calcualtion process is correct when we run check_for_issues_by_comparing_to_layout_df()
-    
+    layout_df_subtotals_recalculated = merging_functions.calculate_subtotals(layout_df_subtotals_labelled, shared_categories, DATAFRAME_ORIGIN='layout') #technically we dont need to do this since the layout file already has subtotals. but we do it anyway to check that the subtotals labelling and calcualtion process is correct when we run check_for_issues_by_comparing_to_layout_df()
     trimmed_layout_df, missing_sectors_df = merging_functions.trim_layout_before_merging_with_results(layout_df_subtotals_recalculated,concatted_results_df)
     trimmed_concatted_results_df = merging_functions.trim_results_before_merging_with_layout(concatted_results_df, shared_categories)
-    
     #rename subtotal columns before merging:
     trimmed_concatted_results_df.rename(columns={'is_subtotal': 'subtotal_results'}, inplace=True)
     trimmed_layout_df.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
@@ -126,13 +124,12 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     #add subtotals to shared_categories now its in all the dfs
     shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']
     #########################
-
     #NOW CALCAULTE THE AGGREGATES WHICH ARE COMBINATIONS OF SECTORS FROM DIFFERENT MODELLERS RESULTS. EVEN THOUGH THE LAYOUT DATA ALREADY CONTAINS THESE AGGREGATES, WE WILL RECALCULATE THEM AS A WAY OF TESTING THAT THE MERGES DONE UNTIL NOW ARE CORRECT. 
     #now, in case they are there, drop the aggregate sectors (except total transformation) from the merged data so we can recalculate them
-    new_aggregate_sectors = ['12_total_final_consumption', '13_total_final_energy_consumption', '07_total_primary_energy_supply', '19_total']
+    new_aggregate_sectors = ['12_total_final_consumption', '13_total_final_energy_consumption', '07_total_primary_energy_supply']
     results_layout_df = results_layout_df.loc[~results_layout_df['sectors'].isin(new_aggregate_sectors)].copy()
-    #and drop 19_total fuel since we will recalculate it
-    results_layout_df = results_layout_df.loc[~results_layout_df['fuels'].isin(['19_total'])].copy()
+    #and drop aggregate fuels since we will recalculate them
+    results_layout_df = results_layout_df.loc[~results_layout_df['fuels'].isin(['19_total', '21_modern_renewables', '20_total_renewables'])].copy()
 
     # Define a dictionary that maps each sector group to its corresponding total column
     sector_mappings = [
@@ -152,11 +149,12 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
         
     # Ensure the index is consistent after concatenation if needed
     sector_aggregates_df.reset_index(drop=True, inplace=True)
-    fuel_total_df = merging_functions.aggregate_19_total(sector_aggregates_df, results_layout_df, shared_categories)
+    fuel_aggregates_df = merging_functions.calculate_fuel_aggregates(sector_aggregates_df, results_layout_df, shared_categories)
     
-    final_df = merging_functions.create_final_energy_df(sector_aggregates_df, fuel_total_df,results_layout_df, shared_categories)
+    final_df = merging_functions.create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,results_layout_df, shared_categories)
     #now check for issues with the new aggregates and subtotals by using the layout file as the reference    
-    merging_functions.check_for_issues_by_comparing_to_layout_df(layout_df, final_df, shared_categories_w_subtotals, new_aggregate_sectors)
+    breakpoint()#could we import layout with no subttoals instead?
+    merging_functions.check_for_issues_by_comparing_to_layout_df(final_df, shared_categories_w_subtotals, new_aggregate_sectors, layout_df_subtotals_labelled, REMOVE_LABELLED_SUBTOTALS=True)
     #######################################
     #FINALISE THE DATA
     
