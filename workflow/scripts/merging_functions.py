@@ -46,6 +46,8 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         agg_df = agg_df.groupby(group_cols, as_index=False)['value'].sum().copy()
         for omit_col in cols_to_sum:
             agg_df[omit_col] = 'x'
+            
+        #dont label as subttoal yet
 
         return agg_df
     ############################
@@ -115,68 +117,88 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     
     #now merge with the original df with subtotals. Fristly, we will idenitfy where subtotals dont calacualte to the same vlaue. If the input is a results df then assume its an error. If the input is a layout df then assume that what was originally labelled as a subtotal is in fact a value that wasnt able to be disaggregated. For these values, keep the original, dont calcualte the subtotal and relabel it as not a subtotal.
     EPSILON_PERCENT = 0.01
-    merged_data = melted_df_with_subtotals.merge(subtotalled_results, on=shared_categories+['year'], how='outer', suffixes=('_original', '_subtotalled'), indicator=True)
+    merged_data = melted_df_with_subtotals.merge(subtotalled_results, on=shared_categories+['year'], how='outer', suffixes=('', '_new_subtotal'), indicator=True)
     #check where the values are different:
-    merged_data['value_diff_pct'] = abs((merged_data['value_original'] - merged_data['value_subtotalled']) / merged_data['value_original'])
-    subtotals_with_different_values = merged_data[(merged_data['_merge'] == 'both') & (merged_data['value_diff_pct'] > EPSILON_PERCENT) @ (merged_data['is_subtotal'] == True)].copy()
+    merged_data['value_diff_pct'] = abs((merged_data['value'] - merged_data['value_new_subtotal']) / merged_data['value'])
+    subtotals_with_different_values = merged_data[(merged_data['_merge'] == 'both') & (merged_data['value_diff_pct'] > EPSILON_PERCENT) & (merged_data['is_subtotal'] == True)].copy()
+    
+    ###add some exceptions weve already dealt with:
+    #drop any 14_industry_sector in sectors if the DATAFRAME_ORIGIN is results:
+    if DATAFRAME_ORIGIN == 'results':
+        subtotals_with_different_values = subtotals_with_different_values[subtotals_with_different_values['sectors'] != '14_industry_sector'].copy() 
+    #drop buildings electricity in fuels if the DATAFRAME_ORIGIN is results:
+    if DATAFRAME_ORIGIN == 'results':
+        subtotals_with_different_values = subtotals_with_different_values[(subtotals_with_different_values['sub1sectors'] != '16_01_buildings') & (subtotals_with_different_values['fuels'] != '17_electricity')].copy()
+    ###
     if subtotals_with_different_values.shape[0] > 0 and DATAFRAME_ORIGIN == 'results':
         breakpoint()
         #save the data
         subtotals_with_different_values.to_csv(f'data/temp/error_checking/subtotals_with_different_values.csv', index=False)
-        raise('{} subtotals have different values in the original and subtotalled data. This is likely a mistake on the side of the modeller'.format(subtotals_with_different_values.shape[0]))
+        raise Exception('{} subtotals have different values in the original and subtotalled data. This is likely a mistake on the side of the modeller'.format(subtotals_with_different_values.shape[0]))
     elif subtotals_with_different_values.shape[0] > 0 and DATAFRAME_ORIGIN == 'layout':
-        breakpoint()
         #relable the subtotals as not subtotals
-        merged_data[(merged_data['_merge'] == 'both') & (merged_data['value_diff_pct'] > EPSILON_PERCENT) @ (merged_data['is_subtotal'] == True), 'is_subtotal'] = False
+        merged_data.loc[(merged_data['_merge'] == 'both') & (merged_data['value_diff_pct'] > EPSILON_PERCENT) & (merged_data['is_subtotal'] == True), 'is_subtotal'] = False
+        #but note that this could create rows where there are two rows with the same shared_categories but not year, but one is a subtotal and one is not. so we will need to drop the isntances where is_subtotal = True so taht we dont get duplicates. We will do this later in this function when we pivot the data wide.
     
     # # Then drop where there are any other subtotals that match rows in the origianl data, but they arent subttotals in the origianl data. Since we removed all labelled subtotals at the start of the funciton we must assume that these matching rows are actual data points for their cateogires, and thereofre shouldnt be replaced with a subtotal! So we will keep the original data and remove the subtotalled data.
-    # merged_data = melted_df.merge(subtotalled_results, on=shared_categories+['year'], how='outer', suffixes=('_original', '_subtotalled'), indicator=True)
+    # merged_data = melted_df.merge(subtotalled_results, on=shared_categories+['year'], how='outer', suffixes=('', '_new_subtotal'), indicator=True)
     
     values_to_keep_in_original = merged_data[(merged_data['_merge'] == 'both') & (merged_data['is_subtotal'] == False)].copy()
     values_only_in_original = merged_data[(merged_data['_merge'] == 'left_only')].copy()
     new_subtotalled_values = merged_data[(merged_data['_merge'] == 'right_only')].copy()
     subtotal_values_in_both= merged_data[(merged_data['_merge'] == 'both') & (merged_data['is_subtotal'] == True)].copy()
     
-    values_to_keep_in_original['value'] = values_to_keep_in_original['value_original']
-    values_only_in_original['value'] = values_only_in_original['value_original']
-    new_subtotalled_values['value'] = new_subtotalled_values['value_subtotalled']
-    subtotal_values_in_both['value'] = subtotal_values_in_both['value_original']
+    values_to_keep_in_original['value'] = values_to_keep_in_original['value']
+    values_only_in_original['value'] = values_only_in_original['value']
+    new_subtotalled_values['value'] = new_subtotalled_values['value_new_subtotal']
+    subtotal_values_in_both['value'] = subtotal_values_in_both['value']
     
     new_subtotalled_values['is_subtotal'] = True
-    subtotal_values_in_both['is_subtotal'] = True
     
     #concat all together
     final_df = pd.concat([values_to_keep_in_original, values_only_in_original, new_subtotalled_values, subtotal_values_in_both], ignore_index=True)
     #drop merge and value_original and value_subtotalled
-    final_df.drop(columns=['_merge', 'value_original', 'value_subtotalled'], inplace=True)
+    final_df.drop(columns=['_merge', 'value_new_subtotal', 'value_diff_pct'], inplace=True)
     
-    # Check for any duplicates in (subset=[col for col in final_df.columns if col not in ['value']](they shouldn't exist)
-    duplicates = final_df[final_df.duplicated(subset=[col for col in final_df.columns if col not in ['value']], keep=False)]
-    if duplicates.shape[0] > 0:
-        print("WARNING: There are duplicates in the subtotaled DataFrame.")
-        print(duplicates)
-        breakpoint()   
-        raise Exception("There are duplicates in the subtotaled DataFrame.") 
-    
+    #TESTING FIND THESE sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels
+    # 14_industry_sector	x	x	x	x	01_coal	x
+    # 14_industry_sector	x	x	x	x	01_coal	x
+    test = final_df[(final_df['sectors'] == '14_industry_sector') & (final_df['sub1sectors'] == 'x') & (final_df['sub2sectors'] == 'x') & (final_df['sub3sectors'] == 'x') & (final_df['sub4sectors'] == 'x') & (final_df['fuels'] == '08_gas') & (final_df['subfuels'] == 'x') & (final_df['year'].isin([1980,2020]))].copy()
+    # if test.shape[0] > 0:
+        
+    #     breakpoint()
     ###################
     #make final_df wide
-    final_df = final_df.pivot(index=shared_categories+['is_subtotal'], columns='year', values='value').reset_index()
+    final_df_wide = final_df.pivot(index=shared_categories+['is_subtotal'], columns='year', values='value').reset_index()
+    ###################
+    try:
+        #where two rows exist for the same shared_categories but one is a subtotal and one is not, drop the one that is a subtotal.
+        same_rows = final_df_wide[final_df_wide.duplicated(subset=shared_categories, keep=False)]
+        #find where there are two rows and one is a subtotasl, the other is not:
+        to_drop = final_df_wide.loc[same_rows.index.tolist()]
+        to_drop = to_drop[to_drop['is_subtotal'] == True].copy()
+        to_keep = final_df_wide.loc[same_rows.index.tolist()]
+        to_keep = to_keep[to_keep['is_subtotal'] == False].copy()
+        #join them on shared_categories and keep only the ones where is_subtotal = False and True. Then drop these rows from final_df_wide
+        to_drop = to_drop.merge(to_keep, on=shared_categories, how='left', suffixes=('', '_to_keep'), indicator=True)
+        to_drop = to_drop[to_drop['_merge'] == 'both'].copy()
+        to_drop = to_drop[shared_categories + ['is_subtotal']].copy()
+        final_df_wide = final_df_wide.merge(to_drop, on=shared_categories+['is_subtotal'], how='left', indicator=True)
+        final_df_wide = final_df_wide[final_df_wide['_merge'] == 'left_only'].copy()
+        final_df_wide.drop(columns=['_merge'], inplace=True)
+    except:
+        breakpoint()
+    ###################
+    
+    # Check again for any duplicates
+    duplicates = final_df_wide[final_df_wide.duplicated(subset=[col for col in final_df_wide.columns if col not in ['is_subtotal'] +[year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1)]], keep=False)]
+    if duplicates.shape[0] > 0:
+        # print("WARNING: There final_df_wideare duplicates in the subtotaled DataFrame.")
+        # print(duplicates)
+        breakpoint()   
+        raise Exception("There are duplicates in the subtotaled DataFrame.") 
+    return final_df_wide
 
-    return final_df
-
-
-    # def identify_subtotals_that_dont_sum_correctly(df_melted_sum):
-    #     """To add to the complexity, we have values in the layout df which get labelled as subttotals because they dont appear to be the most specific values. this is because the layout data has values for which the ESTO team doesnt know where to put them. so we need to idenitfy any subttoals for which the next level of values dont sum up to them. where this is the case, relabel them because they aren't subttotals. 
-        
-    #     Note that because we have a primary goal of cutting down on user error, we will treat any instances of this in the results data as an error, rather than assuming the value is not a subtotal. 
-
-    #     we can do this using df_melted_sum, which contains data grouped and summed by everything except the year col. this will make things a bit more simple.
-        
-    #     to account for rounding errors, if the difference is less than 1% of the subtotal value, we will assume that it is a subtotal. otherwise, we will assume that it is not a subtotal.
-    #     Returns:
-    #         _type_: _description_
-    #     """
-    #     #so we will want to move down the columns, calcaulting each subt
 def remove_all_zeros(results_df, years_to_keep_in_results):
     #since the layout file contains all possible rows (once we run calculate_subtotals on it), we can remove all rows where the values for a row are all zero in the results file, since when we merge we will still be able to keep those rows from the layout file in the final df. This wil help to significantly reduce the size of resutls files as well as ignore any issues that arent issues because they are all zeros. For example we had an issue where a subfuel was being sued for a subtotal where the sectors it was subtotaling didnt have that subfuel. But since the values were all zeros, it didnt matter.
     results_df = results_df.loc[~(results_df[years_to_keep_in_results] == 0).all(axis=1)].copy()
@@ -226,6 +248,8 @@ def check_bunkers_are_negative(filtered_results_df, file):
 def filter_for_only_buildings_data_in_buildings_file(results_df):
     #this is only because the buildings file is being given to us with all the other data in it. so we need to filter it to only have the buildings data in it so that nothing unexpected happens.
     #check for data in the end year where sub1sectors is 16_01_buildings
+    
+    
     if results_df.loc[results_df['sub1sectors'] == '16_01_buildings', str(OUTLOOK_BASE_YEAR+1):str(OUTLOOK_LAST_YEAR)].notnull().any().any():
         cols = [str(i) for i in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
         #set 0's to null for now, as we dont mind if there are 0's in the buildings file. we just dont want any other data.
@@ -263,15 +287,13 @@ def trim_layout_before_merging_with_results(layout_df, concatted_results_df):
     if missing_sectors_df.shape[0] > 0:
         print("The following sectors are missing from the results files:")
         print(missing_sectors_df['sectors'].unique().tolist())
-        
-    # Drop columns outllook_base_year to outlook_last_year from new_layout_df
-    columns_to_drop = [year for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
-    new_layout_df.drop(columns=columns_to_drop, inplace=True)
     
     return new_layout_df, missing_sectors_df
 
 def trim_results_before_merging_with_layout(concatted_results_df,shared_categories):
     #drop years not in the outlook (they are in the layout file)
+    
+    
     years_to_keep = [year for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
     # concatted_results_df = concatted_results_df[shared_categories + ['is_subtotal'] + years_to_keep].copy()#dont think this is necessary
     # Drop rows with NA or zeros in the year columns from concatted_results_df
@@ -293,9 +315,15 @@ def trim_results_before_merging_with_layout(concatted_results_df,shared_categori
     
     return concatted_results_df
 
-def run_checks_on_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df):
+def format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df, missing_sectors_df):
+    #we may have found that during the merge, some rows  subtotals and some arent
+    merged_df['subtotal_layout'] = merged_df['subtotal_layout'].fillna(False)
+    merged_df['subtotal_results'] = merged_df['subtotal_results'].fillna(False)
+    missing_sectors_df['subtotal_results'] = False
+    
     #Check for duplicate rows in concatted_results_df. if there are something is wrong as
-    if merged_df[merged_df.duplicated(subset=shared_categories, keep=False)].shape[0] > 0:
+    duplicates = merged_df[merged_df.duplicated(subset=shared_categories, keep=False)]
+    if duplicates.shape[0] > 0:
         breakpoint()
         raise Exception("Duplicate rows found in concatted_results_df. Check the results files.")
 
@@ -320,7 +348,10 @@ def run_checks_on_merged_layout_results_df(merged_df, shared_categories, trimmed
 
     #drop the _merge column
     merged_df.drop(columns=['_merge'], inplace=True)
-    return merged_df
+    
+    # Combine the remainign rows form the original layout_df with the merged_df
+    results_layout_df = pd.concat([missing_sectors_df, merged_df])
+    return results_layout_df
 
 def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories):
     """
@@ -688,7 +719,6 @@ def compare_to_previous_merge(new_merged_df, shared_categories, results_data_pat
     epsilon = 1e-6
     SAVE = False
     for years in np.array_split(new_merged_df['year'].unique(), 10):
-        breakpoint()#is year int vs str
         all_ = pd.merge(new_merged_df[new_merged_df['year'].isin(years)], previous_merged_df[previous_merged_df['year'].isin(years)], on=shared_categories+['year'], how='outer', indicator=True, suffixes=('_new', '_previous'))
         #check for rows that arent in both dataframes
         left_only_ = all_[all_['_merge'] == 'left_only']
@@ -752,7 +782,7 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
     shared_categories_old = shared_categories.copy()
     shared_categories_old.remove('subtotal_layout')
     shared_categories_old.remove('subtotal_results')
-    merged_df_on_values = pd.merge(results_layout_df_layout_years, layout_df, on=shared_categories_old+  [col for col in results_layout_df_layout_years.columns if col in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1)], how="outer", indicator=True)
+    merged_df_on_values = pd.merge(results_layout_df_layout_years, layout_df, on=shared_categories_old+  [col for col in results_layout_df_layout_years.columns if col in range(EBT_EARLIEST_YEAR, +1)], how="outer", indicator=True)
     merged_df_on_categories_only = pd.merge(results_layout_df_layout_years, layout_df, on=shared_categories_old, how="outer", indicator=True, suffixes=('_new_layout_df', '_original_layout'))
     
     if merged_df_on_values[merged_df_on_values['_merge'] != 'both'].shape[0] > 0:

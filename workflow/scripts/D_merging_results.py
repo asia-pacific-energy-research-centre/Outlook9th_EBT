@@ -25,7 +25,6 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
 
     # Specify the shared category columns in the desired order
     shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
-
     years_to_keep_in_results = [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
 
     # Create an empty concatted_results_df with the shared_categories
@@ -68,7 +67,7 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
         results_df.columns = results_df.columns.astype(str)
 
         #Keep columns from oulook_base_year to outlook_last_year only
-        results_df.drop(columns=[col for col in results_df.columns if any(str(year) in col for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1))], inplace=True)
+        results_df.drop(columns=[str(col) for col in results_df.columns if any(str(year) in col for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1))], inplace=True)
         
         #filter for only economies in the layout file:
         results_df = results_df[results_df['economy'].isin(economies)]
@@ -100,10 +99,13 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
     layout_df = layout_df[layout_df['economy'].isin(economies)].copy()
+    #drop years in range(OUTLOOK_BASE_YEAR, OUTLOOK_BASE_YEAR+1) as we dont need it. This will help to speed up the process. 
     
+    
+    layout_df.drop(columns=[col for col in layout_df.columns if any(str(year) in str(col) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1))], inplace=True)
     layout_df_subtotals_labelled = merging_functions.label_subtotals(layout_df, shared_categories)
-    
-    layout_df_subtotals_recalculated = merging_functions.calculate_subtotals(layout_df_subtotals_labelled, shared_categories, DATAFRAME_ORIGIN='layout') #technically we dont need to do this since the layout file already has subtotals. but we do it anyway to check that the subtotals labelling and calcualtion process is correct when we run check_for_issues_by_comparing_to_layout_df()
+    layout_df_subtotals_recalculated = merging_functions.calculate_subtotals(layout_df_subtotals_labelled, shared_categories, DATAFRAME_ORIGIN='layout')
+    breakpoint()
     trimmed_layout_df, missing_sectors_df = merging_functions.trim_layout_before_merging_with_results(layout_df_subtotals_recalculated,concatted_results_df)
     trimmed_concatted_results_df = merging_functions.trim_results_before_merging_with_layout(concatted_results_df, shared_categories)
     #rename subtotal columns before merging:
@@ -112,14 +114,8 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     missing_sectors_df.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
     # Merge the new_layout_df with the concatted_results_df based on shared_categories using outer merge (so we can see which rows are missing/extra from the results_df)
     merged_df = pd.merge(trimmed_layout_df, trimmed_concatted_results_df, on=shared_categories, how="outer", indicator=True)
-    merged_df['subtotal_layout'] = merged_df['subtotal_layout'].fillna(False)
-    merged_df['subtotal_results'] = merged_df['subtotal_results'].fillna(False)
-    missing_sectors_df['subtotal_results'] = False
     
-    merged_df = merging_functions.run_checks_on_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df)
-    
-    # Combine the remainign rows form the original layout_df with the merged_df
-    results_layout_df = pd.concat([missing_sectors_df, merged_df])
+    results_layout_df = merging_functions.format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df,missing_sectors_df)
     
     #add subtotals to shared_categories now its in all the dfs
     shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']
