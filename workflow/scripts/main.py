@@ -23,7 +23,7 @@ def main():
     
     # Merge the results
     final_energy_df = D.merging_results(merged_df_clean_wide)
-    breakpoint()
+    
     #calc emissions:
     emissions_df = E.calculate_emissions(final_energy_df)
     

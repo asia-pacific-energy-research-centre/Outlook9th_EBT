@@ -97,6 +97,8 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories, DATAFRAME_ORIGIN='results')
     
+    ##############################
+    
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
     layout_df = layout_df[layout_df['economy'].isin(economies)].copy()
     #drop years in range(OUTLOOK_BASE_YEAR, OUTLOOK_BASE_YEAR+1) as we dont need it. This will help to speed up the process. 
@@ -105,7 +107,8 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     layout_df.drop(columns=[col for col in layout_df.columns if any(str(year) in str(col) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1))], inplace=True)
     layout_df_subtotals_labelled = merging_functions.label_subtotals(layout_df, shared_categories)
     layout_df_subtotals_recalculated = merging_functions.calculate_subtotals(layout_df_subtotals_labelled, shared_categories, DATAFRAME_ORIGIN='layout')
-    breakpoint()
+    
+    ############################## 
     trimmed_layout_df, missing_sectors_df = merging_functions.trim_layout_before_merging_with_results(layout_df_subtotals_recalculated,concatted_results_df)
     trimmed_concatted_results_df = merging_functions.trim_results_before_merging_with_layout(concatted_results_df, shared_categories)
     #rename subtotal columns before merging:
@@ -149,14 +152,12 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     
     final_df = merging_functions.create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,results_layout_df, shared_categories)
     #now check for issues with the new aggregates and subtotals by using the layout file as the reference    
-    breakpoint()#could we import layout with no subttoals instead?
-    merging_functions.check_for_issues_by_comparing_to_layout_df(final_df, shared_categories_w_subtotals, new_aggregate_sectors, layout_df_subtotals_labelled, REMOVE_LABELLED_SUBTOTALS=True)
+    merging_functions.check_for_issues_by_comparing_to_layout_df(final_df, shared_categories_w_subtotals, new_aggregate_sectors, layout_df_subtotals_labelled, REMOVE_LABELLED_SUBTOTALS=False)
     #######################################
     #FINALISE THE DATA
     
     #set up the order of columns to be shared_cateogires, subtotal_results, subtotal_layout, then the years in order
     final_df = final_df[shared_categories_w_subtotals +  [col for col in final_df.columns if col not in shared_categories_w_subtotals]]
-    breakpoint()
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY}/merged'
     # Check if the folder already exists

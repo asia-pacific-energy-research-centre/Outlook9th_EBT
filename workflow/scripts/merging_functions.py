@@ -6,6 +6,115 @@ from datetime import datetime
 from utility_functions import *
 import warnings
 
+def label_subtotals(results_layout_df, shared_categories):  
+    def label_subtotals_for_sub_col(df, sub_col):
+        """
+        This fucntion is run for each sub_col. It identifies and labels subtotal rows within the dataframe, based on the current subcol 
+        
+        If this row is not a subtotal for this sub_col then it wont change anythign, but if it is a subtotal for this sub_col then it will label it as a subtotal.
+        
+        (so, if the row is identified as a subtotal, then it will be labelled as a subtotal, but technically this means that the sub_col will be 'x' (see x_mask varaible), since it is a subtotal of all values in that sub_col, but for the category one level higher than that sub_col).
+
+        This function goes through the dataframe to find subtotal rows based on the presence of 'x' in specific columns.
+        
+        It distinguishes between definite non-subtotals (where tehre is no data to aggregate) and potential subtotals (where there's a mix of detailed and aggregated data in that group). It then labels the potential subtotals accordingly.
+        
+        A similar thing to the x's has been added for the presence of 0's and nans. Note that a value is  definitely not a subtotal if EITHER of the conditions are met.
+        
+        Parameters:
+        - df (DataFrame): The dataframe to process.
+        - sub_col (str): The name of the column to check for 'x' which indicates a subtotal.
+        - totals (list): A list of values in the 'fuels' column that should be considered as total values and not subtotals.
+
+        Returns:
+        - DataFrame: The original dataframe with an additional column indicating whether a row is a subtotal.
+        """
+        #############################
+        # the following section finds where all the values in a group for the sub_col are x. These are not subtotals since there must be no more specific values than them if there arent any non x values at all for this group in this sub_col. dont label them at all (since they will default to is_subtotal=False).
+        # Create a mask for 'x' values in the sub_col 
+        x_mask = (df[sub_col] == 'x')
+
+        # Group by all columns except 'value' and sub_col and check if all values in sub_col are 'x' for that group 
+        grouped = df.loc[x_mask, [col for col in df.columns if col not in ['value', sub_col]]].groupby([col for col in df.columns if col not in ['value', sub_col]]).size().reset_index(name='count')
+
+        # Merge the original df with the grouped data to get the count of 'x' for each group
+        merged = df.merge(grouped, on=[col for col in df.columns if col not in ['value', sub_col]], how='left')
+
+        # Create a mask where the count is equal to the size of the group, indicating all values in sub_col were 'x' for that group.
+        non_subtotal_mask = merged['count'] == df.groupby([col for col in df.columns if col not in ['value', sub_col]]).transform('size').reset_index(drop=True)
+        
+        ############################# 
+        #if more than just one value are not zero/nan for this group, then it could be a subtotal, if not, its a definite non-subtotal since its the most specific data we have for this group.
+        value_mask = (abs(df['value'])> 0)
+        
+        # Group by all columns except 'value' and sub_col and check how many values are >0 or <0 for that group
+        grouped = df.loc[value_mask, [col for col in df.columns if col not in ['value', sub_col]]].groupby([col for col in df.columns if col not in ['value', sub_col]]).size().reset_index(name='count')
+
+        # Merge the original df with the grouped data to get the count of 'x' for each group
+        merged = df.merge(grouped, on=[col for col in df.columns if col not in ['value', sub_col]], how='left')
+
+        #fill nas in merged with True, as this is where no values are >0 or <0 for this group
+        merged['count'] = merged['count'].fillna(True)
+        
+        # Create a mask where the count of values in the group that are >0 or <0 is <= 1, indicating that its not a subtotal 
+        non_subtotal_mask2 = merged['count'] <= 1
+        #############################
+        
+        # df.reset_index(drop=True, inplace=True)
+        df['non_subtotal_mask'] = non_subtotal_mask
+        df['non_subtotal_mask2'] = non_subtotal_mask2
+        #separate where all the values in the group are x. these are not subtotals since there are no more specific values than them. dont label them at all.
+        df_definitely_not_subtotals = df[non_subtotal_mask2 | non_subtotal_mask].copy()
+        df_maybe_subtotals = df[~(non_subtotal_mask2 | non_subtotal_mask)].copy()
+        df_maybe_subtotals[df_maybe_subtotals['sub1sectors'] == '15_01_domestic_air_transport']
+        conditions = {
+            'sub_col_is_x': df_maybe_subtotals[sub_col] == 'x'
+        }
+        # Combine conditions for subtotals
+        conditions['is_subtotal'] =  conditions['sub_col_is_x'] 
+         
+        # Apply the conditions to label subtotal rows. but only label if it is a subtotal. dont label with false if it is not a subtotal. this is because it could overwrite where we previously labelled it as a subtotal.
+        df_maybe_subtotals['is_subtotal'] = np.where(conditions['is_subtotal'], True, df_maybe_subtotals['is_subtotal'])
+        # Concatenate the two DataFrames back together
+        df = pd.concat([df_definitely_not_subtotals, df_maybe_subtotals], ignore_index=True).reset_index(drop=True)
+        
+        #drop non_subtotal_mask and non_subtotal_mask2
+        df.drop(columns=['non_subtotal_mask', 'non_subtotal_mask2'], inplace=True)
+        
+        return df
+    #####################################################################
+    #SUBFUNCTION
+    ######################################################################
+        
+    # Melt the DataFrame
+    df_melted = results_layout_df.melt(id_vars=shared_categories, var_name='year', value_name='value')
+    
+    #Double check for duplicates:
+    dupes = df_melted[df_melted.duplicated(subset=shared_categories+['year'], keep=False)]
+    if dupes.shape[0] > 0:
+        print('Found duplicates in subtotal input')
+        breakpoint()
+    
+    #make sure year is int
+    df_melted['year'] = df_melted['year'].astype(int)
+    
+    #remove year col and sum value col. this will allow us to more easily identify if a value is standalone or a sum of others. 
+    df_melted_sum = df_melted.groupby([col for col in df_melted.columns if col not in ['year', 'value']]).sum(numeric_only=True).reset_index()
+    df_melted_sum.drop(columns=['year'], inplace=True)
+
+    #set is_subtotal to False. It'll be set to True, eventually, if it is a subtotal
+    df_melted_sum['is_subtotal'] = False
+    
+    for sub_col in ['subfuels', 'sub4sectors', 'sub3sectors', 'sub2sectors', 'sub1sectors']:
+        df_melted_sum = label_subtotals_for_sub_col(df_melted_sum, sub_col)
+    
+    #join df_melted_sum, wthout value col to df_melted on [col for col in df_melted.columns if col not in ['value'] to get the is_subtotal col in the original df_melted
+    df_melted = pd.merge(df_melted, df_melted_sum[[col for col in df_melted_sum.columns if col not in ['value']]], on=[col for col in df_melted.columns if col not in ['year', 'value']], how='left')
+    
+    df_melted = df_melted.pivot(index=[col for col in df_melted.columns if col not in ['year', 'value']], columns='year', values='value').reset_index()
+    
+    return df_melted
+
 def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     """
     Aggregates subtotals for each combination of categories. Then drops any of these calcalted subtotals that are already in the data. This is because the data that is already in there is actually the most specific data for each group, so we should keep it, rather than the subtotal.
@@ -96,6 +205,8 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
             raise Exception("WARNING: There are nas in the subtotaled DataFrame.")#uplifted to exception as this is unexpected and should be investigated.
             # subtotalled_results[col] = subtotalled_results[col].fillna('x').copy()
             
+    ############################
+    
     #check for duplicates in these new subtotals based on all the cols except value.. if there are duplicates then perhaphs something went wrong with the subtotaling. But if the values are all 0 then just drop them.
     #Note: We are taking a risk of not catching potential errors if we assume we can drop subtotals that are duplciates and = 0...but if we dont do this it is quite complicated to work find the error anyway. It should only happen if there is not specific enough data in the layout file, so 0's aregetting subtotaled, and then being foudn asduplicates beside what is actually the most specific data for that group. So we will drop these by ideniftying if we are working on the layout file, otherwise throw an error.
     duplicates = subtotalled_results[subtotalled_results.duplicated(subset=[col for col in subtotalled_results.columns if col not in ['value']], keep=False)]
@@ -135,7 +246,7 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         #save the data
         subtotals_with_different_values.to_csv(f'data/temp/error_checking/subtotals_with_different_values.csv', index=False)
         raise Exception('{} subtotals have different values in the original and subtotalled data. This is likely a mistake on the side of the modeller'.format(subtotals_with_different_values.shape[0]))
-    elif subtotals_with_different_values.shape[0] > 0 and DATAFRAME_ORIGIN == 'layout':
+    elif subtotals_with_different_values.shape[0] > 0 and DATAFRAME_ORIGIN == 'layout':                
         #relable the subtotals as not subtotals
         merged_data.loc[(merged_data['_merge'] == 'both') & (merged_data['value_diff_pct'] > EPSILON_PERCENT) & (merged_data['is_subtotal'] == True), 'is_subtotal'] = False
         #but note that this could create rows where there are two rows with the same shared_categories but not year, but one is a subtotal and one is not. so we will need to drop the isntances where is_subtotal = True so taht we dont get duplicates. We will do this later in this function when we pivot the data wide.
@@ -188,6 +299,7 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         final_df_wide.drop(columns=['_merge'], inplace=True)
     except:
         breakpoint()
+        print('WARNNG: There was an error when trying to drop subtotals that were duplicates of non-subtotals. This is unexpected and should be investigated. See line 299 in merging_functions.py')
     ###################
     
     # Check again for any duplicates
@@ -368,7 +480,7 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
         pd.DataFrame: The aggregated data for the desired sectors.
     """
     # Filter out subtotals and select the desired sectors
-    df_filtered = df[(df['subtotal_layout'] == False) & (df['subtotal_results'] == False) & (df['sectors'].isin(sectors))].copy()#it seems were losing data here, for example where subtotal_layout is true and subtotal results is false in rail. this seems like it stems from mislaelling of subtotals?
+    df_filtered = df[(df['subtotal_layout'] == False) & (df['subtotal_results'] == False) & (df['sectors'].isin(sectors))].copy()
 
     # If calculating total primary energy supply, make all TFC components negative first, then add them to the other components.
     if aggregate_sector == '07_total_primary_energy_supply':
@@ -383,29 +495,9 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
         
         aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels']).sum(numeric_only=True).reset_index()
         
-        #NOTE I DROPPED THE BELOW BECAUSE OF DIFFERENT LEVELS OF FUELS AVAILALBE IN DEMAND DATA. SO WE CANT CALCULATE SUBTOTALS FOR FUELS AS THEY WOULDNT REFELCT TOTAL IN FUEL.
-        # #we also need a tpes for subtotals of fuels. to do this we can just do a sum of grouped_tfc, after dropping where subfuels = x, on .groupby(['scenarios', 'economy', 'fuels']) and set subfuels to x. 
-        # df_filtered_fuels_subtotals = df_filtered.loc[df_filtered.subfuels!='x']
-        # aggregated_df_fuels_sutotals = df_filtered_fuels_subtotals.groupby(['scenarios', 'economy', 'fuels']).sum(numeric_only=True).reset_index()
-        
-        # aggregated_df_fuels_sutotals['subfuels'] = 'x'
-        # aggregated_df_fuels_sutotals['subtotal_layout'] = True
-        # aggregated_df_fuels_sutotals['subtotal_results'] = True
-        
-        # aggregated_df = pd.concat([aggregated_df, aggregated_df_fuels_sutotals])
-        
     elif aggregate_sector in ['13_total_final_energy_consumption', '12_total_final_consumption']:#these also need to ahve values calcualted for fuel subtotals, like TPES
         # If not calculating total primary energy supply, just perform the grouping and sum
         aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels']).sum(numeric_only=True).reset_index().copy()
-        #NOTE I DROPPED THE BELOW BECAUSE OF DIFFERENT LEVELS OF FUELS AVAILALBE IN DEMAND DATA. SO WE CANT CALCULATE SUBTOTALS FOR FUELS AS THEY WOULDNT REFELCT TOTAL IN FUEL.
-        # breakpoint()#its weird, we're getting duplicates for 01_coal and 12_solar?
-        # # do a sum of grouped_tfc, after dropping where subfuels = x, on .groupby(['scenarios', 'economy', 'fuels']) and set subfuels to x. 
-        # aggregated_df_fuels_subtotals = aggregated_df.loc[aggregated_df.subfuels!='x'].groupby(['scenarios', 'economy', 'fuels']).sum(numeric_only=True).reset_index().copy()
-        # aggregated_df_fuels_subtotals['subfuels'] = 'x'
-        # aggregated_df_fuels_subtotals['subtotal_layout'] = True
-        # aggregated_df_fuels_subtotals['subtotal_results'] = True
-        
-        # aggregated_df = pd.concat([aggregated_df, aggregated_df_fuels_subtotals])
         
     else:
         raise Exception(f'Aggregate sector {aggregate_sector} not recognised')
@@ -416,8 +508,6 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message="DataFrame is highly fragmented")
                 aggregated_df[col] = 'x'
-    # #find wehre fuels = 01_coal and subfuels = x 
-    # df_filtered[(df_filtered['fuels'] == '01_coal')].to_csv('b.csv')
     
     # Reorder columns to match shared_categories order
     ordered_columns = shared_categories + [col for col in aggregated_df.columns if col not in shared_categories]
@@ -433,7 +523,7 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
         breakpoint()
         raise Exception("Duplicates found in aggregated_df. Check the results files.")
 
-    #where subtotal_layout or subtotal_results is 1 or 0 replace with True or False #TODO CLEAN THIS UP
+    #where subtotal_layout or subtotal_results is 1 or 0 replace with True or False #TODO CLEAN THIS UP. SHOULDNT HAPPEN IN FIRST PLACE
     aggregated_df['subtotal_layout'] = aggregated_df['subtotal_layout'].replace({0:False, 1:True})
     aggregated_df['subtotal_results'] = aggregated_df['subtotal_results'].replace({0:False, 1:True})
     return aggregated_df
@@ -451,7 +541,6 @@ def create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,results_layo
         raise Exception("Duplicates found in final_df. Check the results files.")
     
     return final_df
-    
     
     
 def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categories):
@@ -561,110 +650,6 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     fuel_aggregates_pivoted['subtotal_results'] = False
     return fuel_aggregates_pivoted
 
-
-def label_subtotals(results_layout_df, shared_categories):  
-    def label_subtotals_for_sub_col(df, sub_col):
-        """
-        This fucntion is run for each sub_col. It identifies and labels subtotal rows within the dataframe, based on the current subcol 
-        
-        If this row is not a subtotal for this sub_col then it wont change anythign, but if it is a subtotal for this sub_col then it will label it as a subtotal.
-        
-        (so, if the row is identified as a subtotal, then it will be labelled as a subtotal, but technically this means that the sub_col will be 'x' (see x_mask varaible), since it is a subtotal of all values in that sub_col, but for the category one level higher than that sub_col).
-
-        This function goes through the dataframe to find subtotal rows based on the presence of 'x' in specific columns.
-        
-        It distinguishes between definite non-subtotals (where tehre is no data to aggregate) and potential subtotals (where there's a mix of detailed and aggregated data in that group). It then labels the potential subtotals accordingly.
-        
-        A similar thing to the x's has been added for the presence of 0's and nans. Note that a value is  definitely not a subtotal if EITHER of the conditions are met.
-        
-        Parameters:
-        - df (DataFrame): The dataframe to process.
-        - sub_col (str): The name of the column to check for 'x' which indicates a subtotal.
-        - totals (list): A list of values in the 'fuels' column that should be considered as total values and not subtotals.
-
-        Returns:
-        - DataFrame: The original dataframe with an additional column indicating whether a row is a subtotal.
-        """
-        #############################
-        # the following section finds where all the values in a group for the sub_col are x. These are not subtotals since there must be no more specific values than them if there arent any non x values at all for this group in this sub_col. dont label them at all (since they will default to is_subtotal=False).
-        # Create a mask for 'x' values in the sub_col 
-        x_mask = (df[sub_col] == 'x')
-
-        # Group by all columns except 'value' and sub_col and check if all values in sub_col are 'x' for that group 
-        grouped = df.loc[x_mask, [col for col in df.columns if col not in ['value', sub_col]]].groupby([col for col in df.columns if col not in ['value', sub_col]]).size().reset_index(name='count')
-
-        # Merge the original df with the grouped data to get the count of 'x' for each group
-        merged = df.merge(grouped, on=[col for col in df.columns if col not in ['value', sub_col]], how='left')
-
-        # Create a mask where the count is equal to the size of the group, indicating all values in sub_col were 'x' for that group.
-        non_subtotal_mask = merged['count'] == df.groupby([col for col in df.columns if col not in ['value', sub_col]]).transform('size').reset_index(drop=True)
-        
-        ############################# 
-        #if more than just one value are not zero/nan for this group, then it could be a subtotal, if not, its a definite non-subtotal since its the most specific data we have for this group.
-        value_mask = (abs(df['value'])> 0)
-        
-        # Group by all columns except 'value' and sub_col and check how many values are >0 or <0 for that group
-        grouped = df.loc[value_mask, [col for col in df.columns if col not in ['value', sub_col]]].groupby([col for col in df.columns if col not in ['value', sub_col]]).size().reset_index(name='count')
-
-        # Merge the original df with the grouped data to get the count of 'x' for each group
-        merged = df.merge(grouped, on=[col for col in df.columns if col not in ['value', sub_col]], how='left')
-
-        #fill nas in merged with True, as this is where no values are >0 or <0 for this group
-        merged['count'] = merged['count'].fillna(True)
-        
-        # Create a mask where the count of values in the group that are >0 or <0 is <= 1, indicating that its not a subtotal 
-        non_subtotal_mask2 = merged['count'] <= 1
-        #############################
-        
-        # df.reset_index(drop=True, inplace=True)
-        df['non_subtotal_mask'] = non_subtotal_mask
-        df['non_subtotal_mask2'] = non_subtotal_mask2
-        #separate where all the values in the group are x. these are not subtotals since there are no more specific values than them. dont label them at all.
-        df_definitely_not_subtotals = df[non_subtotal_mask2 | non_subtotal_mask].copy()
-        df_maybe_subtotals = df[~(non_subtotal_mask2 | non_subtotal_mask)].copy()
-        df_maybe_subtotals[df_maybe_subtotals['sub1sectors'] == '15_01_domestic_air_transport']
-        conditions = {
-            'sub_col_is_x': df_maybe_subtotals[sub_col] == 'x'
-        }
-        # Combine conditions for subtotals
-        conditions['is_subtotal'] =  conditions['sub_col_is_x'] 
-         
-        # Apply the conditions to label subtotal rows. but only label if it is a subtotal. dont label with false if it is not a subtotal. this is because it could overwrite where we previously labelled it as a subtotal.
-        df_maybe_subtotals['is_subtotal'] = np.where(conditions['is_subtotal'], True, df_maybe_subtotals['is_subtotal'])
-        # Concatenate the two DataFrames back together
-        df = pd.concat([df_definitely_not_subtotals, df_maybe_subtotals], ignore_index=True).reset_index(drop=True)
-        
-        return df
-        
-    # Melt the DataFrame
-    df_melted = results_layout_df.melt(id_vars=shared_categories, var_name='year', value_name='value')
-    
-    #Double check for duplicates:
-    dupes = df_melted[df_melted.duplicated(subset=shared_categories+['year'], keep=False)]
-    if dupes.shape[0] > 0:
-        print('Found duplicates in subtotal input')
-        breakpoint()
-    
-    #make sure year is int
-    df_melted['year'] = df_melted['year'].astype(int)
-    
-    #remove year col and sum value col. this will allow us to more easily identify if a value is standalone or a sum of others. 
-    df_melted_sum = df_melted.groupby([col for col in df_melted.columns if col not in ['year', 'value']]).sum(numeric_only=True).reset_index()
-    df_melted_sum.drop(columns=['year'], inplace=True)
-
-    #set is_subtotal to False. It'll be set to True, eventually, if it is a subtotal
-    df_melted_sum['is_subtotal'] = False
-    
-    for sub_col in ['subfuels', 'sub4sectors', 'sub3sectors', 'sub2sectors', 'sub1sectors']:
-        df_melted_sum = label_subtotals_for_sub_col(df_melted_sum, sub_col)
-    
-    #join df_melted_sum, wthout value col to df_melted on [col for col in df_melted.columns if col not in ['value'] to get the is_subtotal col in the original df_melted
-    df_melted = pd.merge(df_melted, df_melted_sum[[col for col in df_melted_sum.columns if col not in ['value']]], on=[col for col in df_melted.columns if col not in ['year', 'value']], how='left')
-    
-    df_melted = df_melted.pivot(index=[col for col in df_melted.columns if col not in ['year', 'value']], columns='year', values='value').reset_index()
-    
-    return df_melted
-
 def load_previous_merged_df(results_data_path, expected_columns, previous_merged_df_filename):
     
     if previous_merged_df_filename is None:
@@ -766,15 +751,17 @@ def compare_to_previous_merge(new_merged_df, shared_categories, results_data_pat
 
 
 def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categories, new_aggregate_sectors, layout_df_subtotals_labelled, REMOVE_LABELLED_SUBTOTALS=False):
-    """Use this to check that the layout df and the newly processed layout df match for the years in the layout file. This should not happen, and if there are isues its likely some process in the merging_results script is wrong..
+    """Use this to check that the layout df and the newly processed layout df match for the years in the layout file. This should not happen, and if there are isues its likely some process in the merging_results script is wrong.
+    The process will do two comparisons, one on the values and the next on whether any rows are missing. The one that checks values will
     
-    Because there are so many issues with both the input layout and input results dfs we are never going to be able to do this perfectly, but if we assume that we have labelled subttoals correctly then if we remove the subttoals from the layout df, we will have far fewer missing rows. if you are trying to track down specific bugs though, you might want to set REMOVE_LABELLED_SUBTOTALS to TRUE"""
-    breakpoint()
+    REMOVE_LABELLED_SUBTOTALS:
+    Because there are so many issues with both the input layout and input results dfs we are never going to be able to do this perfectly, but if we assume that we have labelled subttoals correctly then if we remove the subttoals from the layout df, we will have far fewer missing rows. if you are trying to track down specific bugs though, you might want to set REMOVE_LABELLED_SUBTOTALS to False"""
     #drop where there are aggregate sectors where subfuel != x as we have removed those.
     layout_df = layout_df_subtotals_labelled.copy()
     layout_df = layout_df[~((layout_df.sectors.isin(new_aggregate_sectors) & (layout_df.subfuels != 'x')))].copy()
     if REMOVE_LABELLED_SUBTOTALS:
         layout_df=layout_df[~layout_df.is_subtotal].copy()
+        results_layout_df = results_layout_df[~results_layout_df.subtotal_layout].copy()
     #Check that the layout df matches aggregates_df where year is in  [year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1) if year in layout_df.columns]
     results_layout_df_layout_years = results_layout_df[shared_categories +  [col for col in results_layout_df.columns if col in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1)]].copy()
     # layout_df_test = layout_df[shared_categories +  [col for col in results_layout_df.columns if col in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1)]].copy()
@@ -782,13 +769,13 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
     shared_categories_old = shared_categories.copy()
     shared_categories_old.remove('subtotal_layout')
     shared_categories_old.remove('subtotal_results')
-    merged_df_on_values = pd.merge(results_layout_df_layout_years, layout_df, on=shared_categories_old+  [col for col in results_layout_df_layout_years.columns if col in range(EBT_EARLIEST_YEAR, +1)], how="outer", indicator=True)
+    merged_df_on_values = pd.merge(results_layout_df_layout_years, layout_df, on=shared_categories_old+  [col for col in results_layout_df_layout_years.columns if col in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1)], how="outer", indicator=True)
     merged_df_on_categories_only = pd.merge(results_layout_df_layout_years, layout_df, on=shared_categories_old, how="outer", indicator=True, suffixes=('_new_layout_df', '_original_layout'))
     
     if merged_df_on_values[merged_df_on_values['_merge'] != 'both'].shape[0] > 0:
         #wrongly calculated rows occur where we have duplicates when you ignore the years. these dont show up in merged_df_on_categories_only.
         merged_df_bad_values = merged_df_on_values[merged_df_on_values['_merge'] != 'both'].copy()
-        merged_df_bad_values = merged_df_bad_values[merged_df_bad_values.duplicated(subset=shared_categories_old, keep=False)]
+        merged_df_bad_values = merged_df_bad_values[merged_df_bad_values.duplicated(subset=shared_categories_old, keep=False)].copy()
         
         #replace left_only with new_layout_df and right_only with original_layout
         merge_dict = {'left_only': 'new_layout_df', 'right_only': 'original_layout'}
@@ -799,7 +786,6 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         new_layout_df = merged_df_bad_values[merged_df_bad_values['_merge'] == 'new_layout_df'].copy()
         original_layout = merged_df_bad_values[merged_df_bad_values['_merge'] == 'original_layout'].copy()
         
-        breakpoint()
         #melt both then join
         new_layout_df = new_layout_df.drop(columns=['_merge']).melt(id_vars=shared_categories_old, var_name='year', value_name='value')
         original_layout = original_layout.drop(columns=['_merge']).melt(id_vars=shared_categories_old, var_name='year', value_name='value')
@@ -808,8 +794,26 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         merged_df_bad_values['difference'] = merged_df_bad_values['value_new_layout_df'] - merged_df_bad_values['value_original_layout']
         merged_df_bad_values = merged_df_bad_values[abs(merged_df_bad_values['difference']) > epsilon].copy()
         
+        ###############
+        bad_values_rows_exceptions_dict = {}#IGNORE ANY AGGREGATE FUELS/SECTORS UNTIL THEYVE BEEN CALCAULTED PROPERLY
+        bad_values_rows_exceptions_dict['19_total'] = {'fuels':'19_total'}
+        bad_values_rows_exceptions_dict['20_total_renewables'] = {'fuels':'20_total_renewables'}
+        bad_values_rows_exceptions_dict['21_modern_renewables'] = {'fuels':'21_modern_renewables'}
+        bad_values_rows_exceptions_dict['13_total_final_energy_consumption'] = {'sectors':'13_total_final_energy_consumption'}
+        bad_values_rows_exceptions_dict['12_total_final_consumption'] = {'sectors':'12_total_final_consumption'}
+        bad_values_rows_exceptions_dict['07_total_primary_energy_supply'] = {'sectors':'07_total_primary_energy_supply'}
+        #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
+        #use the keys as column names to remove the rows in the dict:
+        for ignored_issue in bad_values_rows_exceptions_dict.keys():
+            #iterate through the dict to thin down to the rows we want to remove and then remove them by index
+            rows_to_remove = merged_df_bad_values.copy()
+            for col in bad_values_rows_exceptions_dict[ignored_issue].keys():
+                rows_to_remove = rows_to_remove[rows_to_remove[col] == bad_values_rows_exceptions_dict[ignored_issue][col]].copy()
+            merged_df_bad_values = merged_df_bad_values.drop(rows_to_remove.index).copy()
+        
+        ###############
         #where we have unexpected rows, this is where either _merge is new_layout_df or original_layout in merged_df_on_categories_only. new_layout_df means the layout file has a row that isnt in the results file. original_layout means the results file has a row that isnt in the layout file.
-        missing_rows = merged_df_on_categories_only[merged_df_on_categories_only['_merge'] != 'both']
+        missing_rows = merged_df_on_categories_only[merged_df_on_categories_only['_merge'] != 'both'].copy()
         missing_rows['_merge'] = missing_rows['_merge'].map(merge_dict).fillna(missing_rows['_merge'])
         #that covers all possible issues. we will now save them and ask the user to fix them.
         if merged_df_bad_values.shape[0] > 0:
@@ -819,22 +823,27 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             print("There are {} rows where the values in the results file do not match the values in the layout file. These rows have been saved to data/temp/error_checking/merged_df_bad_values.csv".format(merged_df_bad_values.shape[0]))
             breakpoint()
         if missing_rows.shape[0] > 0:
-            missing_rows_dict = {}
+            ###############
+            missing_rows_exceptions_dict = {}
             #CREATE MISSING ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
-            # missing_rows_dict['road_no_sub4sectors_aggregate_fuels'] = {'_merge': 'original_layout', 'sub1sectors':'15_02_road', 'sub4sectors':'x'}#for some reason there are aggregates here, but there shouldnt be because its a sub4sectors subtotal (and aggregates dont occur where there are any subtotals). so we will ignore these rows. (all values are 0 anyways)
-            missing_rows_dict['nonspecified_transformation'] = {'_merge':'original_layout', 'sub1sectors':'09_12_nonspecified_transformation'}
+            missing_rows_exceptions_dict['nonspecified_transformation'] = {'_merge':'original_layout', 'sub1sectors':'09_12_nonspecified_transformation'}
 
-
-            
-            # 14_03_07_food_beverages_and_tobacco # i think most specific values are being treated as subtotals here, but they arent, then they are being removed and not recalculated. 
-            
-            #put them in order to help see the issue
-            missing_rows.sort_values(by=shared_categories_old, inplace=True)
-            #put the _merge col at front
-            missing_rows = missing_rows[['_merge'] + missing_rows.columns[:-1].tolist()]
-            missing_rows.to_csv('data/temp/error_checking/missing_rows.csv', index=False)
-            print("There are {} rows where the results file is missing rows from the layout file. These rows have been saved to data/temp/error_checking/missing_rows.csv".format(missing_rows.shape[0]))
-            breakpoint()
+            #use the keys as column names to remove the rows in the dict:
+            for ignored_issue in missing_rows_exceptions_dict.keys():
+                #iterate through the dict to thin down to the rows we want to remove and then remove them by index
+                rows_to_remove = missing_rows.copy()
+                for col in missing_rows_exceptions_dict[ignored_issue].keys():
+                    rows_to_remove = rows_to_remove[rows_to_remove[col] == missing_rows_exceptions_dict[ignored_issue][col]].copy()
+                missing_rows = missing_rows.drop(rows_to_remove.index).copy()
+            ###############
+            if missing_rows.shape[0] > 0:
+                #put them in order to help see the issue
+                missing_rows.sort_values(by=shared_categories_old, inplace=True)
+                #put the _merge col at front
+                missing_rows = missing_rows[['_merge'] + missing_rows.columns[:-1].tolist()]
+                missing_rows.to_csv('data/temp/error_checking/missing_rows.csv', index=False)
+                print("There are {} rows where the results file is missing rows from the layout file. These rows have been saved to data/temp/error_checking/missing_rows.csv".format(missing_rows.shape[0]))
+                breakpoint()
         if merged_df_bad_values.shape[0] > 0 or missing_rows.shape[0] > 0:
             #save the results_layout_df for user to check
             breakpoint()
