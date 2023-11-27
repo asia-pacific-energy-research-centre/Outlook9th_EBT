@@ -6,11 +6,7 @@ import os
 from datetime import datetime
 
 USE_SINGLE_ECONOMY = True
-<<<<<<< HEAD
-SINGLE_ECONOMY = '20_USA'
-=======
 SINGLE_ECONOMY = '19_THA'# '19_THA' #20_USA 03_CDA
->>>>>>> 3ebc80e371d6f4956818ee01dd47506643295ecb
 
 EBT_EARLIEST_YEAR = 1980
 OUTLOOK_BASE_YEAR = 2020
