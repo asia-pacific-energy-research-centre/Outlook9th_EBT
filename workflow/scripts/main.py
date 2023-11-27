@@ -20,7 +20,7 @@ def main():
     
     # Subset the data
     merged_df_clean_wide = C.subset_data(merged_df_clean_wide)
-    
+    breakpoint()
     # Merge the results
     final_energy_df = D.merging_results(merged_df_clean_wide)
     
