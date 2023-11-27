@@ -171,9 +171,9 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
     date_today = datetime.now().strftime('%Y%m%d')
     if USE_SINGLE_ECONOMY:
-        final_df.to_csv(f'{folder_path}/merged_file_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
+        final_df.to_csv(f'{folder_path}/merged_file_energy_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
     else:
-        final_df.to_csv(f'results/merged_file{date_today}.csv', index=False)
+        final_df.to_csv(f'results/merged_file_energy_{date_today}.csv', index=False)
         
     return final_df
 
