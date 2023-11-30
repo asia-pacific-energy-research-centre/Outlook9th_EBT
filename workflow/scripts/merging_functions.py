@@ -202,6 +202,12 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         print("WARNING: There are duplicates in the subtotaled DataFrame.")
         breakpoint()  
     
+    # Filter out rows with '12_x_other_solar' in 'subfuels'
+    melted_df = melted_df[melted_df['subfuels'] != '12_x_other_solar']
+
+    # Save the dataframe before subtotal calculations
+    melted_df.to_csv('melted_df_before_subtotals.csv', index=False)
+
     # Process the DataFrame with each cols_to_sum combination so you get a subtotal calculated for every level of detail.
     for cols_to_sum in sets_of_cols_to_sum:
         subtotalled_results = pd.concat([subtotalled_results,calculate_subtotal_for_columns(melted_df, cols_to_sum)], ignore_index=True)
@@ -211,6 +217,9 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         
     # Fill 'x' for the aggregated levels as they will just be nas
     for col in sets_of_cols_to_sum[-1]:
+        # Save the dataframe to CSV for inspection
+        subtotalled_results.to_csv('subtotalled_results.csv', index=False)
+
         #check for nas
         if subtotalled_results[col].isna().any():
             #fill nas with x
