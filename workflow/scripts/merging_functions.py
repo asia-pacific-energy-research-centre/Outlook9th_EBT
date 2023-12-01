@@ -223,7 +223,11 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         else:
             #sort by value and keep the last duplicate always since it will not be 0.
             subtotalled_results = subtotalled_results.sort_values(by=['value'], ascending=True).drop_duplicates(subset=[col for col in subtotalled_results.columns if col not in ['value']], keep='last').copy()
-            
+    
+    #now we've dropped all duplicates except those that might be caused by having different origins, we will sum up all values by all cols except origin. this will remove any duplicates that are caused by having different origins.
+    if 'origin' in subtotalled_results.columns:
+        subtotalled_results = subtotalled_results.groupby([col for col in subtotalled_results.columns if col not in ['value', 'origin']], as_index=False)['value'].sum().copy()
+        shared_categories.remove('origin')
     ###################
     
     #now merge with the original df with subtotals. Fristly, we will idenitfy where subtotals dont calacualte to the same vlaue. If the input is a results df then assume its an error. If the input is a layout df then assume that what was originally labelled as a subtotal is in fact a value that wasnt able to be disaggregated. For these values, keep the original, dont calcualte the subtotal and relabel it as not a subtotal.
@@ -356,7 +360,20 @@ def check_bunkers_are_negative(filtered_results_df, file):
         if (filtered_results_df.loc[filtered_rows, str(year)] > 0).any():
             breakpoint()
             raise Exception(f"{file} has positive values for {sectors_to_check} in {year}.")
-            
+         
+def filter_out_solar_with_zeros_in_buildings_file(results_df):
+    """This is a temporary fix to remove solar data that contains only 0s from the buildings file, as it creates duplicates which arent actually duplicates in calculate_subtotals.
+    
+    Specificlaly the issue is 0's where fuels=12_solar, sub1sectors =16_01_buildings , sub2sectors=x, subfuels=x """
+    years = [str(col) for col in results_df.columns if any(str(year) in col for year in range(OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR+1))]
+    #filter out solar data from buildings file:
+    results_df = results_df[~((results_df['fuels']=='12_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['subfuels']=='x')&(results_df[years]==0).all(axis=1))].copy()
+    #OK THERE IS ALSO A PROBLEM WHERE SUBFUELS = 12_x_other_solar... SO DO THE SAME FOR THAT TOO...
+    results_df = results_df[~((results_df['subfuels']=='12_x_other_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['fuels']=='12_solar')&(results_df[years]==0).all(axis=1))].copy()
+    #ugh ok and also, if they are nas, then we should also drop them...
+    results_df = results_df[~((results_df['subfuels']=='12_x_other_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['fuels']=='12_solar')&(results_df[years].isna().all(axis=1)))].copy()
+    results_df = results_df[~((results_df['fuels']=='12_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['subfuels']=='x')&(results_df[years].isna().all(axis=1)))].copy()
+    return results_df   
 def filter_for_only_buildings_data_in_buildings_file(results_df):
     #this is only because the buildings file is being given to us with all the other data in it. so we need to filter it to only have the buildings data in it so that nothing unexpected happens.
     #check for data in the end year where sub1sectors is 16_01_buildings

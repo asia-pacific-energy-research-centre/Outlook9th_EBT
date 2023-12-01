@@ -77,6 +77,7 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
         #TEMP# 
         #buildings file currently includes all sectors historical data, just like the layout file, not just buildings. This is a temporary fix to remove the non-buildings sectors from the results file.
         results_df = merging_functions.filter_for_only_buildings_data_in_buildings_file(results_df)
+        results_df = merging_functions.filter_out_solar_with_zeros_in_buildings_file(results_df)
         #TEMP#
         
         # find sectors where there are null values for all the years base_year->end_year. This will help to identify where perhaps the results file is missing data or has been incorrectly formatted.
@@ -90,13 +91,16 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
         merging_functions.check_bunkers_are_negative(filtered_results_df, file)
         merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
         #########RUN COMMON CHECKS ON THE RESULTS FILE OVER.#########
-        filtered_results_df_subtotals_labelled = merging_functions.label_subtotals(filtered_results_df, shared_categories)
+        basename = os.path.basename(file)
+        filtered_results_df['origin'] = basename.split('.')[0]
+        #the origin col is used because some data will come from two different results files, yet have the same sector and fuels columns but different levels of detail. This means that after we remove subtotals and then try to recreate them in calculate_subtotals, we might end up with duplicate rows. So we need to be able to identify that these rows came from different origin files so the duplicates can be removed by being summed together.
+        
+        filtered_results_df_subtotals_labelled = merging_functions.label_subtotals(filtered_results_df, shared_categories + ['origin'])
         # Combine the results_df with all the other results_dfs we have read so far
         concatted_results_df = pd.concat([concatted_results_df, filtered_results_df_subtotals_labelled])
 
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
-    concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories, DATAFRAME_ORIGIN='results')
-    
+    concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
     ##############################
     
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
