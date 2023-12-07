@@ -5,16 +5,19 @@ import re
 import os
 from datetime import datetime
 
-USE_SINGLE_ECONOMY = True
-SINGLE_ECONOMY = '20_USA'# '19_THA' #20_USA 03_CDA
-SINGLE_ECONOMY = '19_THA' # '19_THA' #20_USA 03_CDA
+USE_SINGLE_ECONOMY = False#when we have new data from ESTO you will want to set this to False and run the data through the whole pipeline to get results/model_df_wide_' + date_today +'.csv' for modellers to use as an input
+
+SINGLE_ECONOMY = '19_THA'# '19_THA' #20_USA 03_CDA
+# SINGLE_ECONOMY = '19_THA' # '19_THA' #20_USA 03_CDA
 
 EBT_EARLIEST_YEAR = 1980
-OUTLOOK_BASE_YEAR = 2020
+OUTLOOK_BASE_YEAR = 2021
 OUTLOOK_LAST_YEAR = 2070
 
 SECTOR_LAYOUT_SHEET = 'sector_layout_20230719'
 FUEL_LAYOUT_SHEET = 'fuel_layout_20230329'
+
+ESTO_DATA_FILENAME = '00APEC_December2023'
 
 def set_working_directory():
     # Change the working drive
