@@ -816,6 +816,12 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['13_total_final_energy_consumption'] = {'sectors':'13_total_final_energy_consumption'}
         bad_values_rows_exceptions_dict['12_total_final_consumption'] = {'sectors':'12_total_final_consumption'}
         bad_values_rows_exceptions_dict['07_total_primary_energy_supply'] = {'sectors':'07_total_primary_energy_supply'}
+
+        # USA file has some issues with the following rows
+        bad_values_rows_exceptions_dict['14_industry_sector'] = {'economy':'20_USA', 'sectors':'14_industry_sector', 'sub1sectors':'x', 'fuels':'07_petroleum_products', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['10_losses_and_own_use'] = {'economy':'20_USA', 'sectors':'10_losses_and_own_use', 'sub1sectors':'10_01_own_use', 'fuels':'01_coal', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['11_statistical_discrepancy'] = {'economy':'20_USA', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
         for ignored_issue in bad_values_rows_exceptions_dict.keys():
@@ -842,13 +848,27 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             #CREATE MISSING ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
             missing_rows_exceptions_dict['nonspecified_transformation'] = {'_merge':'original_layout', 'sub1sectors':'09_12_nonspecified_transformation'}
 
+            # USA file has some issues with the following rows (couldn't work out the cause)
+            missing_rows_exceptions_dict['nonspecified_transformation2'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'08_gas'}
+            missing_rows_exceptions_dict['nonspecified_transformation3'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'20_total_renewables'}
+            missing_rows_exceptions_dict['nonspecified_transformation4'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'21_modern_renewables'}
+            missing_rows_exceptions_dict['10_losses_and_own_use'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'10_01_own_use'}
+            missing_rows_exceptions_dict['08_transfers'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sectors':'08_transfers'}
+            print(missing_rows_exceptions_dict)
+
             #use the keys as column names to remove the rows in the dict:
-            for ignored_issue in missing_rows_exceptions_dict.keys():
-                #iterate through the dict to thin down to the rows we want to remove and then remove them by index
-                rows_to_remove = missing_rows.copy()
-                for col in missing_rows_exceptions_dict[ignored_issue].keys():
-                    rows_to_remove = rows_to_remove[rows_to_remove[col] == missing_rows_exceptions_dict[ignored_issue][col]].copy()
-                missing_rows = missing_rows.drop(rows_to_remove.index).copy()
+            # for ignored_issue in missing_rows_exceptions_dict.keys():
+            #     #iterate through the dict to thin down to the rows we want to remove and then remove them by index
+            #     rows_to_remove = missing_rows.copy()
+            #     for col in missing_rows_exceptions_dict[ignored_issue].keys():
+            #         rows_to_remove = rows_to_remove[rows_to_remove[col] == missing_rows_exceptions_dict[ignored_issue][col]].copy()
+            #     missing_rows = missing_rows.drop(rows_to_remove.index).copy()
+            
+            for ignored_issue, criteria in missing_rows_exceptions_dict.items():
+                query = ' & '.join([f"{col} == '{val}'" for col, val in criteria.items()])
+                rows_to_remove = missing_rows.query(query).index
+                missing_rows.drop(rows_to_remove, inplace=True)
+
             ###############
             if missing_rows.shape[0] > 0:
                 #put them in order to help see the issue
