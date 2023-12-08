@@ -10,7 +10,7 @@ from utility_functions import *
 import merging_functions
 set_working_directory()#from utility_functions.py
 
-def subset_data(merged_df_clean_wide):
+def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     """WHAT DOES THIS DO?
 
     Note, at the end of this function,  merging_functions.label_subtotals(merged_df_clean_wide, shared_categories) will be run. So any changes to that will affect the output of this function.
@@ -24,8 +24,9 @@ def subset_data(merged_df_clean_wide):
     interim_path = './data/interim/'
     os.makedirs(interim_path, exist_ok = True)
 
-    # if USE_SINGLE_ECONOMY:
-    #     merged_df_clean_wide = pd.read_csv(interim_path + 'interim_' + SINGLE_ECONOMY + '.csv')
+    if (isinstance(SINGLE_ECONOMY_ID, str)):
+        merged_df_clean_wide =merged_df_clean_wide[merged_df_clean_wide['economy'] == SINGLE_ECONOMY_ID].copy()
+    #     merged_df_clean_wide = pd.read_csv(interim_path + 'interim_' + SINGLE_ECONOMY_ID + '.csv')
     # else:
     #     merged_df_clean_wide = pd.read_csv(interim_path + 'interim.csv')
 
@@ -364,17 +365,19 @@ def subset_data(merged_df_clean_wide):
 
     folder_path = './results'
     os.makedirs(folder_path, exist_ok=True)
-    os.makedirs(folder_path + '/' + SINGLE_ECONOMY + '/layout', exist_ok=True)
 
 
-    if USE_SINGLE_ECONOMY:
-        file_name = 'model_df_wide_' + SINGLE_ECONOMY + '_' + date_today +'.csv'
+    if (isinstance(SINGLE_ECONOMY_ID, str)):
+        
+        os.makedirs(folder_path + '/' + SINGLE_ECONOMY_ID + '/layout', exist_ok=True)
+        
+        file_name = 'model_df_wide_' + SINGLE_ECONOMY_ID + '_' + date_today +'.csv'
             
-        result_path = os.path.join(folder_path + '/' + SINGLE_ECONOMY + '/layout', file_name)
+        result_path = os.path.join(folder_path + '/' + SINGLE_ECONOMY_ID + '/layout', file_name)
         merged_df_clean_wide.to_csv(result_path, index = False)
         
-        reference_df.to_csv(folder_path + '/' + SINGLE_ECONOMY + '/layout' + '/model_df_wide_ref_' +SINGLE_ECONOMY+'_'+ date_today + '.csv', index = False)
-        target_df.to_csv(folder_path + '/' + SINGLE_ECONOMY + '/layout' + '/model_df_wide_tgt_' +SINGLE_ECONOMY+'_'+ date_today + '.csv', index = False)
+        reference_df.to_csv(folder_path + '/' + SINGLE_ECONOMY_ID + '/layout' + '/model_df_wide_ref_' +SINGLE_ECONOMY_ID+'_'+ date_today + '.csv', index = False)
+        target_df.to_csv(folder_path + '/' + SINGLE_ECONOMY_ID + '/layout' + '/model_df_wide_tgt_' +SINGLE_ECONOMY_ID+'_'+ date_today + '.csv', index = False)
     else:
         file_name = 'model_df_wide_' + date_today +'.csv'
         

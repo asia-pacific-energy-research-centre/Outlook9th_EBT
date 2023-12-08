@@ -9,7 +9,7 @@ from datetime import datetime
 from utility_functions import *
 
 
-def incorporate_capacity_data(final_df):
+def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
     all_capacity_data = pd.DataFrame(columns=final_df.columns.tolist()).drop(columns=['subtotal_results', 'subtotal_layout', 'fuels', 'subfuels'])
     #drop final_df from memory
     del final_df
@@ -37,16 +37,16 @@ def incorporate_capacity_data(final_df):
     #save all_capacity_data
         
     # Define the folder path where you want to save the file
-    folder_path = f'results/{SINGLE_ECONOMY}/capacity/'
+    folder_path = f'results/{SINGLE_ECONOMY_ID}/capacity/'
     # Check if the folder already exists
-    if not os.path.exists(folder_path) and USE_SINGLE_ECONOMY:
+    if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
         # If the folder doesn't exist, create it
         os.makedirs(folder_path)
 
     #save the data to a new Excel file
     date_today = datetime.now().strftime('%Y%m%d')
-    if USE_SINGLE_ECONOMY:
-        all_capacity_data.to_csv(f'{folder_path}/capacity_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
+    if (isinstance(SINGLE_ECONOMY_ID, str)):
+        all_capacity_data.to_csv(f'{folder_path}/capacity_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
     else:
         all_capacity_data.to_csv(f'results/capacity_{date_today}.csv', index=False)
         

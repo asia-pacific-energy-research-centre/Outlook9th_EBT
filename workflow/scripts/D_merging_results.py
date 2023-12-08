@@ -9,7 +9,7 @@ from utility_functions import *
 import merging_functions
 import warnings
     
-def merging_results(original_layout_df, previous_merged_df_filename=None):
+def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_filename=None):
     """Takes the layout file and the results files, and merges them together.  The results files are generated from the model runs in the demand model, and the layout file is generated from the historical data file and the layout file template. 
     The process is messy and in some places doesnt seem to take the simplest way forwards. Most of the time this is because of compromises that are made because of the different level of detail between inputs, and the layout file. So the code here is complex, but relatively flexible.
     Some issues with the structure of the data that we need to deal with:
@@ -30,9 +30,9 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     # Create an empty concatted_results_df with the shared_categories
     concatted_results_df = pd.DataFrame(columns=shared_categories)
 
-    if USE_SINGLE_ECONOMY:
+    if (isinstance(SINGLE_ECONOMY_ID, str)):
         # Define the path pattern for the results data files
-        results_data_path = 'data/demand_results_data/'+SINGLE_ECONOMY+'/*'
+        results_data_path = 'data/demand_results_data/'+SINGLE_ECONOMY_ID+'/*'
         print(results_data_path)
     else:
         print("Not implemented yet.")
@@ -162,9 +162,9 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     #set up the order of columns to be shared_cateogires, subtotal_results, subtotal_layout, then the years in order
     final_df = final_df[shared_categories_w_subtotals +  [col for col in final_df.columns if col not in shared_categories_w_subtotals]]
     # Define the folder path where you want to save the file
-    folder_path = f'results/{SINGLE_ECONOMY}/merged'
+    folder_path = f'results/{SINGLE_ECONOMY_ID}/merged'
     # Check if the folder already exists
-    if not os.path.exists(folder_path) and USE_SINGLE_ECONOMY:
+    if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
         # If the folder doesn't exist, create it
         os.makedirs(folder_path)
     
@@ -173,8 +173,8 @@ def merging_results(original_layout_df, previous_merged_df_filename=None):
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
     date_today = datetime.now().strftime('%Y%m%d')
-    if USE_SINGLE_ECONOMY:
-        final_df.to_csv(f'{folder_path}/merged_file_energy_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
+    if (isinstance(SINGLE_ECONOMY_ID, str)):
+        final_df.to_csv(f'{folder_path}/merged_file_energy_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
     else:
         final_df.to_csv(f'results/merged_file_energy_{date_today}.csv', index=False)
         

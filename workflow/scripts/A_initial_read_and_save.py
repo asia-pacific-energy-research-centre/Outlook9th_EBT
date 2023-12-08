@@ -11,7 +11,7 @@ from utility_functions import *
 
 set_working_directory()#from utility_functions.py
 
-def initial_read_and_save():
+def initial_read_and_save(SINGLE_ECONOMY_ID):
     
     # read raw data
     # na_values: defines values that should be viewed as nan
@@ -20,9 +20,9 @@ def initial_read_and_save():
 
     sheet_names = pd.ExcelFile(xlsx_raw).sheet_names[:21] #making a list with the first 21 economies' worksheets 
 
-    if USE_SINGLE_ECONOMY:#this will speed up the process a lot. Probably only useful for testing.
+    if isinstance(SINGLE_ECONOMY_ID, str):
         #drop any sheets that arent the single economy. but remove any _'s form single economy name first
-        s = SINGLE_ECONOMY.replace('_', '')
+        s = SINGLE_ECONOMY_ID.replace('_', '')
         sheet_names = [e for e in sheet_names if e.replace('_', '') == s]
         
     RawEGEDA = pd.read_excel(xlsx_raw,
@@ -295,8 +295,8 @@ def initial_read_and_save():
     # # interim save
     # interim_path = './data/interim/'
     # os.makedirs(interim_path, exist_ok = True)
-    # if USE_SINGLE_ECONOMY:
-    #     df_no_year_econ_index.to_csv(interim_path + f'EBT_long_{SINGLE_ECONOMY}.csv', index = False)
+    # if USE_SINGLE_ECONOMY_ID:
+    #     df_no_year_econ_index.to_csv(interim_path + f'EBT_long_{SINGLE_ECONOMY_ID}.csv', index = False)
     # else:
     #     df_no_year_econ_index.to_csv(interim_path + 'EBT_long.csv', index = False)
 

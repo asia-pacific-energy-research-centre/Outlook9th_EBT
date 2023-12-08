@@ -8,11 +8,10 @@ import glob
 from datetime import datetime
 from utility_functions import *
 
-def calculate_emissions(final_df):
+def calculate_emissions(final_df,SINGLE_ECONOMY_ID):
     #read in emissions factors
     emissions_factors = pd.read_csv('config/9th_edition_emissions_factors.csv')
     # emissions_factors.columns : fuel_code,	Emissions factor (MT/PJ)
-
     #melt the final_df on all cols except year cols
     year_cols = [col for col in final_df.columns if str(col).isnumeric()]
     #[year for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
@@ -41,16 +40,16 @@ def calculate_emissions(final_df):
     #save emissions
     
     # Define the folder path where you want to save the file
-    folder_path = f'results/{SINGLE_ECONOMY}/emissions/'
+    folder_path = f'results/{SINGLE_ECONOMY_ID}/emissions/'
     # Check if the folder already exists
-    if not os.path.exists(folder_path) and USE_SINGLE_ECONOMY:
+    if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
         # If the folder doesn't exist, create it
         os.makedirs(folder_path)
 
     #save the data to a new Excel file
     date_today = datetime.now().strftime('%Y%m%d')
-    if USE_SINGLE_ECONOMY:
-        final_df.to_csv(f'{folder_path}/emissions_{SINGLE_ECONOMY}_{date_today}.csv', index=False)
+    if (isinstance(SINGLE_ECONOMY_ID, str)):
+        final_df.to_csv(f'{folder_path}/emissions_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
     else:
         final_df.to_csv(f'results/emissions_{date_today}.csv', index=False)
         

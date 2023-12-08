@@ -12,15 +12,15 @@ from utility_functions import *
 
 set_working_directory()#from utility_functions.py
 
-def create_energy_df(df_no_year_econ_index):
+def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
 
     # interim save
     interim_path = './data/interim/'
     os.makedirs(interim_path, exist_ok = True)
 
     # # read interim data
-    # if USE_SINGLE_ECONOMY:
-    #     df_no_year_econ_index = pd.read_csv(interim_path + f'EBT_long_{SINGLE_ECONOMY}.csv')
+    # if USE_SINGLE_ECONOMY_ID:
+    #     df_no_year_econ_index = pd.read_csv(interim_path + f'EBT_long_{SINGLE_ECONOMY_ID}.csv')
     # else:
     #     df_no_year_econ_index = pd.read_csv(interim_path + 'EBT_long.csv')
 
@@ -381,8 +381,8 @@ def create_energy_df(df_no_year_econ_index):
     merged_df_clean_wide.replace(value_not_in_the_range, np.nan, inplace = True)
 
     # # Save file and subset in next script
-    # if USE_SINGLE_ECONOMY:
-    #     merged_df_clean_wide.to_csv(interim_path + f'interim_{SINGLE_ECONOMY}.csv', index = False)
+    # if USE_SINGLE_ECONOMY_ID:
+    #     merged_df_clean_wide.to_csv(interim_path + f'interim_{SINGLE_ECONOMY_ID}.csv', index = False)
     # else:
     #     merged_df_clean_wide.to_csv(interim_path + 'interim.csv', index = False)
 

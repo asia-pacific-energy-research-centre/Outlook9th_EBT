@@ -1,7 +1,7 @@
 
 import pandas as pd
 
-def test_update_function(layout_df, new_layout_df,tfc_grouped_df, tfec_grouped_df,shared_categories, SINGLE_ECONOMY, SAVE_TEST_RESULTS_TO_CSV=True):
+def test_update_function(layout_df, new_layout_df,tfc_grouped_df, tfec_grouped_df,shared_categories, SINGLE_ECONOMY_ID, SAVE_TEST_RESULTS_TO_CSV=True):
     
     #TESTING:
     #COMPARE USING UDPATE to REMOVEING THEN CONCATING THE VLAUES, like in new_layout_df
@@ -42,6 +42,6 @@ def test_update_function(layout_df, new_layout_df,tfc_grouped_df, tfec_grouped_d
         print(layout_df.loc[different_rows.index])
         
         if SAVE_TEST_RESULTS_TO_CSV:
-            new_layout_df.loc[different_rows.index].to_csv(f'data/tests/merged_file_1_{SINGLE_ECONOMY}.csv', index=False)
-            layout_df.loc[different_rows.index].to_csv(f'data/tests/merged_file_2_{SINGLE_ECONOMY}.csv', index=False)
+            new_layout_df.loc[different_rows.index].to_csv(f'data/tests/merged_file_1_{SINGLE_ECONOMY_ID}.csv', index=False)
+            layout_df.loc[different_rows.index].to_csv(f'data/tests/merged_file_2_{SINGLE_ECONOMY_ID}.csv', index=False)
         raise AssertionError("The two dataframes are not equal.")
