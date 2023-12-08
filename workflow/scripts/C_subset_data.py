@@ -7,12 +7,13 @@ import re
 import os
 from datetime import datetime
 from utility_functions import *
-
+import merging_functions
 set_working_directory()#from utility_functions.py
 
 def subset_data(merged_df_clean_wide):
     """WHAT DOES THIS DO?
 
+    Note, at the end of this function,  merging_functions.label_subtotals(merged_df_clean_wide, shared_categories) will be run. So any changes to that will affect the output of this function.
     Args:
         merged_df_clean_wide (_type_): _description_
 
@@ -348,9 +349,16 @@ def subset_data(merged_df_clean_wide):
     # - To do the pivot properly, ther became value_not_in_the_range.
     # - And now they are going to become np.nan again.
 
+
+    ###########################
+    #label subtotals in the data:
+    shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
+    merged_df_clean_wide = merging_functions.label_subtotals(merged_df_clean_wide, shared_categories)
+    ###########################
+    
     reference_df = merged_df_clean_wide[merged_df_clean_wide['scenarios'] == 'reference'].copy().reset_index(drop = True)
     target_df = merged_df_clean_wide[merged_df_clean_wide['scenarios'] == 'target'].copy().reset_index(drop = True)
-
+    
     # Export data
     date_today = datetime.now().strftime('%Y%m%d')
 

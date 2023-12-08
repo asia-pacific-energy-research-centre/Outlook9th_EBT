@@ -812,9 +812,6 @@ def compare_to_previous_merge(new_merged_df, shared_categories, results_data_pat
         
     return
 
-
-
-
 def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categories, new_aggregate_sectors, layout_df_subtotals_labelled, REMOVE_LABELLED_SUBTOTALS=False):
     """Use this to check that the layout df and the newly processed layout df match for the years in the layout file. This should not happen, and if there are isues its likely some process in the merging_results script is wrong.
     The process will do two comparisons, one on the values and the next on whether any rows are missing. The one that checks values will
