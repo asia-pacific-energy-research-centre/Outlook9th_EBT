@@ -584,27 +584,73 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     #and drop 08_02_interproduct_transfers, 09_12_nonspecified_transformation as we dont want to include it in the aggregates
     results_layout_df_no_subtotals = results_layout_df_no_subtotals[~results_layout_df_no_subtotals['sub1sectors'].isin(['09_12_nonspecified_transformation', '08_02_interproduct_transfers'])].copy()
     df = pd.concat([new_aggregates_df, results_layout_df_no_subtotals], ignore_index=True)
+
+    # Melt the DataFrame
+    df_melted = df.melt(id_vars=shared_categories + ['subtotal_layout', 'subtotal_results'], value_vars=[col for col in df.columns if col in [year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]],var_name='year', value_name='value')
+
+    # Convert year column to integer
+    df_melted['year'] = df_melted['year'].astype(int)
+
+    # df_melted.to_csv('data/temp/error_checking/df_melted_for_19_total_function.csv', index=False)
+    # # Drop the historic rows
+    # df_for_aggregating = df_for_aggregating.loc[~df_for_aggregating['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)]
+
+    # Define sets of columns to exclude in each iteration
+    exclusion_sets = [
+        ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'],
+        ['sub2sectors', 'sub3sectors', 'sub4sectors'],
+        ['sub3sectors', 'sub4sectors'],
+        ['sub4sectors'],
+        []
+    ]
+
+    fuel_aggregates_list = []
+    for cols_to_exclude in exclusion_sets:
+        excluded_cols = ['fuels', 'subfuels'] + cols_to_exclude
+        group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
+
+        # Aggregate '19_total'
+        total_19 = df_melted[df_melted['subtotal_layout'] == False].groupby(group_columns)['value'].sum().reset_index()
+        total_19['fuels'] = '19_total'
+        for col in excluded_cols[1:]:
+            total_19[col] = 'x'
+        
+        # if cols_to_exclude:
+        #     total_19.to_csv('data/temp/error_checking/total_19_' + cols_to_exclude[0] + '.csv', index=False)
+        # else:
+        #     # Handle the case where cols_to_exclude is empty
+        #     total_19.to_csv('data/temp/error_checking/total_19_.csv', index=False)
+        #     continue
+
+        fuel_aggregates_list.append(total_19)
+
+    fuel_aggregates = pd.concat(fuel_aggregates_list, ignore_index=True)
     
-    # Melt the dataframe
-    df_melted = df.melt(id_vars=[col for col in df.columns if col not in [year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]],
-                        value_vars=[col for col in df.columns if col in [year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]],
-                        var_name='year',
-                        value_name='value')
+    # Remove exact duplicates, keeping the first occurrence
+    fuel_aggregates = fuel_aggregates.drop_duplicates()
 
-    # List of columns to be excluded during aggregation
-    excluded_cols = ['fuels','subfuels']#['fuels', 'subfuels', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']
+    # Remove rows where 'value' is 0
+    fuel_aggregates = fuel_aggregates[fuel_aggregates['value'] != 0]
 
-    # Columns to be used for aggregation
-    group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
-    ##############
-    #DO EACH AGGREGATE SEPARATELY 
-    # Aggregate based on group_columns
-    total_19 = df_melted.groupby(group_columns)['value'].sum().reset_index()
+    # fuel_aggregates.to_csv('data/temp/error_checking/fuel_aggregates_for_19_total.csv', index=False)
 
-    # Add back the removed columns with specified values
-    total_19['fuels'] = '19_total'
-    for col in excluded_cols[1:]:  # We start from 1 as 'fuels' is already addressed above
-        total_19[col] = 'x'
+    # Check for duplicates
+    # duplicates = fuel_aggregates[fuel_aggregates.duplicated(subset=shared_categories + ['year'], keep=False)]
+    # duplicates.to_csv('data/temp/error_checking/fuel_aggregates_for_19_total_duplicates.csv', index=False)
+
+    # Pivot the aggregated DataFrame
+    fuel_aggregates_pivoted = fuel_aggregates.pivot_table(index=shared_categories, columns='year', values='value').reset_index()
+
+    # # Change columns to str and reorder
+    # pivoted_df.columns = pivoted_df.columns.astype(str)
+    # pivoted_columns_order = shared_categories + [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
+    # fuel_aggregates_pivoted = pivoted_df[pivoted_columns_order]
+
+    # # Merge pivoted data back into the original layout
+    # fuel_aggregates_pivoted = results_layout_df.merge(pivoted_df, on=shared_categories, how='left')
+    # layout_columns_order = shared_categories + [str(year) for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]
+    # fuel_aggregates_pivoted = fuel_aggregates_pivoted[layout_columns_order]
+
         
     ####
     #20_total_renewables
@@ -633,38 +679,40 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     #    '16_08_other_liquid_biofuels', '16_09_other_sources',
     #    '16_x_ammonia', '16_x_efuel', '16_x_hydrogen'], dtype=object)
     
-    #the problem with renwables calcualtion is that we have to consider the renewables used in ouput of electricity and heat. this has to be done using the share of renewables in total genreation. this is so that renewables also has a share in losses and own use.  (edito said that). I dont know how to do this yet!
-    #TODO JNSUT CALCUALTE USING SAME METHOD AS 19 TOTAL, FOR NOW
-    total_renewables_20 = df_melted.groupby(group_columns)['value'].sum().reset_index()
-    total_renewables_20['fuels'] = '20_total_renewables'
-    for col in excluded_cols[1:]:  # We start from 1 as 'fuels' is already addressed above
-        total_renewables_20[col] = 'x'
-    ####
-    #21_modern_renewables
-    #here, we do know that it is renewables that arent biomass consumed in the buildings and ag sectors. but we still dont know how to claulte the share of renewables in total generation. so for now we will just do the same as 19 total.
-    modern_renewables_21 = df_melted.groupby(group_columns)['value'].sum().reset_index()
-    modern_renewables_21['fuels'] = '21_modern_renewables'
-    for col in excluded_cols[1:]:  # We start from 1 as 'fuels' is already addressed above
-        modern_renewables_21[col] = 'x'
+    # #the problem with renwables calcualtion is that we have to consider the renewables used in ouput of electricity and heat. this has to be done using the share of renewables in total genreation. this is so that renewables also has a share in losses and own use.  (edito said that). I dont know how to do this yet!
+    # #TODO JNSUT CALCUALTE USING SAME METHOD AS 19 TOTAL, FOR NOW
+    # total_renewables_20 = df_melted.groupby(group_columns)['value'].sum().reset_index()
+    # total_renewables_20['fuels'] = '20_total_renewables'
+    # for col in excluded_cols[1:]:  # We start from 1 as 'fuels' is already addressed above
+    #     total_renewables_20[col] = 'x'
+    # ####
+    # #21_modern_renewables
+    # #here, we do know that it is renewables that arent biomass consumed in the buildings and ag sectors. but we still dont know how to claulte the share of renewables in total generation. so for now we will just do the same as 19 total.
+    # modern_renewables_21 = df_melted.groupby(group_columns)['value'].sum().reset_index()
+    # modern_renewables_21['fuels'] = '21_modern_renewables'
+    # for col in excluded_cols[1:]:  # We start from 1 as 'fuels' is already addressed above
+    #     modern_renewables_21[col] = 'x'
         
-    ####    
-    fuel_aggregates = pd.concat([total_19, total_renewables_20, modern_renewables_21], ignore_index=True)
+    # ####    
+    # fuel_aggregates = pd.concat([total_19, total_renewables_20, modern_renewables_21], ignore_index=True)
     ##############   
     
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="DataFrame is highly fragmented")
-        # Pivot the dataframe back to its original format
-        fuel_aggregates_pivoted = fuel_aggregates.pivot(index=[col for col in fuel_aggregates.columns if col not in ['year', 'value']], columns='year', values='value').reset_index()
+    # with warnings.catch_warnings():
+    #     warnings.filterwarnings("ignore", message="DataFrame is highly fragmented")
+    #     Pivot the dataframe back to its original format
+    #     fuel_aggregates_pivoted = fuel_aggregates.pivot(index=[col for col in fuel_aggregates.columns if col not in ['year', 'value']], columns='year', values='value').reset_index()
         
-    dupes = fuel_aggregates_pivoted[fuel_aggregates_pivoted.duplicated(subset=shared_categories, keep=False)]
-    if dupes.shape[0] > 0:
-        print(dupes)
-        breakpoint()
-        raise Exception("Duplicates found in fuel_aggregates_pivoted. Check the results files.")
+    # dupes = fuel_aggregates_pivoted[fuel_aggregates_pivoted.duplicated(subset=shared_categories, keep=False)]
+    # if dupes.shape[0] > 0:
+    #     print(dupes)
+    #     breakpoint()
+    #     raise Exception("Duplicates found in fuel_aggregates_pivoted. Check the results files.")
     
-    #set subtotals to false
-    fuel_aggregates_pivoted['subtotal_layout'] = False
-    fuel_aggregates_pivoted['subtotal_results'] = False
+    # set subtotals to true
+    fuel_aggregates_pivoted['subtotal_layout'] = True
+    fuel_aggregates_pivoted['subtotal_results'] = True
+    
+    # fuel_aggregates_pivoted.to_csv('data/temp/error_checking/fuel_aggregates_pivoted.csv', index=False)
     return fuel_aggregates_pivoted
 
 def load_previous_merged_df(results_data_path, expected_columns, previous_merged_df_filename):
@@ -850,6 +898,10 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             missing_rows_exceptions_dict = {}
             #CREATE MISSING ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
             missing_rows_exceptions_dict['nonspecified_transformation'] = {'_merge':'original_layout', 'sub1sectors':'09_12_nonspecified_transformation'}
+            
+            missing_rows_exceptions_dict['19_total'] = {'_merge':'original_layout', 'fuels':'19_total'}
+            missing_rows_exceptions_dict['20_total_renewables'] = {'_merge':'original_layout', 'fuels':'20_total_renewables'}
+            missing_rows_exceptions_dict['21_modern_renewables'] = {'_merge':'original_layout', 'fuels':'21_modern_renewables'}
 
             # USA file has some issues with the following rows (couldn't work out the cause)
             missing_rows_exceptions_dict['nonspecified_transformation2'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'08_gas'}
