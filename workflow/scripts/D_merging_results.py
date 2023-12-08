@@ -99,6 +99,13 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         # Combine the results_df with all the other results_dfs we have read so far
         concatted_results_df = pd.concat([concatted_results_df, filtered_results_df_subtotals_labelled])
 
+    # Define the range of years to keep
+    years_to_keep = set(range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR + 1))
+
+    # Filter out columns beyond OUTLOOK_LAST_YEAR
+    # Convert column names to strings for comparison, as some might be integers
+    concatted_results_df = concatted_results_df[[col for col in concatted_results_df.columns if str(col).isdigit() and int(col) in years_to_keep or not str(col).isdigit()]]
+
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
     ##############################
@@ -161,6 +168,10 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     
     #set up the order of columns to be shared_cateogires, subtotal_results, subtotal_layout, then the years in order
     final_df = final_df[shared_categories_w_subtotals +  [col for col in final_df.columns if col not in shared_categories_w_subtotals]]
+    
+    # final_df with rows ordered in the same sequence as layout_df based on the columns in shared_categories
+    final_df = layout_df[shared_categories].merge(final_df, on=shared_categories, sort=False)
+    
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY_ID}/merged'
     # Check if the folder already exists
