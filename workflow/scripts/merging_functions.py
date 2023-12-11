@@ -510,11 +510,11 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
         negative_df[numeric_cols] *= -1
         df_filtered = pd.concat([df_filtered[~df_filtered['sectors'].isin(negative_sectors)], negative_df], ignore_index=True)
         
-        aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels']).sum(numeric_only=True).reset_index()
+        aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum(numeric_only=True).reset_index()
         
     elif aggregate_sector in ['13_total_final_energy_consumption', '12_total_final_consumption']:#these also need to ahve values calcualted for fuel subtotals, like TPES
         # If not calculating total primary energy supply, just perform the grouping and sum
-        aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels']).sum(numeric_only=True).reset_index().copy()
+        aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum(numeric_only=True).reset_index().copy()
         
     else:
         raise Exception(f'Aggregate sector {aggregate_sector} not recognised')
