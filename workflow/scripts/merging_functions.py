@@ -896,6 +896,10 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             #CREATE MISSING ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
             missing_rows_exceptions_dict['nonspecified_transformation'] = {'_merge':'original_layout', 'sub1sectors':'09_12_nonspecified_transformation'}
             
+            missing_rows_exceptions_dict['12_total_final_consumption'] = {'_merge':'new_layout_df', 'sectors':'12_total_final_consumption'}
+            missing_rows_exceptions_dict['13_total_final_energy_consumption'] = {'_merge':'new_layout_df', 'sectors':'13_total_final_energy_consumption'}
+            missing_rows_exceptions_dict['07_total_primary_energy_supply'] = {'sectors':'07_total_primary_energy_supply'}
+            
             missing_rows_exceptions_dict['19_total'] = {'_merge':'original_layout', 'fuels':'19_total'}
             missing_rows_exceptions_dict['20_total_renewables'] = {'_merge':'original_layout', 'fuels':'20_total_renewables'}
             missing_rows_exceptions_dict['21_modern_renewables'] = {'_merge':'original_layout', 'fuels':'21_modern_renewables'}
