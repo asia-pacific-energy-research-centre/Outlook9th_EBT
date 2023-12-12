@@ -35,23 +35,23 @@ def label_subtotals(results_layout_df, shared_categories):
         x_mask = (df[sub_col] == 'x')
 
         # Group by all columns except 'value' and sub_col and check if all values in sub_col are 'x' for that group 
-        grouped = df.loc[x_mask, [col for col in df.columns if col not in ['value', sub_col]]].groupby([col for col in df.columns if col not in ['value', sub_col]]).size().reset_index(name='count')
+        grouped = df.loc[x_mask, [col for col in df.columns if col not in ['value', sub_col, 'is_subtotal']]].groupby([col for col in df.columns if col not in ['value', sub_col, 'is_subtotal']]).size().reset_index(name='count')
 
         # Merge the original df with the grouped data to get the count of 'x' for each group
-        merged = df.merge(grouped, on=[col for col in df.columns if col not in ['value', sub_col]], how='left')
+        merged = df.merge(grouped, on=[col for col in df.columns if col not in ['value', sub_col, 'is_subtotal']], how='left')
 
         # Create a mask where the count is equal to the size of the group, indicating all values in sub_col were 'x' for that group.
-        non_subtotal_mask = merged['count'] == df.groupby([col for col in df.columns if col not in ['value', sub_col]]).transform('size').reset_index(drop=True)
+        non_subtotal_mask = merged['count'] == df.groupby([col for col in df.columns if col not in ['value', sub_col, 'is_subtotal']]).transform('size').reset_index(drop=True)
         
         ############################# 
-        #if more than just one value are not zero/nan for this group, then it could be a subtotal, if not, its a definite non-subtotal since its the most specific data we have for this group.
+        #if more than one value are not zero/nan for this group, then it could be a subtotal, if not, its a definite non-subtotal since its the most specific data we have for this group.
         value_mask = (abs(df['value'])> 0)
         
         # Group by all columns except 'value' and sub_col and check how many values are >0 or <0 for that group
-        grouped = df.loc[value_mask, [col for col in df.columns if col not in ['value', sub_col]]].groupby([col for col in df.columns if col not in ['value', sub_col]]).size().reset_index(name='count')
+        grouped = df.loc[value_mask, [col for col in df.columns if col not in ['value', sub_col, 'is_subtotal']]].groupby([col for col in df.columns if col not in ['value', sub_col, 'is_subtotal']]).size().reset_index(name='count')
 
         # Merge the original df with the grouped data to get the count of 'x' for each group
-        merged = df.merge(grouped, on=[col for col in df.columns if col not in ['value', sub_col]], how='left')
+        merged = df.merge(grouped, on=[col for col in df.columns if col not in ['value', sub_col, 'is_subtotal']], how='left')
 
         #fill nas in merged with True, as this is where no values are >0 or <0 for this group
         merged['count'] = merged['count'].fillna(True)
@@ -64,6 +64,7 @@ def label_subtotals(results_layout_df, shared_categories):
         df['non_subtotal_mask'] = non_subtotal_mask
         df['non_subtotal_mask2'] = non_subtotal_mask2
         #separate where all the values in the group are x. these are not subtotals since there are no more specific values than them. dont label them at all.
+        
         df_definitely_not_subtotals = df[non_subtotal_mask2 | non_subtotal_mask].copy()
         df_maybe_subtotals = df[~(non_subtotal_mask2 | non_subtotal_mask)].copy()
         df_maybe_subtotals[df_maybe_subtotals['sub1sectors'] == '15_01_domestic_air_transport']
@@ -104,7 +105,6 @@ def label_subtotals(results_layout_df, shared_categories):
 
     #set is_subtotal to False. It'll be set to True, eventually, if it is a subtotal
     df_melted_sum['is_subtotal'] = False
-    
     for sub_col in ['subfuels', 'sub4sectors', 'sub3sectors', 'sub2sectors', 'sub1sectors']:
         df_melted_sum = label_subtotals_for_sub_col(df_melted_sum, sub_col)
     
