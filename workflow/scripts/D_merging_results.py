@@ -130,6 +130,8 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     
     results_layout_df = merging_functions.format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df,missing_sectors_df)
     
+    results_layout_df.to_csv('results_layout_df_before_drop.csv')
+    
     #add subtotals to shared_categories now its in all the dfs
     shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']
     #########################
@@ -139,6 +141,8 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     results_layout_df = results_layout_df.loc[~results_layout_df['sectors'].isin(new_aggregate_sectors)].copy()
     #and drop aggregate fuels since we will recalculate them
     results_layout_df = results_layout_df.loc[~results_layout_df['fuels'].isin(['19_total', '21_modern_renewables', '20_total_renewables'])].copy()
+    
+    results_layout_df.to_csv('results_layout_df_after_drop.csv')
 
     # Define a dictionary that maps each sector group to its corresponding total column
     sector_mappings = [
@@ -154,8 +158,11 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # Loop over the sector mappings and process the data for each sector group
     for (sectors, aggregate_sector) in sector_mappings:
         sector_df = merging_functions.calculate_sector_aggregates(results_layout_df, sectors, aggregate_sector, shared_categories)
+        sector_df.to_csv('sector_df'+aggregate_sector+'.csv')
         sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
-        
+    
+    sector_aggregates_df.to_csv('sector_aggregates_df.csv')
+    
     # Ensure the index is consistent after concatenation if needed
     sector_aggregates_df.reset_index(drop=True, inplace=True)
     fuel_aggregates_df = merging_functions.calculate_fuel_aggregates(sector_aggregates_df, results_layout_df, shared_categories)
