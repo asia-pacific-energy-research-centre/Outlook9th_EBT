@@ -545,6 +545,65 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
     aggregated_df['subtotal_results'] = aggregated_df['subtotal_results'].replace({0:False, 1:True})
     return aggregated_df
 
+def calculating_subtotals_in_sector_aggregates(df, shared_categories_w_subtotals, EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR):
+    excluded_cols = ['subfuels']
+    
+    # Generate year columns as floats
+    year_columns = [float(year) for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR + 1)]
+    
+    # Remove 'subfuels' from the shared categories list
+    group_columns = [cat for cat in shared_categories_w_subtotals if cat not in excluded_cols]
+    
+    # Reset index if the DataFrame has an unnamed index column
+    if df.index.name is None and not isinstance(df.index, pd.RangeIndex):
+        df = df.reset_index(drop=True)
+    
+    # Check for missing columns
+    missing_columns = [col for col in group_columns + year_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Not all specified columns are in the DataFrame. Missing columns: {missing_columns}")
+
+    # Aggregate the data
+    aggregated_df = df.groupby(group_columns).sum(numeric_only=True).reset_index().copy()
+
+    # Add missing columns with 'x'
+    for col in shared_categories_w_subtotals:
+        if col not in aggregated_df.columns.to_list() + ['subtotal_layout', 'subtotal_results']:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="DataFrame is highly fragmented")
+                aggregated_df[col] = 'x'
+
+    # Reorder columns to match shared_categories order
+    ordered_columns = shared_categories_w_subtotals + [col for col in aggregated_df.columns if col not in shared_categories_w_subtotals]
+    aggregated_df = aggregated_df[ordered_columns]
+
+    # Merge the original df with the aggregated df
+    merged_df = pd.merge(df, aggregated_df, on=shared_categories_w_subtotals, how='left', suffixes=('', '_aggregated'))
+
+    # Replace rows in df with corresponding rows from aggregated_df based on shared_categories_w_subtotals and only when there are differences in the year columns
+    for index, agg_row in aggregated_df.iterrows():
+    # The above code is performing the following tasks:
+        # Get the corresponding row in df
+        mask = (df[group_columns] == agg_row[group_columns]).all(axis=1)
+        df_row = df[mask]
+
+        # Check if there's a match
+        if not df_row.empty:
+            # Compare year columns
+            year_comparison = (df_row[year_columns].values == agg_row[year_columns].values)
+            if not year_comparison.all():
+                # Replace df row with aggregated_df row
+                # Ensure only columns that exist in df are used for replacement
+                replacement_row = agg_row[df.columns]
+                df.loc[mask, :] = replacement_row
+
+    # Concatenate df and aggregated_df, dropping duplicates
+    final_df = pd.concat([df, aggregated_df]).drop_duplicates(subset=shared_categories_w_subtotals)
+
+    final_df.to_csv('data/temp/error_checking/final_df.csv', index=False)
+
+    return final_df
+
 def create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,results_layout_df, shared_categories):
     final_df = pd.concat([sector_aggregates_df, fuel_aggregates_df, results_layout_df], ignore_index=True)
 

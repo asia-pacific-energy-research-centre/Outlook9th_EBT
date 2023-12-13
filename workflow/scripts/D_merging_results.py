@@ -163,6 +163,10 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     
     sector_aggregates_df.to_csv('sector_aggregates_df.csv')
     
+    sector_aggregates_df = merging_functions.calculating_subtotals_in_sector_aggregates(sector_aggregates_df, shared_categories_w_subtotals, EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR)
+    
+    sector_aggregates_df.to_csv('sector_aggregates_df_after_subtotals_calculations.csv')
+    
     # Ensure the index is consistent after concatenation if needed
     sector_aggregates_df.reset_index(drop=True, inplace=True)
     fuel_aggregates_df = merging_functions.calculate_fuel_aggregates(sector_aggregates_df, results_layout_df, shared_categories)
