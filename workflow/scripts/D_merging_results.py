@@ -157,7 +157,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     sector_aggregates_df = pd.DataFrame()
     # Loop over the sector mappings and process the data for each sector group
     for (sectors, aggregate_sector) in sector_mappings:
-        sector_df = merging_functions.calculate_sector_aggregates(results_layout_df, sectors, aggregate_sector, shared_categories)
+        sector_df = merging_functions.calculate_sector_aggregates(results_layout_df, sectors, aggregate_sector, shared_categories, shared_categories_w_subtotals)
         sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
     
     # Calculate the subtotals in the sector aggregates

@@ -482,7 +482,7 @@ def format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout
     results_layout_df = pd.concat([missing_sectors_df, merged_df])
     return results_layout_df
 
-def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories):
+def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories, shared_categories_w_subtotals):
     """
     Calculate common aggregates for groups of sectors such as total transformation,
     total primary energy supply, etc. This is based on filtering out subtotal entries 
@@ -496,54 +496,74 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
     Returns:
         pd.DataFrame: The aggregated data for the desired sectors.
     """
-    # Filter out subtotals and select the desired sectors
-    df_filtered = df[(df['subtotal_layout'] == False) & (df['subtotal_results'] == False) & (df['sectors'].isin(sectors))].copy()
+    # Create lists of year columns for each condition using floats
+    layout_years = [float(year) for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR + 1)]
+    results_years = [float(year) for year in range(OUTLOOK_BASE_YEAR + 1, OUTLOOK_LAST_YEAR + 1)]
 
-    # If calculating total primary energy supply, make all TFC components negative first, then add them to the other components.
-    if aggregate_sector == '07_total_primary_energy_supply':
-        #TPES needs to be calauclate as ??? (TODO write the process for calcualting tpes so the context for below is explained)
-        # Define TFC sectors and negate their values
-        negative_sectors = ['03_exports', '04_international_marine_bunkers','05_international_aviation_bunkers' ]
-        # Make the values in all numeric columns where the sector is a negative sector, negative
-        negative_df = df_filtered[df_filtered['sectors'].isin(negative_sectors)].copy()
-        numeric_cols = negative_df.select_dtypes(include=[np.number]).columns
-        negative_df[numeric_cols] *= -1
-        df_filtered = pd.concat([df_filtered[~df_filtered['sectors'].isin(negative_sectors)], negative_df], ignore_index=True)
+    # Split the DataFrame into two based on 'subtotal_layout' and 'subtotal_results'
+    df_filtered_layout = df[(df['subtotal_layout'] == False) & (df['sectors'].isin(sectors))].copy()
+    df_filtered_results = df[(df['subtotal_results'] == False) & (df['sectors'].isin(sectors))].copy()
+
+    # Drop the years not relevant for each DataFrame
+    df_filtered_layout = df_filtered_layout[shared_categories_w_subtotals + layout_years]
+    df_filtered_results = df_filtered_results[shared_categories_w_subtotals + results_years]
+
+    # Initialize an empty DataFrame to store aggregated results
+    aggregated_dfs = []
+
+    # Iterate over the two filtered DataFrames
+    for df_filtered in [df_filtered_layout, df_filtered_results]:
+        # If calculating total primary energy supply, make all TFC components negative first, then add them to the other components.
+        if aggregate_sector == '07_total_primary_energy_supply':
+            #TPES needs to be calauclate as ??? (TODO write the process for calcualting tpes so the context for below is explained)
+            # Define TFC sectors and negate their values
+            negative_sectors = ['03_exports', '04_international_marine_bunkers','05_international_aviation_bunkers' ]
+            # Make the values in all numeric columns where the sector is a negative sector, negative
+            negative_df = df_filtered[df_filtered['sectors'].isin(negative_sectors)].copy()
+            numeric_cols = negative_df.select_dtypes(include=[np.number]).columns
+            negative_df[numeric_cols] *= -1
+            df_filtered = pd.concat([df_filtered[~df_filtered['sectors'].isin(negative_sectors)], negative_df], ignore_index=True)
+            
+            aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum(numeric_only=True).reset_index()
+            
+        elif aggregate_sector in ['13_total_final_energy_consumption', '12_total_final_consumption']:#these also need to ahve values calcualted for fuel subtotals, like TPES
+            # If not calculating total primary energy supply, just perform the grouping and sum
+            aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum(numeric_only=True).reset_index().copy()
+            
+        else:
+            raise Exception(f'Aggregate sector {aggregate_sector} not recognised')
         
-        aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum(numeric_only=True).reset_index()
+        # Add missing columns with 'x'
+        for col in shared_categories:
+            if col not in aggregated_df.columns.to_list() + ['subtotal_layout', 'subtotal_results']:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message="DataFrame is highly fragmented")
+                    aggregated_df[col] = 'x'
         
-    elif aggregate_sector in ['13_total_final_energy_consumption', '12_total_final_consumption']:#these also need to ahve values calcualted for fuel subtotals, like TPES
-        # If not calculating total primary energy supply, just perform the grouping and sum
-        aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum(numeric_only=True).reset_index().copy()
+        # Reorder columns to match shared_categories order
+        ordered_columns = shared_categories + [col for col in aggregated_df.columns if col not in shared_categories]
+        aggregated_df = aggregated_df[ordered_columns]
+
+        # Update the 'sectors' column
+        aggregated_df['sectors'] = aggregate_sector
+            
+        #check fr duplicates
+        dupes = aggregated_df[aggregated_df.duplicated(subset=shared_categories, keep=False)]
+        if dupes.shape[0] > 0:
+            print(dupes)
+            breakpoint()
+            raise Exception("Duplicates found in aggregated_df. Check the results files.")
+
+        #where subtotal_layout or subtotal_results is 1 or 0 replace with True or False #TODO CLEAN THIS UP. SHOULDNT HAPPEN IN FIRST PLACE
+        aggregated_df['subtotal_layout'] = aggregated_df['subtotal_layout'].replace({0:False, 1:True})
+        aggregated_df['subtotal_results'] = aggregated_df['subtotal_results'].replace({0:False, 1:True})
         
-    else:
-        raise Exception(f'Aggregate sector {aggregate_sector} not recognised')
+        aggregated_dfs.append(aggregated_df)
     
-    # Add missing columns with 'x'
-    for col in shared_categories:
-        if col not in aggregated_df.columns.to_list() + ['subtotal_layout', 'subtotal_results']:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message="DataFrame is highly fragmented")
-                aggregated_df[col] = 'x'
+    # Concatenate the processed DataFrames
+    final_aggregated_df = pd.merge(aggregated_dfs[0], aggregated_dfs[1], on=shared_categories_w_subtotals, how='outer')
     
-    # Reorder columns to match shared_categories order
-    ordered_columns = shared_categories + [col for col in aggregated_df.columns if col not in shared_categories]
-    aggregated_df = aggregated_df[ordered_columns]
-
-    # Update the 'sectors' column
-    aggregated_df['sectors'] = aggregate_sector
-        
-    #check fr duplicates
-    dupes = aggregated_df[aggregated_df.duplicated(subset=shared_categories, keep=False)]
-    if dupes.shape[0] > 0:
-        print(dupes)
-        breakpoint()
-        raise Exception("Duplicates found in aggregated_df. Check the results files.")
-
-    #where subtotal_layout or subtotal_results is 1 or 0 replace with True or False #TODO CLEAN THIS UP. SHOULDNT HAPPEN IN FIRST PLACE
-    aggregated_df['subtotal_layout'] = aggregated_df['subtotal_layout'].replace({0:False, 1:True})
-    aggregated_df['subtotal_results'] = aggregated_df['subtotal_results'].replace({0:False, 1:True})
-    return aggregated_df
+    return final_aggregated_df
 
 def calculating_subtotals_in_sector_aggregates(df, shared_categories_w_subtotals):
     excluded_cols = ['subfuels']
@@ -631,60 +651,53 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     # Convert year column to integer
     df_melted['year'] = df_melted['year'].astype(int)
 
-    # Filter rows based on 'subtotal_layout', 'subtotal_results', and 'year'
-    df_filtered = df_melted[((df_melted['subtotal_layout'] == False) & (df_melted['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR))) | ((df_melted['subtotal_results'] == False) & (df_melted['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)))]
-
     # drop 08_02_interproduct_transfers, 09_12_nonspecified_transformation as we dont want to include it in the aggregates
-    df_filtered = df_filtered[~df_filtered['sub1sectors'].isin(['09_12_nonspecified_transformation', '08_02_interproduct_transfers'])].copy()
+    df_melted = df_melted[~df_melted['sub1sectors'].isin(['09_12_nonspecified_transformation', '08_02_interproduct_transfers'])].copy()
 
-    # # Drop the historic rows
-    # df_for_aggregating = df_for_aggregating.loc[~df_for_aggregating['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)]
+    # Split the melted DataFrame into two based on the year ranges
+    df_layout = df_melted[(df_melted['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)) & (df_melted['subtotal_layout'] == False)].copy()
+    df_results = df_melted[(df_melted['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (df_melted['subtotal_results'] == False)].copy()
 
-    # Define sets of columns to exclude in each iteration
-    exclusion_sets = [
-        ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'],
-        ['sub2sectors', 'sub3sectors', 'sub4sectors'],
-        ['sub3sectors', 'sub4sectors'],
-        ['sub4sectors'],
-        []
-    ]
+    def process_df(split_df):
+        # Define sets of columns to exclude in each iteration
+        exclusion_sets = [
+            ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'],
+            ['sub2sectors', 'sub3sectors', 'sub4sectors'],
+            ['sub3sectors', 'sub4sectors'],
+            ['sub4sectors'],
+            []
+        ]
 
-    fuel_aggregates_list = []
-    for cols_to_exclude in exclusion_sets:
-        excluded_cols = ['fuels', 'subfuels'] + cols_to_exclude
-        group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
+        fuel_aggregates_list = []
+        for cols_to_exclude in exclusion_sets:
+            excluded_cols = ['fuels', 'subfuels'] + cols_to_exclude
+            group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
 
-        # Aggregate '19_total'
-        total_19 = df_filtered.groupby(group_columns)['value'].sum().reset_index()
-        total_19['fuels'] = '19_total'
-        for col in excluded_cols[1:]:
-            total_19[col] = 'x'
+            # Aggregate '19_total'
+            total_19 = split_df.groupby(group_columns)['value'].sum().reset_index()
+            total_19['fuels'] = '19_total'
+            for col in excluded_cols[1:]:
+                total_19[col] = 'x'
+
+            fuel_aggregates_list.append(total_19)
+
+        fuel_aggregates = pd.concat(fuel_aggregates_list, ignore_index=True)
         
-        # if cols_to_exclude:
-        #     total_19.to_csv('data/temp/error_checking/total_19_' + cols_to_exclude[0] + '.csv', index=False)
-        # else:
-        #     # Handle the case where cols_to_exclude is empty
-        #     total_19.to_csv('data/temp/error_checking/total_19_.csv', index=False)
-        #     continue
+        # Remove exact duplicates, keeping the first occurrence
+        fuel_aggregates = fuel_aggregates.drop_duplicates()
 
-        fuel_aggregates_list.append(total_19)
-
-    fuel_aggregates = pd.concat(fuel_aggregates_list, ignore_index=True)
+        # Remove rows where 'value' is 0
+        fuel_aggregates = fuel_aggregates[fuel_aggregates['value'] != 0]
+        
+        return fuel_aggregates
     
-    # Remove exact duplicates, keeping the first occurrence
-    fuel_aggregates = fuel_aggregates.drop_duplicates()
-
-    # Remove rows where 'value' is 0
-    fuel_aggregates = fuel_aggregates[fuel_aggregates['value'] != 0]
-
-    # fuel_aggregates.to_csv('data/temp/error_checking/fuel_aggregates_for_19_total.csv', index=False)
-
-    # Check for duplicates
-    # duplicates = fuel_aggregates[fuel_aggregates.duplicated(subset=shared_categories + ['year'], keep=False)]
-    # duplicates.to_csv('data/temp/error_checking/fuel_aggregates_for_19_total_duplicates.csv', index=False)
+    # Process each split DataFrame and concatenate
+    fuel_aggregates_layout = process_df(df_layout)
+    fuel_aggregates_results = process_df(df_results)
+    fuel_aggregates_df = pd.concat([fuel_aggregates_layout, fuel_aggregates_results], ignore_index=True)
 
     # Pivot the aggregated DataFrame
-    fuel_aggregates_pivoted = fuel_aggregates.pivot_table(index=shared_categories, columns='year', values='value').reset_index()
+    fuel_aggregates_pivoted = fuel_aggregates_df.pivot_table(index=shared_categories, columns='year', values='value').reset_index()
 
     # # Change columns to str and reorder
     # pivoted_df.columns = pivoted_df.columns.astype(str)
