@@ -158,14 +158,15 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # Loop over the sector mappings and process the data for each sector group
     for (sectors, aggregate_sector) in sector_mappings:
         sector_df = merging_functions.calculate_sector_aggregates(results_layout_df, sectors, aggregate_sector, shared_categories)
-        sector_df.to_csv('sector_df'+aggregate_sector+'.csv')
         sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
     
-    sector_aggregates_df.to_csv('sector_aggregates_df.csv')
+    # Calculate the subtotals in the sector aggregates
+    sector_aggregates_df = merging_functions.calculating_subtotals_in_sector_aggregates(sector_aggregates_df, shared_categories_w_subtotals)
     
-    sector_aggregates_df = merging_functions.calculating_subtotals_in_sector_aggregates(sector_aggregates_df, shared_categories_w_subtotals, EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR)
-    
-    sector_aggregates_df.to_csv('sector_aggregates_df_after_subtotals_calculations.csv')
+    # Label the subtotals in the sector aggregates
+    sector_aggregates_df = merging_functions.label_subtotals(sector_aggregates_df, shared_categories)
+    sector_aggregates_df.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
+    sector_aggregates_df['subtotal_results'] = sector_aggregates_df['subtotal_layout']
     
     # Ensure the index is consistent after concatenation if needed
     sector_aggregates_df.reset_index(drop=True, inplace=True)

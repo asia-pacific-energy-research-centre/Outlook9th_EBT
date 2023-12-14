@@ -73,7 +73,7 @@ def label_subtotals(results_layout_df, shared_categories):
         }
         # Combine conditions for subtotals
         conditions['is_subtotal'] =  conditions['sub_col_is_x'] 
-         
+        
         # Apply the conditions to label subtotal rows. but only label if it is a subtotal. dont label with false if it is not a subtotal. this is because it could overwrite where we previously labelled it as a subtotal.
         df_maybe_subtotals['is_subtotal'] = np.where(conditions['is_subtotal'], True, df_maybe_subtotals['is_subtotal'])
         # Concatenate the two DataFrames back together
@@ -360,7 +360,7 @@ def check_bunkers_are_negative(filtered_results_df, file):
         if (filtered_results_df.loc[filtered_rows, str(year)] > 0).any():
             breakpoint()
             raise Exception(f"{file} has positive values for {sectors_to_check} in {year}.")
-         
+        
 def filter_out_solar_with_zeros_in_buildings_file(results_df):
     """This is a temporary fix to remove solar data that contains only 0s from the buildings file, as it creates duplicates which arent actually duplicates in calculate_subtotals.
     
@@ -545,7 +545,7 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
     aggregated_df['subtotal_results'] = aggregated_df['subtotal_results'].replace({0:False, 1:True})
     return aggregated_df
 
-def calculating_subtotals_in_sector_aggregates(df, shared_categories_w_subtotals, EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR):
+def calculating_subtotals_in_sector_aggregates(df, shared_categories_w_subtotals):
     excluded_cols = ['subfuels']
     
     # Generate year columns as floats
@@ -577,30 +577,14 @@ def calculating_subtotals_in_sector_aggregates(df, shared_categories_w_subtotals
     ordered_columns = shared_categories_w_subtotals + [col for col in aggregated_df.columns if col not in shared_categories_w_subtotals]
     aggregated_df = aggregated_df[ordered_columns]
 
-    # Merge the original df with the aggregated df
-    merged_df = pd.merge(df, aggregated_df, on=shared_categories_w_subtotals, how='left', suffixes=('', '_aggregated'))
+    # Drop rows in df where 'subfuels' is exactly 'x'
+    df = df[df['subfuels'] != 'x']
 
-    # Replace rows in df with corresponding rows from aggregated_df based on shared_categories_w_subtotals and only when there are differences in the year columns
-    for index, agg_row in aggregated_df.iterrows():
-    # The above code is performing the following tasks:
-        # Get the corresponding row in df
-        mask = (df[group_columns] == agg_row[group_columns]).all(axis=1)
-        df_row = df[mask]
-
-        # Check if there's a match
-        if not df_row.empty:
-            # Compare year columns
-            year_comparison = (df_row[year_columns].values == agg_row[year_columns].values)
-            if not year_comparison.all():
-                # Replace df row with aggregated_df row
-                # Ensure only columns that exist in df are used for replacement
-                replacement_row = agg_row[df.columns]
-                df.loc[mask, :] = replacement_row
-
-    # Concatenate df and aggregated_df, dropping duplicates
-    final_df = pd.concat([df, aggregated_df]).drop_duplicates(subset=shared_categories_w_subtotals)
-
-    final_df.to_csv('data/temp/error_checking/final_df.csv', index=False)
+    # Concatenate df and aggregated_df
+    final_df = pd.concat([df, aggregated_df])
+    
+    # Drop the 'subtotal_layout' and 'subtotal_results' columns to relabel them
+    final_df = final_df.drop(['subtotal_layout', 'subtotal_results'], axis=1).copy()
 
     return final_df
 
@@ -637,20 +621,22 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
         _type_: _description_
     """
     #TODO ADD IN TOTAL RENEWABLES AND MODERN RENEWABLES. THEY FOLLOW SAME PATTERN (I.E CALCUALTED FOR EVERY GROUP EXCEPT FUELS, AND THEN ADDED TO THE DF)
-    
-    #concat new_aggregates_df and the origianl df (with no aggregates. )
-    results_layout_df_no_subtotals = results_layout_df[(results_layout_df['subtotal_layout'] == False) & (results_layout_df['subtotal_results'] == False)].copy()
-    #and drop 08_02_interproduct_transfers, 09_12_nonspecified_transformation as we dont want to include it in the aggregates
-    results_layout_df_no_subtotals = results_layout_df_no_subtotals[~results_layout_df_no_subtotals['sub1sectors'].isin(['09_12_nonspecified_transformation', '08_02_interproduct_transfers'])].copy()
-    df = pd.concat([new_aggregates_df, results_layout_df_no_subtotals], ignore_index=True)
 
+    # # Concatenate new_aggregates_df and the original df (with no aggregates)
+    df = pd.concat([new_aggregates_df, results_layout_df], ignore_index=True)
+    
     # Melt the DataFrame
     df_melted = df.melt(id_vars=shared_categories + ['subtotal_layout', 'subtotal_results'], value_vars=[col for col in df.columns if col in [year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]],var_name='year', value_name='value')
 
     # Convert year column to integer
     df_melted['year'] = df_melted['year'].astype(int)
 
-    # df_melted.to_csv('data/temp/error_checking/df_melted_for_19_total_function.csv', index=False)
+    # Filter rows based on 'subtotal_layout', 'subtotal_results', and 'year'
+    df_filtered = df_melted[((df_melted['subtotal_layout'] == False) & (df_melted['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR))) | ((df_melted['subtotal_results'] == False) & (df_melted['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)))]
+
+    # drop 08_02_interproduct_transfers, 09_12_nonspecified_transformation as we dont want to include it in the aggregates
+    df_filtered = df_filtered[~df_filtered['sub1sectors'].isin(['09_12_nonspecified_transformation', '08_02_interproduct_transfers'])].copy()
+
     # # Drop the historic rows
     # df_for_aggregating = df_for_aggregating.loc[~df_for_aggregating['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)]
 
@@ -669,7 +655,7 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
         group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
 
         # Aggregate '19_total'
-        total_19 = df_melted[df_melted['subtotal_layout'] == False].groupby(group_columns)['value'].sum().reset_index()
+        total_19 = df_filtered.groupby(group_columns)['value'].sum().reset_index()
         total_19['fuels'] = '19_total'
         for col in excluded_cols[1:]:
             total_19[col] = 'x'
