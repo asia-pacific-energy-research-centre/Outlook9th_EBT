@@ -111,6 +111,17 @@ def label_subtotals(results_layout_df, shared_categories):
     #join df_melted_sum, wthout value col to df_melted on [col for col in df_melted.columns if col not in ['value'] to get the is_subtotal col in the original df_melted
     df_melted = pd.merge(df_melted, df_melted_sum[[col for col in df_melted_sum.columns if col not in ['value']]], on=[col for col in df_melted.columns if col not in ['year', 'value']], how='left')
     
+    # # Drop rows where 'value' column has NaN
+    # df_melted = df_melted.dropna(subset=['value']).copy()
+    
+    # Group by all columns except 'value' and sum the 'value' column
+    df_melted = df_melted.groupby([col for col in df_melted.columns if col != 'value']).sum().reset_index().copy()
+    
+    duplicates = df_melted[df_melted.duplicated(subset=shared_categories + ['year'], keep=False)]
+    if not duplicates.empty:
+        print("Duplicates found:", duplicates)
+        duplicates.to_csv('data/temp/error_checking/duplicates_in_tfc.csv', index=False)
+    
     df_melted = df_melted.pivot(index=[col for col in df_melted.columns if col not in ['year', 'value']], columns='year', values='value').reset_index()
     
     return df_melted
