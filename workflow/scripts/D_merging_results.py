@@ -149,7 +149,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     sector_mappings = [
         (['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '12_total_final_consumption'),
         (['14_industry_sector', '15_transport_sector', '16_other_sector'], '13_total_final_energy_consumption'),
-        (['01_production','02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers','05_international_aviation_bunkers'], '07_total_primary_energy_supply')#'09_total_transformation_sector', #TODO IM NOT SURE IF IVE CALCUALTED TPES RIGHT 
+        (['01_production','02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers','05_international_aviation_bunkers', '09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy', '14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '07_total_primary_energy_supply')#'09_total_transformation_sector', #TODO IM NOT SURE IF IVE CALCUALTED TPES RIGHT 
         #'10_losses_and_own_use', '11_statistical_discrepancy',#,
         # (['09_total_transformation_sector'], '09_total_transformation_sector')
     ]
@@ -158,11 +158,16 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     sector_aggregates_df = pd.DataFrame()
     # Loop over the sector mappings and process the data for each sector group
     for (sectors, aggregate_sector) in sector_mappings:
-        sector_df = merging_functions.calculate_sector_aggregates(results_layout_df, sectors, aggregate_sector, shared_categories)
-        sector_df.to_csv('sector_df'+aggregate_sector+'.csv')
+        sector_df = merging_functions.calculate_sector_aggregates(results_layout_df, sectors, aggregate_sector, shared_categories, shared_categories_w_subtotals)
         sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
     
-    sector_aggregates_df.to_csv('sector_aggregates_df.csv')
+    # Calculate the subtotals in the sector aggregates
+    sector_aggregates_df = merging_functions.calculating_subtotals_in_sector_aggregates(sector_aggregates_df, shared_categories_w_subtotals)
+    
+    # Label the subtotals in the sector aggregates
+    sector_aggregates_df = merging_functions.label_subtotals(sector_aggregates_df, shared_categories)
+    sector_aggregates_df.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
+    sector_aggregates_df['subtotal_results'] = sector_aggregates_df['subtotal_layout']
     
     # Ensure the index is consistent after concatenation if needed
     sector_aggregates_df.reset_index(drop=True, inplace=True)
