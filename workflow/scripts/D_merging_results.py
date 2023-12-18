@@ -78,6 +78,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         #buildings file currently includes all sectors historical data, just like the layout file, not just buildings. This is a temporary fix to remove the non-buildings sectors from the results file.
         results_df = merging_functions.filter_for_only_buildings_data_in_buildings_file(results_df)
         results_df = merging_functions.filter_out_solar_with_zeros_in_buildings_file(results_df)
+        results_df = merging_functions.power_move_x_in_chp_and_hp_to_biomass(results_df)
         #TEMP#
         
         # find sectors where there are null values for all the years base_year->end_year. This will help to identify where perhaps the results file is missing data or has been incorrectly formatted.

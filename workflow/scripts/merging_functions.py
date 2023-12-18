@@ -935,3 +935,21 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             breakpoint()
             results_layout_df.to_csv('data/temp/error_checking/results_layout_df.csv', index=False)
             raise Exception("The layout df and the newly processes layout df do not match for the years in the layout file. This should not happen.")
+        
+
+def move_x_in_chp_and_hp_to_biomass(results_df):
+    #anyting that has sub1sectors in 18_02_chp_plants, 09_02_chp_plants, 09_x_heat_plants and the sub2sectors col is 'x' should be moved to another sector in same level. we will state that in a dict below:
+    corresp_sectors_dict = {}
+    corresp_sectors_dict['18_02_chp_plants'] = '18_02_04_biomass'
+    corresp_sectors_dict['09_02_chp_plants'] = '09_02_04_biomass'
+    corresp_sectors_dict['09_x_heat_plants'] = '09_x_04_biomass'
+    
+    for key, value in corresp_sectors_dict.items():
+        #get the rows where the sub1sectors is the key
+        rows_to_change = results_df.loc[(results_df['sub1sectors'] == key) & (results_df['sub2sectors'] == 'x')].copy()
+        results_df = results_df.loc[~((results_df['sub1sectors'] == key) & (results_df['sub2sectors'] == 'x'))].copy()
+        #change the sub1sectors to the value
+        rows_to_change['sub2sectors'] = value
+        #append the rows back to the results_df
+        results_df = pd.concat([results_df, rows_to_change])
+    return results_df
