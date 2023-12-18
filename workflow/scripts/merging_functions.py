@@ -1004,7 +1004,7 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
 
         # USA file has some issues with the following rows
         bad_values_rows_exceptions_dict['14_industry_sector'] = {'economy':'20_USA', 'sectors':'14_industry_sector', 'sub1sectors':'x', 'fuels':'07_petroleum_products', 'subfuels':'x'}
-        bad_values_rows_exceptions_dict['10_losses_and_own_use'] = {'economy':'20_USA', 'sectors':'10_losses_and_own_use', 'sub1sectors':'10_01_own_use', 'fuels':'01_coal', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['10_losses_and_own_use'] = {'economy':'20_USA', 'sectors':'10_losses_and_own_use', 'fuels':'01_coal', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['11_statistical_discrepancy'] = {'economy':'20_USA', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
