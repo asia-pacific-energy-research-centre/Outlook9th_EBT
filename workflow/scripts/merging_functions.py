@@ -519,27 +519,95 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
     df_filtered_layout = df_filtered_layout[shared_categories_w_subtotals + layout_years]
     df_filtered_results = df_filtered_results[shared_categories_w_subtotals + results_years]
 
+    # Define key columns for grouping
+    key_cols = ['scenarios', 'economy', 'fuels', 'subfuels']
+
     # Initialize an empty DataFrame to store aggregated results
     aggregated_dfs = []
 
     # Iterate over the two filtered DataFrames
     for df_filtered in [df_filtered_layout, df_filtered_results]:
+        # Assigning names to the DataFrames for identification
+        df_filtered.name = 'layout' if df_filtered is df_filtered_layout else 'results'
+
         # If calculating total primary energy supply, make all TFC components negative first, then add them to the other components.
         if aggregate_sector == '07_total_primary_energy_supply':
             #TPES needs to be calauclate as ??? (TODO write the process for calcualting tpes so the context for below is explained)
+            
+            # Calculate TPES bottom up
+            # Filter df to only include the demand sectors
+            demand_sectors_df = df_filtered[df_filtered['sectors'].isin(['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'])].copy()
+            tfc_df = demand_sectors_df.groupby(key_cols).sum(numeric_only=True).reset_index()
+            tfc_df.to_csv('data/temp/error_checking/tfc_df_' + df_filtered.name + '.csv', index=False)
+            # Multiplies all numeric columns by -1 to turn the values into negative
+            numeric_cols = tfc_df.select_dtypes(include=[np.number]).columns
+            tfc_df[numeric_cols] = tfc_df[numeric_cols] * -1
+            # Filter df to only include the transformation sector
+            transformation_sector_df = df_filtered[df_filtered['sectors'].isin(['09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy'])].copy()
+            transformation_sector_df.to_csv('data/temp/error_checking/transformation_sector_df_' + df_filtered.name + '.csv', index=False)
+            # Concatenating the two DataFrames
+            tpes_df = pd.concat([transformation_sector_df, tfc_df], ignore_index=True)
+            tpes_df.to_csv('data/temp/error_checking/tpes_df_' + df_filtered.name + '.csv', index=False)
+            tpes_bottom_up_df = tpes_df.groupby(key_cols).sum(numeric_only=True).reset_index()
+            # Multiplying all numeric columns by -1 to flip the values
+            numeric_cols = tpes_bottom_up_df.select_dtypes(include=[np.number]).columns
+            tpes_bottom_up_df[numeric_cols] = tpes_bottom_up_df[numeric_cols] * -1
+            
+            tpes_bottom_up_df.to_csv('data/temp/error_checking/tpes_bottom_up_' + df_filtered.name + '.csv', index=False)
+            df_filtered.to_csv('data/temp/error_checking/df_filtered_' + df_filtered.name + '.csv', index=False)
+            
+            # Calculate TPES top down
+            # Filter df to only include the supply sectors
+            supply_sectors_df = df_filtered[df_filtered['sectors'].isin(['01_production','02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers','05_international_aviation_bunkers'])].copy()
             # Define TFC sectors and negate their values
             negative_sectors = ['03_exports', '04_international_marine_bunkers','05_international_aviation_bunkers' ]
             # Make the values in all numeric columns where the sector is a negative sector, negative
-            negative_df = df_filtered[df_filtered['sectors'].isin(negative_sectors)].copy()
+            negative_df = supply_sectors_df[supply_sectors_df['sectors'].isin(negative_sectors)].copy()
             numeric_cols = negative_df.select_dtypes(include=[np.number]).columns
             negative_df[numeric_cols] *= -1
-            df_filtered = pd.concat([df_filtered[~df_filtered['sectors'].isin(negative_sectors)], negative_df], ignore_index=True)
+            supply_df = pd.concat([supply_sectors_df[~supply_sectors_df['sectors'].isin(negative_sectors)], negative_df], ignore_index=True).copy()
             
-            aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum(numeric_only=True).reset_index()
+            tpes_top_down_df = supply_df.groupby(key_cols).sum(numeric_only=True).reset_index()
+            
+            # Identify numeric columns for comparison
+            numeric_cols = tpes_top_down_df.select_dtypes(include=[np.number]).columns
+
+            # Initialize a dataframe to store differences
+            differences = pd.DataFrame()
+
+            # Iterate over each row in the first dataframe
+            for idx, row in tpes_top_down_df.iterrows():
+                # Find the corresponding row in the second dataframe
+                corresponding_row = tpes_bottom_up_df[(tpes_bottom_up_df[key_cols] == row[key_cols]).all(axis=1)]
+
+                if not corresponding_row.empty:
+                    # Compare numeric columns within tolerance
+                    for col in numeric_cols:
+                        value1 = row[col]
+                        value2 = corresponding_row[col].values[0]
+                        
+                        # Check if both values are not NaN or zero, and if difference exceeds tolerance
+                        if not (np.isnan(value1) or np.isnan(value2) or value1 == 0 or value2 == 0):
+                            if np.abs(value1 - value2) > 100000:
+                                # Save the differing rows
+                                differences = differences.append(row)
+                                differences = differences.append(corresponding_row)
+
+            # Remove duplicates if any
+            differences = differences.drop_duplicates()
+
+            # Check and save the differences
+            if not differences.empty:
+                differences.to_csv('data/temp/error_checking/tpes_differences_' + df_filtered.name + '.csv', index=False)
+                raise Exception(f"Differences found in TPES calculation with {df_filtered.name} DataFrame and saved to 'tpes_differences_{df_filtered.name}.csv'.")
+            else:
+                print(f"No significant differences found in TPES calculation with {df_filtered.name} DataFrame.")
+                aggregated_df = tpes_bottom_up_df.copy()
+                aggregated_df.to_csv('data/temp/error_checking/tpes_' + df_filtered.name + '.csv', index=False)
             
         elif aggregate_sector in ['13_total_final_energy_consumption', '12_total_final_consumption']:#these also need to ahve values calcualted for fuel subtotals, like TPES
             # If not calculating total primary energy supply, just perform the grouping and sum
-            aggregated_df = df_filtered.groupby(['scenarios', 'economy', 'fuels', 'subfuels']).sum(numeric_only=True).reset_index().copy()
+            aggregated_df = df_filtered.groupby(key_cols).sum(numeric_only=True).reset_index().copy()
             
         else:
             raise Exception(f'Aggregate sector {aggregate_sector} not recognised')
