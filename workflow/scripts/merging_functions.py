@@ -1047,7 +1047,7 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             missing_rows_exceptions_dict['nonspecified_transformation4'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'21_modern_renewables'}
             missing_rows_exceptions_dict['10_losses_and_own_use'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'10_01_own_use'}
             missing_rows_exceptions_dict['08_transfers'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sectors':'08_transfers'}
-            print(missing_rows_exceptions_dict)
+            # missing_rows_exceptions_dict['19_01_05_others'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'19_01_chp_plants', 'sub2sectors':'19_01_05_others'}
 
             #use the keys as column names to remove the rows in the dict:
             # for ignored_issue in missing_rows_exceptions_dict.keys():
@@ -1078,19 +1078,24 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             raise Exception("The layout df and the newly processes layout df do not match for the years in the layout file. This should not happen.")
         
 
-def move_x_in_chp_and_hp_to_biomass(results_df):
-    #anyting that has sub1sectors in 18_02_chp_plants, 09_02_chp_plants, 09_x_heat_plants and the sub2sectors col is 'x' should be moved to another sector in same level. we will state that in a dict below:
+def power_move_x_in_chp_and_hp_to_biomass(results_df):
+    # Anyting that has sub1sectors in 18_02_chp_plants, 09_02_chp_plants, 09_x_heat_plants and the sub2sectors col is 'x' should be moved to another sector in same level. we will state that in a dict below:
     corresp_sectors_dict = {}
     corresp_sectors_dict['18_02_chp_plants'] = '18_02_04_biomass'
     corresp_sectors_dict['09_02_chp_plants'] = '09_02_04_biomass'
     corresp_sectors_dict['09_x_heat_plants'] = '09_x_04_biomass'
+    corresp_sectors_dict['19_01_chp_plants'] = '19_01_04_biomass'
+    
+    # List of sub2sectors values to check
+    values_to_check = ['x', '19_01_05_others']
     
     for key, value in corresp_sectors_dict.items():
-        #get the rows where the sub1sectors is the key
-        rows_to_change = results_df.loc[(results_df['sub1sectors'] == key) & (results_df['sub2sectors'] == 'x')].copy()
-        results_df = results_df.loc[~((results_df['sub1sectors'] == key) & (results_df['sub2sectors'] == 'x'))].copy()
-        #change the sub1sectors to the value
+        # Get the rows where sub1sectors is the key and sub2sectors is one of the specified values
+        rows_to_change = results_df.loc[(results_df['sub1sectors'] == key) & (results_df['sub2sectors'].isin(values_to_check))].copy()
+        # Remove these rows from the original dataframe
+        results_df = results_df.loc[~((results_df['sub1sectors'] == key) & (results_df['sub2sectors'].isin(values_to_check)))].copy()
+        # Change the sub1sectors to the corresponding value
         rows_to_change['sub2sectors'] = value
-        #append the rows back to the results_df
+        # Append the modified rows back to the results_df
         results_df = pd.concat([results_df, rows_to_change])
     return results_df
