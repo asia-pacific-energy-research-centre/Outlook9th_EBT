@@ -5,6 +5,8 @@ import glob
 from datetime import datetime
 from utility_functions import *
 import warnings
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 def label_subtotals(results_layout_df, shared_categories):  
     def label_subtotals_for_sub_col(df, sub_col):
@@ -538,23 +540,19 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
             # Filter df to only include the demand sectors
             demand_sectors_df = df_filtered[df_filtered['sectors'].isin(['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'])].copy()
             tfc_df = demand_sectors_df.groupby(key_cols).sum(numeric_only=True).reset_index()
-            tfc_df.to_csv('data/temp/error_checking/tfc_df_' + df_filtered.name + '.csv', index=False)
             # Multiplies all numeric columns by -1 to turn the values into negative
             numeric_cols = tfc_df.select_dtypes(include=[np.number]).columns
             tfc_df[numeric_cols] = tfc_df[numeric_cols] * -1
             # Filter df to only include the transformation sector
             transformation_sector_df = df_filtered[df_filtered['sectors'].isin(['09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy'])].copy()
-            transformation_sector_df.to_csv('data/temp/error_checking/transformation_sector_df_' + df_filtered.name + '.csv', index=False)
             # Concatenating the two DataFrames
             tpes_df = pd.concat([transformation_sector_df, tfc_df], ignore_index=True)
-            tpes_df.to_csv('data/temp/error_checking/tpes_df_' + df_filtered.name + '.csv', index=False)
             tpes_bottom_up_df = tpes_df.groupby(key_cols).sum(numeric_only=True).reset_index()
             # Multiplying all numeric columns by -1 to flip the values
             numeric_cols = tpes_bottom_up_df.select_dtypes(include=[np.number]).columns
             tpes_bottom_up_df[numeric_cols] = tpes_bottom_up_df[numeric_cols] * -1
             
-            tpes_bottom_up_df.to_csv('data/temp/error_checking/tpes_bottom_up_' + df_filtered.name + '.csv', index=False)
-            df_filtered.to_csv('data/temp/error_checking/df_filtered_' + df_filtered.name + '.csv', index=False)
+            # tpes_bottom_up_df.to_csv('data/temp/error_checking/tpes_bottom_up_' + df_filtered.name + '.csv', index=False)
             
             # Calculate TPES top down
             # Filter df to only include the supply sectors
@@ -603,7 +601,6 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
             else:
                 print(f"No significant differences found in TPES calculation with {df_filtered.name} DataFrame.")
                 aggregated_df = tpes_bottom_up_df.copy()
-                aggregated_df.to_csv('data/temp/error_checking/tpes_' + df_filtered.name + '.csv', index=False)
             
         elif aggregate_sector in ['13_total_final_energy_consumption', '12_total_final_consumption']:#these also need to ahve values calcualted for fuel subtotals, like TPES
             # If not calculating total primary energy supply, just perform the grouping and sum
@@ -1003,9 +1000,12 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['07_total_primary_energy_supply'] = {'sectors':'07_total_primary_energy_supply'}
 
         # USA file has some issues with the following rows
-        bad_values_rows_exceptions_dict['14_industry_sector'] = {'economy':'20_USA', 'sectors':'14_industry_sector', 'sub1sectors':'x', 'fuels':'07_petroleum_products', 'subfuels':'x'}
-        bad_values_rows_exceptions_dict['10_losses_and_own_use'] = {'economy':'20_USA', 'sectors':'10_losses_and_own_use', 'fuels':'01_coal', 'subfuels':'x'}
-        bad_values_rows_exceptions_dict['11_statistical_discrepancy'] = {'economy':'20_USA', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['USA_14_industry_sector'] = {'economy':'20_USA', 'sectors':'14_industry_sector', 'sub1sectors':'x', 'fuels':'07_petroleum_products', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['USA_10_losses_and_own_use'] = {'economy':'20_USA', 'sectors':'10_losses_and_own_use', 'fuels':'01_coal', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['USA_11_statistical_discrepancy'] = {'economy':'20_USA', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        
+        # CDA file has some issues with the following rows
+        bad_values_rows_exceptions_dict['CDA_11_statistical_discrepancy'] = {'economy':'03_CDA', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
@@ -1099,3 +1099,244 @@ def power_move_x_in_chp_and_hp_to_biomass(results_df):
         # Append the modified rows back to the results_df
         results_df = pd.concat([results_df, rows_to_change])
     return results_df
+
+# def process_agriculture(excel_file, shared_categories, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR):
+#     wb = load_workbook(filename=excel_file)
+    
+#     # Check for exact sheet names
+#     has_output = 'Output' in wb.sheetnames
+#     has_agri_output = 'Agriculture Output' in wb.sheetnames
+#     has_fish_output = 'Fishing Output' in wb.sheetnames
+    
+#     # Load the mapping document
+#     mapping_df = pd.read_excel('./config/agriculture_mapping.xlsx')
+#     mapping_dict = mapping_df.set_index('Energy Demand (PJ)').to_dict('index')
+
+#     # Initialize a DataFrame to collect all transformed data
+#     all_transformed_data = pd.DataFrame()
+
+#     # Process the data for both 'REF' and 'TGT'
+#     for scenario in ['REF', 'TGT']:
+#         # Find the scenario merged cell
+#         scenario_cell = None
+#         for cell in sheet['A']:  # Column A
+#             if cell.value == scenario:
+#                 scenario_cell = cell
+#                 break
+
+#         # If the scenario was found, look for 'Energy Demand (PJ)' in the same row
+#         energy_demand_cell = None
+#         if scenario_cell:
+#             for cell in sheet[scenario_cell.row]:
+#                 if cell.value == 'Energy Demand (PJ)':
+#                     energy_demand_cell = cell
+#                     break
+
+#         if not energy_demand_cell:
+#             print(f"'Energy Demand (PJ)' cell not found for {scenario}.")
+#             continue  # Skip to the next scenario
+
+#         # Calculate the range to read from the Excel file
+#         start_col = energy_demand_cell.column_letter
+#         start_row = energy_demand_cell.row
+
+#         # Calculate the ending column letter based on the number of years
+#         end_col_num = energy_demand_cell.column + 81  # 81 additional columns after the start column (1990-2070)
+#         end_col_letter = get_column_letter(end_col_num)
+
+#         # Read the data from the Excel file starting from the found cell
+#         # Ensure the header is read correctly
+#         data_df = pd.read_excel(excel_file, sheet_name='Output', header=start_row - 1, usecols=f"{start_col}:{end_col_letter}")
+
+#         # Drop rows after the row containing 'Total' in the 'Energy Demand (PJ)' column
+#         energy_demand_header = data_df.columns[0]
+#         total_index = data_df.index[data_df[energy_demand_header] == 'Total'].tolist()
+#         if total_index:
+#             data_df = data_df.iloc[:total_index[0]].reset_index(drop=True)
+
+#         # Process the data according to the mapping
+#         transformed_data = pd.DataFrame()
+#         for index, row in data_df.iterrows():
+#             # Skip the 'Total' row
+#             if row[energy_demand_header] == 'Total':
+#                 continue
+
+#             # Map the 'Energy Demand (PJ)' values to the 'fuels' from the mapping document
+#             if row[energy_demand_header] in mapping_dict:
+#                 mapped_values = mapping_dict[row[energy_demand_header]]
+#                 row['fuels'] = mapped_values['fuels']
+#                 row['subfuels'] = mapped_values['subfuels']
+#             else:
+#                 row['fuels'] = 'Unknown'
+#                 row['subfuels'] = 'Unknown'
+
+#             # Add the 'scenarios' column
+#             row['scenarios'] = 'reference' if scenario == 'REF' else 'target'
+
+#             # Append the mapped row to the transformed DataFrame
+#             transformed_data = transformed_data.append(row)
+
+#         # Add the 'economy' column
+#         transformed_data['economy'] = economy[0]
+        
+#         # Add the 'sectors' column
+#         transformed_data['sectors'] = '16_other_sector'
+        
+#         # Add the 'sub1sectors' column
+#         transformed_data['sub1sectors'] = '16_02_agriculture_and_fishing'
+        
+#         # Add the 'sub2sectors' 'sub3sectors' 'sub4sectors' column
+#         transformed_data['sub2sectors'] = 'x'
+#         transformed_data['sub3sectors'] = 'x'
+#         transformed_data['sub4sectors'] = 'x'
+
+#         # # Move 'scenario', 'fuels', and 'subfuels' to the front
+#         # for col in ['scenarios', 'fuels', 'subfuels']:
+#         #     column_data = transformed_data.pop(col)
+#         #     transformed_data.insert(0, col, column_data)
+
+#         # Combine the REF and TGT transformed data
+#         all_transformed_data = pd.concat([all_transformed_data, transformed_data])
+        
+#         # Reorder the columns to match shared_categories
+#         all_transformed_data = all_transformed_data[shared_categories + [year for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]]
+
+#     # Save the combined transformed data
+#     all_transformed_data.to_csv('data/temp/error_checking/agriculture_transformed.csv', index=False)
+
+#     return all_transformed_data
+
+def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict):
+    wb = load_workbook(filename=excel_file)
+    sheet = wb[sheet_name]
+
+    sheet_data = pd.DataFrame()
+
+    for scenario in ['REF', 'TGT']:
+        # Initialize variables for the scenario range
+        scenario_start_row = None
+        scenario_end_row = None
+
+        # Iterate through merged cell ranges to find the scenario range
+        for merged_range in sheet.merged_cells.ranges:
+            for row in sheet.iter_rows(min_row=merged_range.min_row, max_row=merged_range.max_row, min_col=merged_range.min_col, max_col=merged_range.max_col):
+                if row[0].value == scenario:
+                    scenario_start_row = merged_range.min_row
+                    scenario_end_row = merged_range.max_row
+                    break
+            if scenario_start_row:
+                break
+
+        if not scenario_start_row:
+            raise Exception(f"'{scenario}' merged cell range not found in {sheet_name}.")
+
+        # Locate 'Energy Demand (PJ)' cell within the scenario range
+        energy_demand_cell = None
+        for row in range(scenario_start_row, scenario_end_row + 1):
+            for cell in sheet[row]:
+                if cell.value == 'Energy Demand (PJ)':
+                    energy_demand_cell = cell
+                    break
+            if energy_demand_cell:
+                break
+
+        if not energy_demand_cell:
+            raise Exception(f"'Energy Demand (PJ)' cell not found for {scenario} in {sheet_name}.")
+
+    # for scenario in ['REF', 'TGT']:
+    #     # Find the scenario merged cell
+    #     scenario_cell = None
+    #     for cell in sheet['A']:  # Column A
+    #         if cell.value == scenario:
+    #             scenario_cell = cell
+    #             break
+
+    #     if not scenario_cell:
+    #         raise Exception(f"'{scenario}' cell not found in {sheet_name}.")
+    #     print(scenario_cell.row)
+    #     # Locate 'Energy Demand (PJ)' cell in the same row
+    #     energy_demand_cell = None
+    #     for cell in sheet[scenario_cell.row]:
+    #         if cell.value == 'Energy Demand (PJ)':
+    #             energy_demand_cell = cell
+    #             break
+
+    #     if not energy_demand_cell:
+    #         raise Exception(f"'Energy Demand (PJ)' cell not found for {scenario} in {sheet_name}.")
+
+        # Calculate the range to read from the Excel file
+        start_col = energy_demand_cell.column_letter
+        start_row = energy_demand_cell.row
+
+        # Calculate the ending column letter based on the number of years
+        end_col_num = energy_demand_cell.column + 81  # 81 additional columns after the start column (1990-2070)
+        end_col_letter = get_column_letter(end_col_num)
+
+        # Read the data from the Excel file
+        data_df = pd.read_excel(excel_file, sheet_name=sheet_name, header=start_row - 1, usecols=f"{start_col}:{end_col_letter}")
+
+        # Drop rows after 'Total'
+        energy_demand_header = data_df.columns[0]
+        total_index = data_df.index[data_df[energy_demand_header] == 'Total'].tolist()
+        if total_index:
+            data_df = data_df.iloc[:total_index[0]].reset_index(drop=True)
+
+        # Process the data
+        transformed_data = pd.DataFrame()
+        for index, row in data_df.iterrows():
+            if row[energy_demand_header] == 'Total':
+                continue
+
+            mapped_values = mapping_dict.get(row[energy_demand_header], {'fuels': 'Unknown', 'subfuels': 'Unknown'})
+            new_row = {
+                'scenarios': 'reference' if scenario == 'REF' else 'target',
+                'economy': economy[0],
+                'sectors': '16_other_sector',
+                'sub1sectors': '16_02_agriculture_and_fishing',
+                'sub2sectors': 'x',
+                'sub3sectors': 'x',
+                'sub4sectors': 'x',
+                'fuels': mapped_values['fuels'],
+                'subfuels': mapped_values['subfuels'],
+                **{str(year): row[year] for year in range(OUTLOOK_BASE_YEAR + 1, OUTLOOK_LAST_YEAR + 1)}
+            }
+            transformed_data = transformed_data.append(new_row, ignore_index=True)
+            transformed_data.to_csv('data/temp/error_checking/agriculture_transformed'+sheet_name+scenario+'.csv', index=False)
+
+        sheet_data = pd.concat([sheet_data, transformed_data])
+
+    return sheet_data
+
+def process_agriculture(excel_file, shared_categories, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR):
+    wb = load_workbook(filename=excel_file)
+
+    # Load the mapping document
+    mapping_df = pd.read_excel('./config/agriculture_mapping.xlsx')
+    mapping_dict = mapping_df.set_index('Energy Demand (PJ)').to_dict('index')
+
+    all_transformed_data = pd.DataFrame()
+
+    # Determine which sheets to process
+    if 'Output' in wb.sheetnames:
+        all_transformed_data = pd.concat([all_transformed_data, process_sheet('Output', excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict)])
+
+    if 'Agriculture Output' in wb.sheetnames and 'Fishing Output' in wb.sheetnames:
+        agri_data = process_sheet('Agriculture Output', excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict)
+        fish_data = process_sheet('Fishing Output', excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict)
+
+        # Concatenate the two DataFrames
+        combined_data = pd.concat([agri_data, fish_data])
+
+        # Group by shared categories and sum the agri and fish values
+        combined_data = combined_data.groupby(shared_categories, as_index=False)[[str(year) for year in range(OUTLOOK_BASE_YEAR + 1, OUTLOOK_LAST_YEAR + 1)]].sum()
+
+        all_transformed_data = pd.concat([all_transformed_data, combined_data])
+
+    # Reorder the columns to match shared_categories
+    final_columns = shared_categories + [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
+    all_transformed_data = all_transformed_data[final_columns]
+
+    # Save the combined transformed data
+    all_transformed_data.to_csv('data/temp/error_checking/agriculture_transformed.csv', index=False)
+
+    return all_transformed_data
