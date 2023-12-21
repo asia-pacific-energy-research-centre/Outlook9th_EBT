@@ -1305,7 +1305,6 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
                 **{str(year): row[year] for year in range(OUTLOOK_BASE_YEAR + 1, OUTLOOK_LAST_YEAR + 1)}
             }
             transformed_data = transformed_data.append(new_row, ignore_index=True)
-            transformed_data.to_csv('data/temp/error_checking/agriculture_transformed'+sheet_name+scenario+'.csv', index=False)
 
         sheet_data = pd.concat([sheet_data, transformed_data])
 
@@ -1341,6 +1340,6 @@ def process_agriculture(excel_file, shared_categories, economy, OUTLOOK_BASE_YEA
     all_transformed_data = all_transformed_data[final_columns]
 
     # Save the combined transformed data
-    all_transformed_data.to_csv('data/temp/error_checking/agriculture_transformed.csv', index=False)
+    # all_transformed_data.to_csv('data/temp/error_checking/agriculture_transformed.csv', index=False)
 
     return all_transformed_data
