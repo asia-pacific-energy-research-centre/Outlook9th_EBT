@@ -1053,6 +1053,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             missing_rows_exceptions_dict['08_transfers'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sectors':'08_transfers'}
             # missing_rows_exceptions_dict['19_01_05_others'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'19_01_chp_plants', 'sub2sectors':'19_01_05_others'}
 
+            # JPN file has some issues with the following rows
+            missing_rows_exceptions_dict['19_heat_output_in_pj'] = {'_merge':'new_layout_df', 'economy':'08_JPN', 'sub1sectors':'19_02_heat_plants'}
+
             #use the keys as column names to remove the rows in the dict:
             # for ignored_issue in missing_rows_exceptions_dict.keys():
             #     #iterate through the dict to thin down to the rows we want to remove and then remove them by index
@@ -1083,7 +1086,7 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         
 
 def power_move_x_in_chp_and_hp_to_biomass(results_df):
-    # Anyting that has sub1sectors in 18_02_chp_plants, 09_02_chp_plants, 09_x_heat_plants and the sub2sectors col is 'x' should be moved to another sector in same level. we will state that in a dict below:
+    # Anything that has sub1sectors in 18_02_chp_plants, 09_02_chp_plants, 09_x_heat_plants and the sub2sectors col is 'x' should be moved to another sector in same level. we will state that in a dict below:
     corresp_sectors_dict = {}
     corresp_sectors_dict['18_02_chp_plants'] = '18_02_04_biomass'
     corresp_sectors_dict['09_02_chp_plants'] = '09_02_04_biomass'
@@ -1103,112 +1106,6 @@ def power_move_x_in_chp_and_hp_to_biomass(results_df):
         # Append the modified rows back to the results_df
         results_df = pd.concat([results_df, rows_to_change])
     return results_df
-
-# def process_agriculture(excel_file, shared_categories, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR):
-#     wb = load_workbook(filename=excel_file)
-    
-#     # Check for exact sheet names
-#     has_output = 'Output' in wb.sheetnames
-#     has_agri_output = 'Agriculture Output' in wb.sheetnames
-#     has_fish_output = 'Fishing Output' in wb.sheetnames
-    
-#     # Load the mapping document
-#     mapping_df = pd.read_excel('./config/agriculture_mapping.xlsx')
-#     mapping_dict = mapping_df.set_index('Energy Demand (PJ)').to_dict('index')
-
-#     # Initialize a DataFrame to collect all transformed data
-#     all_transformed_data = pd.DataFrame()
-
-#     # Process the data for both 'REF' and 'TGT'
-#     for scenario in ['REF', 'TGT']:
-#         # Find the scenario merged cell
-#         scenario_cell = None
-#         for cell in sheet['A']:  # Column A
-#             if cell.value == scenario:
-#                 scenario_cell = cell
-#                 break
-
-#         # If the scenario was found, look for 'Energy Demand (PJ)' in the same row
-#         energy_demand_cell = None
-#         if scenario_cell:
-#             for cell in sheet[scenario_cell.row]:
-#                 if cell.value == 'Energy Demand (PJ)':
-#                     energy_demand_cell = cell
-#                     break
-
-#         if not energy_demand_cell:
-#             print(f"'Energy Demand (PJ)' cell not found for {scenario}.")
-#             continue  # Skip to the next scenario
-
-#         # Calculate the range to read from the Excel file
-#         start_col = energy_demand_cell.column_letter
-#         start_row = energy_demand_cell.row
-
-#         # Calculate the ending column letter based on the number of years
-#         end_col_num = energy_demand_cell.column + 81  # 81 additional columns after the start column (1990-2070)
-#         end_col_letter = get_column_letter(end_col_num)
-
-#         # Read the data from the Excel file starting from the found cell
-#         # Ensure the header is read correctly
-#         data_df = pd.read_excel(excel_file, sheet_name='Output', header=start_row - 1, usecols=f"{start_col}:{end_col_letter}")
-
-#         # Drop rows after the row containing 'Total' in the 'Energy Demand (PJ)' column
-#         energy_demand_header = data_df.columns[0]
-#         total_index = data_df.index[data_df[energy_demand_header] == 'Total'].tolist()
-#         if total_index:
-#             data_df = data_df.iloc[:total_index[0]].reset_index(drop=True)
-
-#         # Process the data according to the mapping
-#         transformed_data = pd.DataFrame()
-#         for index, row in data_df.iterrows():
-#             # Skip the 'Total' row
-#             if row[energy_demand_header] == 'Total':
-#                 continue
-
-#             # Map the 'Energy Demand (PJ)' values to the 'fuels' from the mapping document
-#             if row[energy_demand_header] in mapping_dict:
-#                 mapped_values = mapping_dict[row[energy_demand_header]]
-#                 row['fuels'] = mapped_values['fuels']
-#                 row['subfuels'] = mapped_values['subfuels']
-#             else:
-#                 row['fuels'] = 'Unknown'
-#                 row['subfuels'] = 'Unknown'
-
-#             # Add the 'scenarios' column
-#             row['scenarios'] = 'reference' if scenario == 'REF' else 'target'
-
-#             # Append the mapped row to the transformed DataFrame
-#             transformed_data = transformed_data.append(row)
-
-#         # Add the 'economy' column
-#         transformed_data['economy'] = economy[0]
-        
-#         # Add the 'sectors' column
-#         transformed_data['sectors'] = '16_other_sector'
-        
-#         # Add the 'sub1sectors' column
-#         transformed_data['sub1sectors'] = '16_02_agriculture_and_fishing'
-        
-#         # Add the 'sub2sectors' 'sub3sectors' 'sub4sectors' column
-#         transformed_data['sub2sectors'] = 'x'
-#         transformed_data['sub3sectors'] = 'x'
-#         transformed_data['sub4sectors'] = 'x'
-
-#         # # Move 'scenario', 'fuels', and 'subfuels' to the front
-#         # for col in ['scenarios', 'fuels', 'subfuels']:
-#         #     column_data = transformed_data.pop(col)
-#         #     transformed_data.insert(0, col, column_data)
-
-#         # Combine the REF and TGT transformed data
-#         all_transformed_data = pd.concat([all_transformed_data, transformed_data])
-        
-#         # Reorder the columns to match shared_categories
-#         all_transformed_data = all_transformed_data[shared_categories + [year for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]]
-
-#     # Save the combined transformed data
-#     all_transformed_data.to_csv('data/temp/error_checking/agriculture_transformed.csv', index=False)
-
-#     return all_transformed_data
 
 def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict):
     wb = load_workbook(filename=excel_file)
@@ -1246,27 +1143,6 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
 
         if not energy_demand_cell:
             raise Exception(f"'Energy Demand (PJ)' cell not found for {scenario} in {sheet_name}.")
-
-    # for scenario in ['REF', 'TGT']:
-    #     # Find the scenario merged cell
-    #     scenario_cell = None
-    #     for cell in sheet['A']:  # Column A
-    #         if cell.value == scenario:
-    #             scenario_cell = cell
-    #             break
-
-    #     if not scenario_cell:
-    #         raise Exception(f"'{scenario}' cell not found in {sheet_name}.")
-    #     print(scenario_cell.row)
-    #     # Locate 'Energy Demand (PJ)' cell in the same row
-    #     energy_demand_cell = None
-    #     for cell in sheet[scenario_cell.row]:
-    #         if cell.value == 'Energy Demand (PJ)':
-    #             energy_demand_cell = cell
-    #             break
-
-    #     if not energy_demand_cell:
-    #         raise Exception(f"'Energy Demand (PJ)' cell not found for {scenario} in {sheet_name}.")
 
         # Calculate the range to read from the Excel file
         start_col = energy_demand_cell.column_letter
