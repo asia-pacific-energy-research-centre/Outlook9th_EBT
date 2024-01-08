@@ -51,15 +51,34 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     #FIRST, LOAD IN ALL THE RESULTS FILES AND CONCAT THEM TOGETHER. THEN WE CAN MERGE THEM WITH THE LAYOUT FILE AND IDENTIFY ANY STRUCTURAL ISSUES
     # Iterate over the results files
     for file in results_data_files:
-        # Read the results file
+        print(f"Start processing {file}...")
+        # Check if the file is an Excel file
         if file.endswith('.xlsx'):
-            results_df = pd.read_excel(file, sheet_name=-1)
+            xls = pd.ExcelFile(file)
+
+            # Check if 'agriculture' is in the file name (case-insensitive)
+            if 'agriculture' in file.lower():
+                # Check if the last sheet is either 'output' or 'fishing output'
+                last_sheet_name = xls.sheet_names[-1].lower()
+                if last_sheet_name == 'output' or last_sheet_name == 'fishing output':
+                    results_df = merging_functions.process_agriculture(file, shared_categories, economies, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR)
+                else:
+                    results_df = pd.read_excel(file, sheet_name=-1)  # Processing for already transformed agriculture files
+            else:
+                results_df = pd.read_excel(file, sheet_name=-1)  # Processing for non-agriculture files
+
+            print(f"Processing Excel file {file}...")
+
+        # Process CSV files
         elif file.endswith('.csv'):
             results_df = pd.read_csv(file)
+            print(f"Processing CSV file {file}...")
+
+        # Handle unsupported file formats
         else:
             print(f"Unsupported file format: {file}")
             continue
-        print(f"Processing {file}...")
+
         # Reorder the shared categories in the results DataFrame
         results_df = results_df[shared_categories + list(results_df.columns.difference(shared_categories))]
 
