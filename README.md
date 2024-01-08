@@ -17,7 +17,7 @@ The process of identifying and labelling subtotals invovles many checks, because
 Labelled subtotals are also a useful thing to have in the data for the modellers and researchers to use, so that they dont have to worry about double counting.
 There are also some checks to make sure that values sum to correct totals and are in the correct format.
 
-## Step 4: integrating non energy data
+### Step 4: integrating non energy data
 This data is integrated or, in the case of emissions, calculated separately and in a more simplified but less flexible way than the energy data. This is partly because this data is not needed to be passed between modellers, and partly because it is not as messy (no subtotals) as the energy balance tables, so it is easier to integrate it into the system in a more straightforward way.
 The onus is on the modellers to ensure that their data is in the correct format, and that they are reporting the correct values. 
 
