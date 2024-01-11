@@ -30,7 +30,7 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
 
     #TODO. THIS NEEDS TO BE CLEANED UP. PREFERABLY WE ARCHIVE OLD LAYOUTS RATHER THAN DATEMARKING THEM
     fuel_layout = pd.read_excel('./config/EBT_column_fuels.xlsx', 
-                                sheet_name =FUEL_LAYOUT_SHEET, usecols = [0, 1])
+                                sheet_name = FUEL_LAYOUT_SHEET, usecols = [0, 1])
     sector_layout = pd.read_excel('./config/EBT_row_sectors.xlsx', 
                                 sheet_name = SECTOR_LAYOUT_SHEET, usecols = [0, 1, 2, 3, 4])
     
@@ -332,7 +332,7 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
 
     # Merge layouts
     sector_fuel_layout = pd.merge(sector_layout, fuel_layout, how = 'cross') 
-    #sector_fuel_layout.to_csv('./data/self_defined_layout/sector_fuel_layout.csv', index = False) 
+    sector_fuel_layout.to_csv('./data/self_defined_layout/sector_fuel_layout.csv', index = False)
 
     economy_df = pd.DataFrame(df_fuel_sector_temp['economy'].unique(), columns=['economy'])
     year_df = pd.DataFrame(df_fuel_sector_temp['year'].unique(), columns=['year'])
