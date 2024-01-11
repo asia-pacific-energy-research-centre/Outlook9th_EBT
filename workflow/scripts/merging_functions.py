@@ -1219,3 +1219,66 @@ def process_agriculture(excel_file, shared_categories, economy, OUTLOOK_BASE_YEA
     # all_transformed_data.to_csv('data/temp/error_checking/agriculture_transformed.csv', index=False)
 
     return all_transformed_data
+
+def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR):
+    df = pd.read_csv(csv_file)
+
+    # Determine the fuels to check based on file name
+    if 'pipeline' in csv_file.lower():
+        fuels_to_check = ['08_gas', '07_petroleum_products']
+    # elif 'buildings' in csv_file.lower():
+    #     fuels_to_check = ['12_solar']
+
+    # Exclude 'subfuels' from shared_categories
+    categories_for_matching = [cat for cat in shared_categories if cat != 'subfuels']
+
+    # Define year columns for analysis (2016-2020)
+    year_columns_for_analysis = list(range(2016, 2021))
+
+    for fuel in fuels_to_check:
+        # Check if the fuel is in the 'fuels' column
+        if fuel in df['fuels'].values:
+            # Find rows in df with the specific fuel
+            fuel_rows = df[df['fuels'] == fuel]
+
+            for _, fuel_row in fuel_rows.iterrows():
+                # Extract shared categories values from this row, excluding 'subfuels'
+                category_values = {cat: fuel_row[cat] for cat in categories_for_matching}
+
+                # Find rows in layout_df that match these category values exactly
+                matching_condition = (layout_df[categories_for_matching] == pd.Series(category_values)).all(axis=1)
+                matching_rows = layout_df[matching_condition]
+
+                # Check if the year columns exist in matching_rows
+                if not all(col in matching_rows.columns for col in year_columns_for_analysis):
+                    raise Exception("Missing year columns in matching_rows:", [col for col in year_columns_for_analysis if col not in matching_rows.columns])
+
+                # Melt matching_rows and keep only years 2016-2020
+                melted = matching_rows.melt(id_vars=shared_categories, value_vars=year_columns_for_analysis)
+
+                # Sum up the years using groupby
+                summed = melted.groupby(shared_categories).sum().reset_index()
+
+                # Calculate the proportions
+                total_values = summed[summed['subfuels'] == 'x']['value']
+                proportion_dict = {}
+                for _, row in summed.iterrows():
+                    if row['subfuels'] != 'x':
+                        proportion = row['value'] / total_values.iloc[0]
+                        proportion_dict[row['subfuels']] = proportion
+
+                # Create new rows in df using the proportions
+                total_row_df = fuel_rows[fuel_rows['subfuels'] == 'x']
+                if not total_row_df.empty:
+                    total_row = total_row_df.iloc[0]
+                    for subfuel, proportion in proportion_dict.items():
+                        new_row = total_row.copy()
+                        new_row['subfuels'] = subfuel
+                        for year in range(2021, 2071):
+                            new_row[str(year)] = new_row[str(year)] * proportion
+                        df = df.append(new_row, ignore_index=True)
+        # Drop the total rows (with 'x' in 'subfuels') for the current fuel type
+        df = df.drop(df[(df['fuels'] == fuel) & (df['subfuels'] == 'x')].index)
+
+    return df
+
