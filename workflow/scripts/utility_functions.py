@@ -8,7 +8,7 @@ import os
 import shutil
 
 #when we have new data from ESTO you will want to set this to False or None and run the data through the whole pipeline to get results/model_df_wide_' + date_today +'.csv' for modellers to use as an input
-SINGLE_ECONOMY_ID_VAR = '20_USA' #'19_THA'# '19_THA' #20_USA 03_CDA
+SINGLE_ECONOMY_ID_VAR = '03_CDA' #'19_THA'# '19_THA' #20_USA 03_CDA
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
 EBT_EARLIEST_YEAR = 1980
@@ -67,18 +67,18 @@ def find_most_recent_file_date_id(directory_path):
     
 def move_files_to_archive_for_economy(LOCAL_FILE_PATH, economy):
     #create archive folder if not there
-    if not os.path.exists(f'{LOCAL_FILE_PATH}/Modelling/Integration/{economy}/00_LayoutTemplate/'):
-        raise Exception(f'{LOCAL_FILE_PATH}/Modelling/Integration/{economy}/00_LayoutTemplate/ does not exist')#this is important so we dont accidentally move files to the wrong place
+    if not os.path.exists(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/'):
+        raise Exception(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/ does not exist')#this is important so we dont accidentally move files to the wrong place
     
-    if not os.path.exists(f'{LOCAL_FILE_PATH}/Modelling/Integration/{economy}/00_LayoutTemplate/archive'):
-        os.makedirs(f'{LOCAL_FILE_PATH}/Modelling/Integration/{economy}/00_LayoutTemplate/archive')
+    if not os.path.exists(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/archive'):
+        os.makedirs(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/archive')
         
     #move files to archive
-    files = os.listdir(f'{LOCAL_FILE_PATH}/Modelling/Integration/{economy}/00_LayoutTemplate')
+    files = os.listdir(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate')
     
     for file in files:
         if file.startswith('model_df_wide'):
             breakpoint()
-            shutil.move(f'{LOCAL_FILE_PATH}/Modelling/Integration/{economy}/00_LayoutTemplate/{file}', f'{LOCAL_FILE_PATH}/Modelling/Integration/{economy}/00_LayoutTemplate/archive/{file}')
+            shutil.move(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/{file}', f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/archive/{file}')
 
                 
