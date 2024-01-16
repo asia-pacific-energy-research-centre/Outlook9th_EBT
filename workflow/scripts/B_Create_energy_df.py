@@ -287,10 +287,10 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
     agfi_g = agfi.groupby(['economy', 'year', 'fuels'])['value']\
         .sum().reset_index().assign(sectors = '16_02_agriculture_and_fishing')
 
-    agriculture = df_fuel_sector[df_fuel_sector['sectors'].isin(['16_03_agriculture'])]
-    fishing = df_fuel_sector[df_fuel_sector['sectors'].isin(['16_04_fishing'])]
-    agri = agriculture.assign(sectors = '16_02_03_agriculture')
-    fish = fishing.assign(sectors = '16_02_04_fishing')
+    # agriculture = df_fuel_sector[df_fuel_sector['sectors'].isin(['16_03_agriculture'])]
+    # fishing = df_fuel_sector[df_fuel_sector['sectors'].isin(['16_04_fishing'])]
+    # agri = agriculture.assign(sectors = '16_02_03_agriculture')
+    # fish = fishing.assign(sectors = '16_02_04_fishing')
 
     ele_gwh = df_fuel_sector[df_fuel_sector['sectors'].isin(['18_01_map_electricity_plants', 
                                                             '18_03_ap_electricity_plants'])] 
@@ -336,7 +336,7 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
     df_fuel_sector_temp = pd.concat([df_fuel_sector,
                                     ele_tf_g, chp_tf_g, heat_tf_g,
                                     bldg_g, bldg_c, bldg_r,
-                                    agfi_g, agri, fish,
+                                    agfi_g,
                                     ele_gwh_g, chp_gwh_g, 
                                     chp_pj_g, heat_pj_g], 
                                     axis = 0).reset_index(drop = True)
