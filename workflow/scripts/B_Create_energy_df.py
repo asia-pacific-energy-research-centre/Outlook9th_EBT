@@ -276,11 +276,21 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
     bldg_g = bldg.groupby(['economy', 'year', 'fuels'])['value']\
         .sum().reset_index().assign(sectors = '16_01_buildings')
 
+    bldg_commercial = df_fuel_sector[df_fuel_sector['sectors'].isin(['16_01_commercial_and_public_services'])]
+    bldg_residential = df_fuel_sector[df_fuel_sector['sectors'].isin(['16_02_residential'])]
+    bldg_c = bldg_commercial.assign(sectors = '16_01_01_commercial_and_public_services')
+    bldg_r = bldg_residential.assign(sectors = '16_01_02_residential')
+
     agfi = df_fuel_sector[df_fuel_sector['sectors'].isin(['16_03_agriculture', 
                                                         '16_04_fishing'])] # notice that the item numbers are replaced by self-defined version.
 
     agfi_g = agfi.groupby(['economy', 'year', 'fuels'])['value']\
         .sum().reset_index().assign(sectors = '16_02_agriculture_and_fishing')
+
+    agriculture = df_fuel_sector[df_fuel_sector['sectors'].isin(['16_03_agriculture'])]
+    fishing = df_fuel_sector[df_fuel_sector['sectors'].isin(['16_04_fishing'])]
+    agri = agriculture.assign(sectors = '16_02_03_agriculture')
+    fish = fishing.assign(sectors = '16_02_04_fishing')
 
     ele_gwh = df_fuel_sector[df_fuel_sector['sectors'].isin(['18_01_map_electricity_plants', 
                                                             '18_03_ap_electricity_plants'])] 
@@ -325,7 +335,8 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
 
     df_fuel_sector_temp = pd.concat([df_fuel_sector,
                                     ele_tf_g, chp_tf_g, heat_tf_g,
-                                    bldg_g, agfi_g, 
+                                    bldg_g, bldg_c, bldg_r,
+                                    agfi_g, agri, fish,
                                     ele_gwh_g, chp_gwh_g, 
                                     chp_pj_g, heat_pj_g], 
                                     axis = 0).reset_index(drop = True)
