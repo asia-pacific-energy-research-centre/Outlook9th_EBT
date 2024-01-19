@@ -843,8 +843,8 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     #     raise Exception("Duplicates found in fuel_aggregates_pivoted. Check the results files.")
     
     # set subtotals to true
-    fuel_aggregates_pivoted['subtotal_layout'] = True
-    fuel_aggregates_pivoted['subtotal_results'] = True
+    fuel_aggregates_pivoted['subtotal_layout'] = False
+    fuel_aggregates_pivoted['subtotal_results'] = False
     
     # fuel_aggregates_pivoted.to_csv('data/temp/error_checking/fuel_aggregates_pivoted.csv', index=False)
     return fuel_aggregates_pivoted
