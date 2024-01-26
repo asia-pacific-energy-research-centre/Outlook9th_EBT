@@ -9,7 +9,7 @@ This system is generally used for (and in this order):
 
 This system is written with the intention to be used for subsequent Outlooks, not jsut the ninth, as long as it remains helpful. For that reason a lot of effort has been made to make it robust and flexible. Some example of this are: (todo: make step 1 and 2 above more robust and flexible), step 3 contains a lot of checks to make sure the data is in the correct format and the values the modellers are reporting are as expected. 
 
-### Step 3: merging the modellers data
+#### Step 3: merging the modellers data
 This step is a bit more complicated than we expected when we started. 
 
 One big reason is because we realsied that we needed to be able to idenitfy subtotals within the data and label them. This was partly because we had shifted the visualisation system to rely on the data being in a consistent structure so that the same code, queries, aggregations and transformation could be used for each economy without worrying about accidentally including a row which was actually a subtotal, and theforre double counting.
@@ -17,10 +17,13 @@ The process of identifying and labelling subtotals invovles many checks, because
 Labelled subtotals are also a useful thing to have in the data for the modellers and researchers to use, so that they dont have to worry about double counting.
 There are also some checks to make sure that values sum to correct totals and are in the correct format.
 
-### Step 4: integrating non energy data
+#### Step 4: integrating non energy data
 This data is integrated or, in the case of emissions, calculated separately and in a more simplified but less flexible way than the energy data. This is partly because this data is not needed to be passed between modellers, and partly because it is not as messy (no subtotals) as the energy balance tables, so it is easier to integrate it into the system in a more straightforward way.
 The onus is on the modellers to ensure that their data is in the correct format, and that they are reporting the correct values. 
 
+### To do List:
+- consider whether we want 19_total fuel and also subtotals of fuels within 09_total_transformation. The creation of these totals creates confusing values since they are the sums of negatives (input_fuel) and positives (output_fuel), e.g. -natural_gas + lng
+  
 ## Using Conda
 
 ### Creating the Conda environment
