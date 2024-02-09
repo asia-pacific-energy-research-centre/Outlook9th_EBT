@@ -73,7 +73,7 @@ def run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH, MOVE_OLD_FILES_TO_
         
         reference_df.to_csv(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/model_df_wide_ref_{economy}_{file_date_id}.csv', index=False)
         target_df.to_csv(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/model_df_wide_tgt_{economy}_{file_date_id}.csv', index=False)
-        print('Done run_main_up_to_merging_for_every_economy for ' + economy) 
+        print('Done run_main_up_to_merging_for_every_economy for ' + economy)
         
     
 #%%
