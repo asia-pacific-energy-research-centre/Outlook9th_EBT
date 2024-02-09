@@ -145,7 +145,6 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     #drop any subtotals already in the data, as we will recalcualte them soon. 
     df_no_subtotals = df[df['is_subtotal'] == False].copy()
     df_no_subtotals = df_no_subtotals.drop(columns=['is_subtotal']).copy()
-    
     ############################
     def calculate_subtotal_for_columns(melted_df, cols_to_sum):
         #gruop by the shared categories except the ones we are summing (in cols_to_sum) and sum the values. By doing this on each combination of the shared cateorgires, starting from the most specific ones, we can create subtotals for each combination of the shared categories.        
