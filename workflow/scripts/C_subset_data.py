@@ -33,7 +33,7 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     ###############################################################################################
     # Mat addition: subset the sector_fuel_layout df
 
-    year_list = list(range(1980, 2021, 1))
+    year_list = list(range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1, 1))
     # year_list = list(map(str, year_list))
 
     # Read in data of fuels used by the different sector models
