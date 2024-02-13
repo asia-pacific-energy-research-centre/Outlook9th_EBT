@@ -11,9 +11,9 @@
 env/
 *.7z
 
-**/archive/
 #DONT IGNORE ANY FILES IN config, even if they are xlsx or csv
 !config/*
+**/archive/
 
 # User-specific files
 *.rsuser
