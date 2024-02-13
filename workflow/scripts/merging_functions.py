@@ -145,7 +145,6 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     #drop any subtotals already in the data, as we will recalcualte them soon. 
     df_no_subtotals = df[df['is_subtotal'] == False].copy()
     df_no_subtotals = df_no_subtotals.drop(columns=['is_subtotal']).copy()
-    
     ############################
     def calculate_subtotal_for_columns(melted_df, cols_to_sum):
         #gruop by the shared categories except the ones we are summing (in cols_to_sum) and sum the values. By doing this on each combination of the shared cateorgires, starting from the most specific ones, we can create subtotals for each combination of the shared categories.        
@@ -291,7 +290,7 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     #TESTING FIND THESE sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels
     # 14_industry_sector	x	x	x	x	01_coal	x
     # 14_industry_sector	x	x	x	x	01_coal	x
-    test = final_df[(final_df['sectors'] == '14_industry_sector') & (final_df['sub1sectors'] == 'x') & (final_df['sub2sectors'] == 'x') & (final_df['sub3sectors'] == 'x') & (final_df['sub4sectors'] == 'x') & (final_df['fuels'] == '08_gas') & (final_df['subfuels'] == 'x') & (final_df['year'].isin([1980,2020]))].copy()
+    test = final_df[(final_df['sectors'] == '14_industry_sector') & (final_df['sub1sectors'] == 'x') & (final_df['sub2sectors'] == 'x') & (final_df['sub3sectors'] == 'x') & (final_df['sub4sectors'] == 'x') & (final_df['fuels'] == '08_gas') & (final_df['subfuels'] == 'x') & (final_df['year'].isin([EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR]))].copy()
     # if test.shape[0] > 0:
         
     #     breakpoint()
@@ -473,11 +472,11 @@ def format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout
     unexpected_rows = merged_df[merged_df['_merge'] != 'both']
     if unexpected_rows.shape[0] > 0:
         missing_from_results_df = unexpected_rows[unexpected_rows['_merge'] == 'left_only']
-        #find total value of data in 2020. this shows how much worth of data might be missing from the results file.
-        missing_from_results_df_value = missing_from_results_df[2020].sum()
+        #find total value of data in OUTLOOK_BASE_YEAR. this shows how much worth of data might be missing from the results file.
+        missing_from_results_df_value = missing_from_results_df[OUTLOOK_BASE_YEAR].sum()
         extra_in_results_df = unexpected_rows[unexpected_rows['_merge'] == 'right_only']
-        #find total value of data in 2021
-        extra_in_results_df_value = extra_in_results_df[2021].sum()
+        #find total value of data in OUTLOOK_BASE_YEAR+1
+        extra_in_results_df_value = extra_in_results_df[OUTLOOK_BASE_YEAR+1].sum()
         
         print(f"Unexpected rows found in concatted_results_df. Check the results files.\nMissing from results_df: {missing_from_results_df.shape[0]}, with value {missing_from_results_df_value}\nExtra in results_df: {extra_in_results_df.shape[0]}, with value {extra_in_results_df_value}")#TODO IS THIS GOING TO BE TOO STRICT? WILL IT INCLUDE FUEL TYPES THAT SHOULD BE MISSING EG. CRUDE IN TRANSPORT, or even where there is no subttotals to create in the layout file since it is not specific enough (eg breaking domestic air into freight/passenger in transport sector)
         # breakpoint()
@@ -843,8 +842,8 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     #     raise Exception("Duplicates found in fuel_aggregates_pivoted. Check the results files.")
     
     # set subtotals to true
-    fuel_aggregates_pivoted['subtotal_layout'] = True
-    fuel_aggregates_pivoted['subtotal_results'] = True
+    fuel_aggregates_pivoted['subtotal_layout'] = False
+    fuel_aggregates_pivoted['subtotal_results'] = False
     
     # fuel_aggregates_pivoted.to_csv('data/temp/error_checking/fuel_aggregates_pivoted.csv', index=False)
     return fuel_aggregates_pivoted
@@ -1219,3 +1218,66 @@ def process_agriculture(excel_file, shared_categories, economy, OUTLOOK_BASE_YEA
     # all_transformed_data.to_csv('data/temp/error_checking/agriculture_transformed.csv', index=False)
 
     return all_transformed_data
+
+def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR):
+    df = pd.read_csv(csv_file)
+
+    # Determine the fuels to check based on file name
+    if 'pipeline' in csv_file.lower():
+        fuels_to_check = ['08_gas', '07_petroleum_products']
+    # elif 'buildings' in csv_file.lower():
+    #     fuels_to_check = ['12_solar']
+
+    # Exclude 'subfuels' from shared_categories
+    categories_for_matching = [cat for cat in shared_categories if cat != 'subfuels']
+
+    # Define year columns for analysis (past 5 years)
+    year_columns_for_analysis = list(range(OUTLOOK_BASE_YEAR-4, OUTLOOK_BASE_YEAR+1))
+
+    for fuel in fuels_to_check:
+        # Check if the fuel is in the 'fuels' column
+        if fuel in df['fuels'].values:
+            # Find rows in df with the specific fuel
+            fuel_rows = df[df['fuels'] == fuel]
+
+            for _, fuel_row in fuel_rows.iterrows():
+                # Extract shared categories values from this row, excluding 'subfuels'
+                category_values = {cat: fuel_row[cat] for cat in categories_for_matching}
+
+                # Find rows in layout_df that match these category values exactly
+                matching_condition = (layout_df[categories_for_matching] == pd.Series(category_values)).all(axis=1)
+                matching_rows = layout_df[matching_condition]
+
+                # Check if the year columns exist in matching_rows
+                if not all(col in matching_rows.columns for col in year_columns_for_analysis):
+                    raise Exception("Missing year columns in matching_rows:", [col for col in year_columns_for_analysis if col not in matching_rows.columns])
+
+                # Melt matching_rows and keep only the past 5 years
+                melted = matching_rows.melt(id_vars=shared_categories, value_vars=year_columns_for_analysis)
+
+                # Sum up the years using groupby
+                summed = melted.groupby(shared_categories).sum().reset_index()
+
+                # Calculate the proportions
+                total_values = summed[summed['subfuels'] == 'x']['value']
+                proportion_dict = {}
+                for _, row in summed.iterrows():
+                    if row['subfuels'] != 'x':
+                        proportion = row['value'] / total_values.iloc[0]
+                        proportion_dict[row['subfuels']] = proportion
+
+                # Create new rows in df using the proportions
+                total_row_df = fuel_rows[fuel_rows['subfuels'] == 'x']
+                if not total_row_df.empty:
+                    total_row = total_row_df.iloc[0]
+                    for subfuel, proportion in proportion_dict.items():
+                        new_row = total_row.copy()
+                        new_row['subfuels'] = subfuel
+                        for year in range(OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR+1):
+                            new_row[str(year)] = new_row[str(year)] * proportion
+                        df = df.append(new_row, ignore_index=True)
+        # Drop the total rows (with 'x' in 'subfuels') for the current fuel type
+        df = df.drop(df[(df['fuels'] == fuel) & (df['subfuels'] == 'x')].index)
+
+    return df
+

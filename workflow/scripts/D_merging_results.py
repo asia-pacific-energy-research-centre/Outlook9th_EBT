@@ -71,8 +71,13 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
 
         # Process CSV files
         elif file.endswith('.csv'):
-            results_df = pd.read_csv(file)
-            print(f"Processing CSV file {file}...")
+            # Check if 'pipeline' or 'buildings' is in the file name (case-insensitive)
+            if 'pipeline' in file.lower(): # or 'buildings' in file.lower():
+                results_df = merging_functions.split_subfuels(file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR) # Split subfuels for pipeline and buildings files
+                print(f"Processing CSV file {file} with split subfuels...")
+            else:
+                results_df = pd.read_csv(file)
+                print(f"Processing CSV file {file}...")
 
         # Handle unsupported file formats
         else:
@@ -85,7 +90,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         # Convert columns to string type
         results_df.columns = results_df.columns.astype(str)
 
-        #Keep columns from oulook_base_year to outlook_last_year only
+        #Keep columns from outlook_base_year to outlook_last_year only
         results_df.drop(columns=[str(col) for col in results_df.columns if any(str(year) in col for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1))], inplace=True)
         
         #filter for only economies in the layout file:
@@ -128,6 +133,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
 
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
+    concatted_results_df.to_csv('data/temp/error_checking/concatted_results_df.csv')
     ##############################
     
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
