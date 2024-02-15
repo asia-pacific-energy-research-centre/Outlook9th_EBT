@@ -223,11 +223,6 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     
     #check for duplicates in these new subtotals based on all the cols except value.. if there are duplicates then perhaphs something went wrong with the subtotaling. But if the values are all 0 then just drop them.
     #Note: We are taking a risk of not catching potential errors if we assume we can drop subtotals that are duplciates and = 0...but if we dont do this it is quite complicated to work find the error anyway. It should only happen if there is not specific enough data in the layout file, so 0's aregetting subtotaled, and then being foudn asduplicates beside what is actually the most specific data for that group. So we will drop these by ideniftying if we are working on the layout file, otherwise throw an error.
-    subtotalled_results.to_csv('data/temp/error_checking/subtotalled_results1.csv', index=False)
-    ########### TEMP FIX ###########
-    # duplicates_check_cols = [col for col in subtotalled_results.columns if col not in ['value']]
-    # subtotalled_results = duplicates.groupby(duplicates_check_cols, as_index=False)['value'].sum().reset_index().copy()
-    ################################
     duplicates = subtotalled_results[subtotalled_results.duplicated(subset=[col for col in subtotalled_results.columns if col not in ['value']], keep=False)]
     if duplicates.shape[0] > 0:
         duplicates_non_zero = duplicates[duplicates['value'] != 0].copy()
