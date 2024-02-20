@@ -1013,6 +1013,10 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         
         # CDA file has some issues with the following rows
         bad_values_rows_exceptions_dict['CDA_11_statistical_discrepancy'] = {'economy':'03_CDA', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        
+        # ROK file has some issues with the following rows
+        bad_values_rows_exceptions_dict['ROK_11_statistical_discrepancy'] = {'economy':'09_ROK', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['ROK_19_heat_output_in_pj'] = {'economy':'09_ROK', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
