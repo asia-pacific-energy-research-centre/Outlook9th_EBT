@@ -737,16 +737,7 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     df_layout = df_melted[(df_melted['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)) & (df_melted['subtotal_layout'] == False)].copy()
     df_results = df_melted[(df_melted['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (df_melted['subtotal_results'] == False)].copy()
 
-    def process_df(split_df):
-        # Define sets of columns to exclude in each iteration
-        exclusion_sets = [
-            ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'],
-            ['sub2sectors', 'sub3sectors', 'sub4sectors'],
-            ['sub3sectors', 'sub4sectors'],
-            ['sub4sectors'],
-            []
-        ]
-
+    def process_df_19_total(split_df):
         fuel_aggregates_list = []
         for cols_to_exclude in exclusion_sets:
             excluded_cols = ['fuels', 'subfuels'] + cols_to_exclude
@@ -770,10 +761,48 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
         
         return fuel_aggregates
     
+    def process_df_20_total_renewables(split_df):
+        total_renewables_df = split_df[split_df['fuels'].isin(['10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass', '16_others'])].copy()
+        total_renewables_df = total_renewables_df[~total_renewables_df['subfuels'].isin('16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources')].copy()
+        
+        fuel_aggregates_list = []
+        for cols_to_exclude in exclusion_sets:
+            excluded_cols = ['fuels', 'subfuels'] + cols_to_exclude
+            group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
+
+            # Aggregate '19_total'
+            renewables_20 = total_renewables_df.groupby(group_columns)['value'].sum().reset_index()
+            renewables_20['fuels'] = '20_total_renewables'
+            for col in excluded_cols[1:]:
+                renewables_20[col] = 'x'
+
+            fuel_aggregates_list.append(renewables_20)
+
+        fuel_aggregates = pd.concat(fuel_aggregates_list, ignore_index=True)
+        
+        # Remove exact duplicates, keeping the first occurrence
+        fuel_aggregates = fuel_aggregates.drop_duplicates()
+
+        # Remove rows where 'value' is 0
+        fuel_aggregates = fuel_aggregates[fuel_aggregates['value'] != 0]
+        
+        return fuel_aggregates
+    
+    # Define sets of columns to exclude in each iteration
+    exclusion_sets = [
+        ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'],
+        ['sub2sectors', 'sub3sectors', 'sub4sectors'],
+        ['sub3sectors', 'sub4sectors'],
+        ['sub4sectors'],
+        []
+    ]
+    
     # Process each split DataFrame and concatenate
-    fuel_aggregates_layout = process_df(df_layout)
-    fuel_aggregates_results = process_df(df_results)
-    fuel_aggregates_df = pd.concat([fuel_aggregates_layout, fuel_aggregates_results], ignore_index=True)
+    fuel_aggregates_layout_19 = process_df_19_total(df_layout)
+    fuel_aggregates_results_19 = process_df_19_total(df_results)
+    fuel_aggregates_layout_20 = process_df_20_total_renewables(df_layout)
+    fuel_aggregates_results_20 = process_df_20_total_renewables(df_results)
+    fuel_aggregates_df = pd.concat([fuel_aggregates_layout_19, fuel_aggregates_results_19, fuel_aggregates_layout_20, fuel_aggregates_results_20], ignore_index=True)
 
     # Pivot the aggregated DataFrame
     fuel_aggregates_pivoted = fuel_aggregates_df.pivot_table(index=shared_categories, columns='year', values='value').reset_index()
