@@ -849,7 +849,7 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     fuel_aggregates_pivoted['subtotal_layout'] = False
     fuel_aggregates_pivoted['subtotal_results'] = False
     
-    # fuel_aggregates_pivoted.to_csv('data/temp/error_checking/fuel_aggregates_pivoted.csv', index=False)
+    fuel_aggregates_pivoted.to_csv('data/temp/error_checking/fuel_aggregates_pivoted.csv', index=False)
     return fuel_aggregates_pivoted
 
 def load_previous_merged_df(results_data_path, expected_columns, previous_merged_df_filename):
