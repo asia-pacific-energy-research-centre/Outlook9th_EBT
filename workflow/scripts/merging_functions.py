@@ -763,7 +763,7 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     
     def process_df_20_total_renewables(split_df):
         total_renewables_df = split_df[split_df['fuels'].isin(['10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass', '16_others'])].copy()
-        total_renewables_df = total_renewables_df[~total_renewables_df['subfuels'].isin('16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources')].copy()
+        total_renewables_df = total_renewables_df[~total_renewables_df['subfuels'].isin(['16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources'])].copy()
         
         fuel_aggregates_list = []
         for cols_to_exclude in exclusion_sets:
