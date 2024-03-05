@@ -763,20 +763,71 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     
     def process_df_20_total_renewables(split_df):
         total_renewables_df = split_df[split_df['fuels'].isin(['10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass', '16_others'])].copy()
-        total_renewables_df = total_renewables_df[~total_renewables_df['subfuels'].isin(['16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources'])].copy()
+        total_renewables_df = total_renewables_df[~total_renewables_df['subfuels'].isin(['16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources', '16_x_hydrogen', '16_x_ammonia'])].copy()
         
         fuel_aggregates_list = []
         for cols_to_exclude in exclusion_sets:
             excluded_cols = ['fuels', 'subfuels'] + cols_to_exclude
             group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
 
-            # Aggregate '19_total'
+            # Aggregate '20_total_renewables'
             renewables_20 = total_renewables_df.groupby(group_columns)['value'].sum().reset_index()
             renewables_20['fuels'] = '20_total_renewables'
             for col in excluded_cols[1:]:
                 renewables_20[col] = 'x'
 
             fuel_aggregates_list.append(renewables_20)
+
+        fuel_aggregates = pd.concat(fuel_aggregates_list, ignore_index=True)
+        
+        # Remove exact duplicates, keeping the first occurrence
+        fuel_aggregates = fuel_aggregates.drop_duplicates()
+
+        # Remove rows where 'value' is 0
+        fuel_aggregates = fuel_aggregates[fuel_aggregates['value'] != 0]
+        
+        return fuel_aggregates
+    
+    def process_df_21_modern_renewables(split_df, df_19_total, df_20_total_renewables):
+        df_19_total_filtered = df_19_total[(df_19_total['sectors'] == '18_electricity_output_in_gwh') & (df_19_total['sub1sectors'] == 'x') | (df_19_total['sectors'] == '19_heat_output_in_pj') & (df_19_total['sub1sectors'] == 'x')].copy()
+        df_20_total_renewables_filtered = df_20_total_renewables[(df_20_total_renewables['sectors'] == '18_electricity_output_in_gwh') & (df_20_total_renewables['sub1sectors'] == 'x') | (df_20_total_renewables['sectors'] == '19_heat_output_in_pj') & (df_20_total_renewables['sub1sectors'] == 'x')].copy()
+
+        modern_renewables_df = split_df[split_df['fuels'].isin(['10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass', '16_others', '17_electricity', '18_heat'])].copy()
+        modern_renewables_df = modern_renewables_df[~modern_renewables_df['subfuels'].isin(['16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources', '16_x_hydrogen', '16_x_ammonia'])].copy()
+        modern_renewables_df = modern_renewables_df[~((modern_renewables_df['fuels'] == '15_solid_biomass') & (modern_renewables_df['sectors'] == '16_other_sector'))].copy()
+        # Filter out '12_total_final_consumption' and '13_total_final_energy_consumption' to exclude biomass consumed in buildings and agriculture
+        # modern_renewables_df = modern_renewables_df[~((modern_renewables_df['sectors'] == '12_total_final_consumption') | (modern_renewables_df['sectors'] == '13_total_final_energy_consumption'))].copy()
+
+        # Calculate the shares
+        shares_df = df_20_total_renewables_filtered[['year', 'scenarios', 'sectors', 'value']].merge(df_19_total_filtered[['year', 'scenarios', 'sectors', 'value']], on=['year', 'scenarios', 'sectors'], suffixes=('_20', '_19'))
+        shares_df['share'] = shares_df['value_20'] / shares_df['value_19']
+        # Add a 'fuels' column based on 'sectors'
+        shares_df['fuels'] = shares_df['sectors'].apply(lambda x: '17_electricity' if x == '18_electricity_output_in_gwh' else ('18_heat' if x == '19_heat_output_in_pj' else None))
+        shares_df.drop(columns=['sectors'], inplace=True)
+        
+        # Merge the share into modern_renewables_df for adjustment
+        modern_renewables_df = modern_renewables_df.merge(shares_df[['year', 'scenarios', 'fuels', 'share']], on=['year', 'scenarios', 'fuels'], how='left')
+        
+        # Adjust values for '17_electricity' and '18_heat'
+        modern_renewables_df.loc[modern_renewables_df['fuels'].isin(['17_electricity', '18_heat']), 'value'] *= modern_renewables_df['share']
+        
+        # Drop the 'share' column before continuing to the aggregation part
+        modern_renewables_df.drop(columns=['share'], inplace=True)
+        
+        modern_renewables_df.to_csv('data/temp/error_checking/modern_renewables_df.csv', index=False)
+
+        fuel_aggregates_list = []
+        for cols_to_exclude in exclusion_sets:
+            excluded_cols = ['fuels', 'subfuels'] + cols_to_exclude
+            group_columns = [cat for cat in shared_categories if cat not in excluded_cols] + ['year']
+
+            # Aggregate '21_modern_renewables'
+            renewables_21 = modern_renewables_df.groupby(group_columns)['value'].sum().reset_index()
+            renewables_21['fuels'] = '21_modern_renewables'
+            for col in excluded_cols[1:]:
+                renewables_21[col] = 'x'
+
+            fuel_aggregates_list.append(renewables_21)
 
         fuel_aggregates = pd.concat(fuel_aggregates_list, ignore_index=True)
         
@@ -797,12 +848,38 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
         []
     ]
     
+    def replace_values_of_tfc_and_tfec(input_df):
+        # This inner function will operate on a DataFrame to replace 'value' as specified
+
+        # Identify the rows for summing up the 'value'
+        sum_df = input_df[input_df['sectors'].isin(['14_industry_sector', '15_transport_sector', '16_other_sector'])]
+        sum_df = sum_df.groupby(['year', 'scenarios', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'], as_index=False)['value'].sum().copy()
+
+        # Define a function to apply the sum to the 'value' column where sectors are '12_total_final_consumption' or '13_total_final_energy_consumption'
+        def apply_sum(row, sum_df):
+            if row['sectors'] in ['12_total_final_consumption', '13_total_final_energy_consumption']:
+                sum_row = sum_df[(sum_df['year'] == row['year']) & (sum_df['scenarios'] == row['scenarios']) & (sum_df['sub1sectors'] == row['sub1sectors']) & (sum_df['sub2sectors'] == row['sub2sectors']) & (sum_df['sub3sectors'] == row['sub3sectors']) & (sum_df['sub4sectors'] == row['sub4sectors'])]
+                if not sum_row.empty:
+                    return sum_row['value'].values[0]
+            return row['value']
+        
+        # Apply the function to the 'value' column
+        input_df['value'] = input_df.apply(apply_sum, axis=1, sum_df=sum_df)
+
+        return input_df
+    
     # Process each split DataFrame and concatenate
     fuel_aggregates_layout_19 = process_df_19_total(df_layout)
     fuel_aggregates_results_19 = process_df_19_total(df_results)
     fuel_aggregates_layout_20 = process_df_20_total_renewables(df_layout)
     fuel_aggregates_results_20 = process_df_20_total_renewables(df_results)
-    fuel_aggregates_df = pd.concat([fuel_aggregates_layout_19, fuel_aggregates_results_19, fuel_aggregates_layout_20, fuel_aggregates_results_20], ignore_index=True)
+    fuel_aggregates_layout_21 = process_df_21_modern_renewables(df_layout, fuel_aggregates_layout_19, fuel_aggregates_layout_20)
+    fuel_aggregates_layout_21_modified = replace_values_of_tfc_and_tfec(fuel_aggregates_layout_21)
+    fuel_aggregates_results_21 = process_df_21_modern_renewables(df_results, fuel_aggregates_results_19, fuel_aggregates_results_20)
+    fuel_aggregates_results_21_modified = replace_values_of_tfc_and_tfec(fuel_aggregates_results_21)
+    fuel_aggregates_df = pd.concat([fuel_aggregates_layout_19, fuel_aggregates_results_19,
+                                    fuel_aggregates_layout_20, fuel_aggregates_results_20,
+                                    fuel_aggregates_layout_21_modified, fuel_aggregates_results_21_modified], ignore_index=True)
 
     # Pivot the aggregated DataFrame
     fuel_aggregates_pivoted = fuel_aggregates_df.pivot_table(index=shared_categories, columns='year', values='value').reset_index()
@@ -878,7 +955,6 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     fuel_aggregates_pivoted['subtotal_layout'] = False
     fuel_aggregates_pivoted['subtotal_results'] = False
     
-    fuel_aggregates_pivoted.to_csv('data/temp/error_checking/fuel_aggregates_pivoted.csv', index=False)
     return fuel_aggregates_pivoted
 
 def load_previous_merged_df(results_data_path, expected_columns, previous_merged_df_filename):
