@@ -798,6 +798,10 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
         modern_renewables_df = modern_renewables_df[~modern_renewables_df['subfuels'].isin(['16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources', '16_x_hydrogen', '16_x_ammonia'])].copy()
         # Filter out biomass consumed in buildings and agriculture
         modern_renewables_df = modern_renewables_df[~((modern_renewables_df['fuels'] == '15_solid_biomass') & (modern_renewables_df['sectors'] == '16_other_sector'))].copy()
+        
+        # Filter out some subsectors
+        modern_renewables_df = modern_renewables_df[~((modern_renewables_df['sub1sectors'] == '09_04_electric_boilers') | (modern_renewables_df['sub2sectors'] == '10_01_02_gas_works_plants'))].copy()
+        
         # Filter out '12_total_final_consumption' and '13_total_final_energy_consumption' to exclude biomass consumed in buildings and agriculture
         # modern_renewables_df = modern_renewables_df[~((modern_renewables_df['sectors'] == '12_total_final_consumption') | (modern_renewables_df['sectors'] == '13_total_final_energy_consumption'))].copy()
 
@@ -1170,6 +1174,7 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
 
             # JPN file has some issues with the following rows
             missing_rows_exceptions_dict['19_heat_output_in_pj'] = {'_merge':'new_layout_df', 'economy':'08_JPN', 'sub1sectors':'19_02_heat_plants'}
+            # missing_rows_exceptions_dict['10_losses_and_own_use'] = {'_merge':'new_layout_df', 'economy':'08_JPN', 'sectors':'10_losses_and_own_use', 'sub1sectors':'10_02_transmision_and_distribution_losses', 'sub2sectors':'x'}
 
             #use the keys as column names to remove the rows in the dict:
             # for ignored_issue in missing_rows_exceptions_dict.keys():
