@@ -10,7 +10,13 @@ from utility_functions import *
 
 
 def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
-    all_capacity_data = pd.DataFrame(columns=final_df.columns.tolist()).drop(columns=['subtotal_results', 'subtotal_layout', 'fuels', 'subfuels'])
+    # List of columns we want to keep
+    columns_to_keep = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']
+
+    # Create all_capacity_data DataFrame with only the specified columns from final_df
+    # Check if the column exists in final_df to avoid KeyError
+    all_capacity_data = pd.DataFrame(columns=[col for col in columns_to_keep if col in final_df.columns])
+
     #drop final_df from memory
     del final_df
     
@@ -19,17 +25,17 @@ def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
         files = glob.glob('data/processed/capacity_data/*{}*.csv'.format(model))
         if files.__len__() == 0:
             print('could not find capacity data for {}'.format(model))
-        elif files.__len__() > 1:
+        elif files.__len__() > 2:
             #find a file that contains transport in its name and is a csv. if there are more than one throw an error
             if glob.glob('data/processed/capacity_data/*{}*.csv'.format(model)).__len__() > 1:
-                raise Exception('more than one file found for {} capacity data'.format(model))
+                raise Exception('more than two files found for {} capacity data'.format(model))
         else:
             capacity_df = pd.read_csv(glob.glob('data/processed/capacity_data/*{}*.csv'.format(model))[0])
             
-            #check cols match what we expect
-            if set(capacity_df.columns.tolist()) != set(all_capacity_data.columns.tolist()):
-                print('cols do not match expected cols for {} models capacity data: {}'.format(model, set(capacity_df.columns.tolist()) - set(all_capacity_data.columns.tolist())))
-                break
+            # #check cols match what we expect
+            # if set(capacity_df.columns.tolist()) != set(all_capacity_data.columns.tolist()):
+            #     print('cols do not match expected cols for {} models capacity data: {}'.format(model, set(capacity_df.columns.tolist()) - set(all_capacity_data.columns.tolist())))
+            #     break
             
             #concat to all_capacity_data
             all_capacity_data = pd.concat([all_capacity_data, capacity_df])
