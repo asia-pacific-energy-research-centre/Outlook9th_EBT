@@ -1127,6 +1127,7 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['USA_14_industry_sector'] = {'economy':'20_USA', 'sectors':'14_industry_sector', 'sub1sectors':'x', 'fuels':'07_petroleum_products', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['USA_10_losses_and_own_use'] = {'economy':'20_USA', 'sectors':'10_losses_and_own_use', 'fuels':'01_coal', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['USA_11_statistical_discrepancy'] = {'economy':'20_USA', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['USA_12_solar'] = {'economy':'20_USA', 'fuels':'12_solar', 'subfuels':'x'}
         
         # JPN file has some issues with the following rows
         bad_values_rows_exceptions_dict['JPN_09_total_transformation_sector'] = {'economy':'08_JPN', 'sectors':'09_total_transformation_sector', 'sub1sectors':'x', 'fuels':'12_solar', 'subfuels':'x'}
