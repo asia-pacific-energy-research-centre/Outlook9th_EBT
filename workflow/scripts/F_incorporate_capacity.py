@@ -17,41 +17,37 @@ def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
     # Check if the column exists in final_df to avoid KeyError
     all_capacity_data = pd.DataFrame(columns=[col for col in columns_to_keep if col in final_df.columns])
 
-    #drop final_df from memory
+    # Drop final_df from memory to free up space
     del final_df
     
     for model in ['power', 'transport']:
-        #read in the capacity data
-        files = glob.glob('data/processed/capacity_data/*{}*.csv'.format(model))
-        if files.__len__() == 0:
-            print('could not find capacity data for {}'.format(model))
-        elif files.__len__() > 2:
-            #find a file that contains transport in its name and is a csv. if there are more than one throw an error
-            if glob.glob('data/processed/capacity_data/*{}*.csv'.format(model)).__len__() > 1:
-                raise Exception('more than two files found for {} capacity data'.format(model))
+        # Read in the capacity data
+        pattern = f'data/processed/{SINGLE_ECONOMY_ID}/capacity_data/*{model}*.csv'
+        files = glob.glob(pattern)
+        if len(files) == 0:
+            print(f'Could not find capacity data for {model}')
         else:
-            capacity_df = pd.read_csv(glob.glob('data/processed/capacity_data/*{}*.csv'.format(model))[0])
-            
-            # #check cols match what we expect
-            # if set(capacity_df.columns.tolist()) != set(all_capacity_data.columns.tolist()):
-            #     print('cols do not match expected cols for {} models capacity data: {}'.format(model, set(capacity_df.columns.tolist()) - set(all_capacity_data.columns.tolist())))
-            #     break
-            
-            #concat to all_capacity_data
-            all_capacity_data = pd.concat([all_capacity_data, capacity_df])
+            for file in files:
+                capacity_df = pd.read_csv(file)
 
-    #save all_capacity_data
-        
+                # #check cols match what we expect
+                # if set(capacity_df.columns.tolist()) != set(all_capacity_data.columns.tolist()):
+                #     print('cols do not match expected cols for {} models capacity data: {}'.format(model, set(capacity_df.columns.tolist()) - set(all_capacity_data.columns.tolist())))
+                #     break
+
+                # Concatenate to all_capacity_data
+                all_capacity_data = pd.concat([all_capacity_data, capacity_df], ignore_index=True)
+
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY_ID}/capacity/'
     # Check if the folder already exists
-    if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
+    if not os.path.exists(folder_path) and isinstance(SINGLE_ECONOMY_ID, str):
         # If the folder doesn't exist, create it
         os.makedirs(folder_path)
 
-    #save the data to a new Excel file
+    # Save the data to a new Excel file
     date_today = datetime.now().strftime('%Y%m%d')
-    if (isinstance(SINGLE_ECONOMY_ID, str)):
+    if isinstance(SINGLE_ECONOMY_ID, str):
         all_capacity_data.to_csv(f'{folder_path}/capacity_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
     else:
         all_capacity_data.to_csv(f'results/capacity_{date_today}.csv', index=False)
