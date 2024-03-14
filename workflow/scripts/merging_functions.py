@@ -1135,6 +1135,7 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         # JPN file has some issues with the following rows
         bad_values_rows_exceptions_dict['JPN_09_total_transformation_sector'] = {'economy':'08_JPN', 'sectors':'09_total_transformation_sector', 'sub1sectors':'x', 'fuels':'12_solar', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['JPN_11_statistical_discrepancy'] = {'economy':'08_JPN', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['JPN_12_solar'] = {'economy':'08_JPN', 'fuels':'12_solar', 'subfuels':'x'}
         
         # CDA file has some issues with the following rows
         bad_values_rows_exceptions_dict['CDA_11_statistical_discrepancy'] = {'economy':'03_CDA', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
