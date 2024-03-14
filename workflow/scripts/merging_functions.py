@@ -1123,6 +1123,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['12_total_final_consumption'] = {'sectors':'12_total_final_consumption'}
         bad_values_rows_exceptions_dict['07_total_primary_energy_supply'] = {'sectors':'07_total_primary_energy_supply'}
 
+        # THA file has some issues with the following rows
+        bad_values_rows_exceptions_dict['THA_12_solar'] = {'economy':'19_THA', 'sectors':'01_production', 'sub1sectors':'x', 'fuels':'12_solar', 'subfuels':'x'}
+
         # USA file has some issues with the following rows
         bad_values_rows_exceptions_dict['USA_14_industry_sector'] = {'economy':'20_USA', 'sectors':'14_industry_sector', 'sub1sectors':'x', 'fuels':'07_petroleum_products', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['USA_10_losses_and_own_use'] = {'economy':'20_USA', 'sectors':'10_losses_and_own_use', 'fuels':'01_coal', 'subfuels':'x'}
