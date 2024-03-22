@@ -225,6 +225,10 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
 
     efuel = temp_for_new.copy()
     efuel['fuels'] = '16_x_efuel'
+    
+    # 17_X_green_hydrogen
+    green_hydrogen = temp_for_new.copy()
+    green_hydrogen['fuels'] = '17_x_green_hydrogen'
 
     # Concat 
     # - exclude the data that are used to do the aggregation 
@@ -247,7 +251,7 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
                                                                 '07_17_other_products'])]
 
     df_fuel_sector = pd.concat([df_fuel_sector, thermal_coal_g, other_hydrocarbons_g, jet_fuel_g, 
-                                other_petroleum_products_g, other_solar_g, hydrogen, ammonia,efuel], axis = 0)\
+                                other_petroleum_products_g, other_solar_g, hydrogen, ammonia, efuel, green_hydrogen], axis = 0)\
                                     .reset_index(drop = True)
 
     # Sectors
