@@ -1149,6 +1149,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['AUS_11_statistical_discrepancy'] = {'economy':'01_AUS', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['AUS_09_total_transformation_sector'] = {'economy':'01_AUS', 'sectors':'09_total_transformation_sector', 'fuels':'12_solar', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['AUS_18_electricity_output_in_gwh'] = {'economy':'01_AUS', 'sectors':'18_electricity_output_in_gwh', 'fuels':'12_solar', 'subfuels':'x'}
+        
+        # SGP file has some issues with the following rows
+        bad_values_rows_exceptions_dict['SGP_18_electricity_output_in_gwh'] = {'economy':'17_SGP', 'sectors':'18_electricity_output_in_gwh', 'subfuels':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
