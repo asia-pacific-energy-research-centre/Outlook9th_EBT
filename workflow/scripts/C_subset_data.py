@@ -204,9 +204,7 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
 
     # Hydrogen
     hyd_vector = ['09_13_hydrogen_transformation']
-    breakpoint()
     hyd_fuel = fuel_df.loc[:,'Hydrogen.1'].dropna()
-    breakpoint()
 
     # Comment this out to include '17_x_green_electricity' in hyd_fuels
     hyd_fuels = list(hyd_fuel[(hyd_fuel.str.count('\d') <= 2) & (hyd_fuel.str.contains('_x_') == False)])
@@ -222,14 +220,12 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     hyd_df = sixth_subset[sixth_subset['sub1sectors'].isin(hyd_vector)].copy()
 
     seventh_subset = sixth_subset[~sixth_subset['sub1sectors'].isin(hyd_vector)].copy()
-    breakpoint()
+
     hyd_df = hyd_df[(hyd_df['fuels'].isin(hyd_fuels)) &
                     (hyd_df['subfuels'].isin(hyd_subfuels))].copy()
 
     merged_df_clean_wide = pd.concat([seventh_subset, ine_df, trn_df, bld_df, ag_df,
                                     pow_df, ref_df, hyd_df]).copy().reset_index(drop = True)
-    
-    breakpoint()
 
     ############################################################################################################
     #TODO WHY DOES THIS NEED TO BE DONE? WHY ARE THEY NOT REQUESTED
