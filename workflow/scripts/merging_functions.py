@@ -96,7 +96,6 @@ def label_subtotals(results_layout_df, shared_categories):
     dupes = df_melted[df_melted.duplicated(subset=shared_categories+['year'], keep=False)]
     if dupes.shape[0] > 0:
         print('Found duplicates in subtotal input')
-        breakpoint()
     
     #make sure year is int
     df_melted['year'] = df_melted['year'].astype(int)
@@ -1139,10 +1138,12 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         
         # CDA file has some issues with the following rows
         bad_values_rows_exceptions_dict['CDA_11_statistical_discrepancy'] = {'economy':'03_CDA', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['CDA_12_solar'] = {'economy':'03_CDA', 'fuels':'12_solar', 'subfuels':'x'}
         
         # ROK file has some issues with the following rows
         bad_values_rows_exceptions_dict['ROK_11_statistical_discrepancy'] = {'economy':'09_ROK', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['ROK_19_heat_output_in_pj'] = {'economy':'09_ROK', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'x'}
+        bad_values_rows_exceptions_dict['ROK_12_solar'] = {'economy':'09_ROK', 'fuels':'12_solar', 'subfuels':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
@@ -1189,6 +1190,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             # JPN file has some issues with the following rows
             missing_rows_exceptions_dict['19_heat_output_in_pj'] = {'_merge':'new_layout_df', 'economy':'08_JPN', 'sub1sectors':'19_02_heat_plants'}
             # missing_rows_exceptions_dict['10_losses_and_own_use'] = {'_merge':'new_layout_df', 'economy':'08_JPN', 'sectors':'10_losses_and_own_use', 'sub1sectors':'10_02_transmision_and_distribution_losses', 'sub2sectors':'x'}
+            
+            # ROK file has some issues with the following rows
+            missing_rows_exceptions_dict['09_05_chemical_heat_for_electricity_production'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sub1sectors':'09_05_chemical_heat_for_electricity_production'}
 
             #use the keys as column names to remove the rows in the dict:
             # for ignored_issue in missing_rows_exceptions_dict.keys():
