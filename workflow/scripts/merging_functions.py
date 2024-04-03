@@ -1144,6 +1144,11 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['ROK_11_statistical_discrepancy'] = {'economy':'09_ROK', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['ROK_19_heat_output_in_pj'] = {'economy':'09_ROK', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'x'}
         bad_values_rows_exceptions_dict['ROK_12_solar'] = {'economy':'09_ROK', 'fuels':'12_solar', 'subfuels':'x'}
+        
+        # AUS file has some issues with the following rows
+        bad_values_rows_exceptions_dict['AUS_11_statistical_discrepancy'] = {'economy':'01_AUS', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['AUS_09_total_transformation_sector'] = {'economy':'01_AUS', 'sectors':'09_total_transformation_sector', 'fuels':'12_solar', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['AUS_18_electricity_output_in_gwh'] = {'economy':'01_AUS', 'sectors':'18_electricity_output_in_gwh', 'fuels':'12_solar', 'subfuels':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
@@ -1336,8 +1341,11 @@ def process_agriculture(excel_file, shared_categories, economy, OUTLOOK_BASE_YEA
     # Determine which sheets to process
     if 'Output' in wb.sheetnames:
         all_transformed_data = pd.concat([all_transformed_data, process_sheet('Output', excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict)])
+    
+    elif 'Agriculture Output' in wb.sheetnames:
+        all_transformed_data = pd.concat([all_transformed_data, process_sheet('Agriculture Output', excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict)])
 
-    if 'Agriculture Output' in wb.sheetnames and 'Fishing Output' in wb.sheetnames:
+    elif 'Agriculture Output' in wb.sheetnames and 'Fishing Output' in wb.sheetnames:
         agri_data = process_sheet('Agriculture Output', excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict)
         fish_data = process_sheet('Fishing Output', excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict)
 
