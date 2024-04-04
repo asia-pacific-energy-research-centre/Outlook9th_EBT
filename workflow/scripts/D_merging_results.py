@@ -58,7 +58,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
 
             # Check if 'agriculture' is in the file name (case-insensitive)
             if 'agriculture' in file.lower():
-                # Check if the last sheet is either 'output' or 'fishing output'
+                # Check if the last sheet is either 'output' or 'fishing output' or 'agriculture output'
                 last_sheet_name = xls.sheet_names[-1].lower()
                 if last_sheet_name == 'output' or last_sheet_name == 'fishing output' or last_sheet_name == 'agriculture output':
                     results_df = merging_functions.process_agriculture(file, shared_categories, economies, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR)

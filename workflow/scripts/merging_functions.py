@@ -1345,7 +1345,7 @@ def process_agriculture(excel_file, shared_categories, economy, OUTLOOK_BASE_YEA
     if 'Output' in wb.sheetnames:
         all_transformed_data = pd.concat([all_transformed_data, process_sheet('Output', excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict)])
     
-    elif 'Agriculture Output' in wb.sheetnames:
+    elif 'Agriculture Output' in wb.sheetnames and 'Fishing Output' not in wb.sheetnames:
         all_transformed_data = pd.concat([all_transformed_data, process_sheet('Agriculture Output', excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR, mapping_dict)])
 
     elif 'Agriculture Output' in wb.sheetnames and 'Fishing Output' in wb.sheetnames:
