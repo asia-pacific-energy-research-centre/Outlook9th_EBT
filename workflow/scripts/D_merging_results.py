@@ -174,7 +174,8 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     sector_mappings = [
         (['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '12_total_final_consumption'),
         (['14_industry_sector', '15_transport_sector', '16_other_sector'], '13_total_final_energy_consumption'),
-        (['01_production','02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers','05_international_aviation_bunkers', '09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy', '14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '07_total_primary_energy_supply')#'09_total_transformation_sector', #TODO IM NOT SURE IF IVE CALCUALTED TPES RIGHT 
+        (['01_production','02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers','05_international_aviation_bunkers', '09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy', '14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '07_total_primary_energy_supply'),#'09_total_transformation_sector', #TODO IM NOT SURE IF IVE CALCUALTED TPES RIGHT 
+        (['01_production', '09_total_transformation_sector'], '01_production')
         #'10_losses_and_own_use', '11_statistical_discrepancy',#,
         # (['09_total_transformation_sector'], '09_total_transformation_sector')
     ]
@@ -185,6 +186,9 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     for (sectors, aggregate_sector) in sector_mappings:
         sector_df = merging_functions.calculate_sector_aggregates(results_layout_df, sectors, aggregate_sector, shared_categories, shared_categories_w_subtotals)
         sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
+    
+    # Drop '01_production' from results_layout_df as it is included in sector_aggregates_df
+    results_layout_df = results_layout_df[results_layout_df['sectors'] != '01_production'].copy()
     
     # Calculate the subtotals in the sector aggregates
     sector_aggregates_df = merging_functions.calculating_subtotals_in_sector_aggregates(sector_aggregates_df, shared_categories_w_subtotals)

@@ -613,6 +613,25 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
                 print(f"No significant differences found in TPES calculation with {df_filtered.name} DataFrame.")
                 aggregated_df = tpes_bottom_up_df.copy()
             
+        elif aggregate_sector == '01_production':
+            if df_filtered.name == 'layout':
+                # Filter '01_production' for df_filtered_layout
+                aggregated_df = df_filtered[df_filtered['sectors'] == '01_production'].copy()
+            elif df_filtered.name == 'results':
+                # Filter '09_total_transformation_sector' for df_filtered_results
+                df_transformation = df_filtered[df_filtered['sectors'] == '09_total_transformation_sector'].copy()
+                df_filtered = df_filtered[df_filtered['sectors'] == '01_production'].copy()
+                # Change all values into positive
+                numeric_cols = df_transformation.select_dtypes(include=[np.number]).columns
+                df_transformation[numeric_cols] = df_transformation[numeric_cols].abs()
+                # Filter for just nuclear and the renewables
+                df_transformation = df_transformation[df_transformation['fuels'].isin(['09_nuclear', '10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass', '16_others'])].copy()
+                df_transformation = df_transformation[~df_transformation['subfuels'].isin(['16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources', '16_x_hydrogen', '16_x_ammonia'])].copy()
+                # Concatenate the two DataFrames
+                df_filtered = pd.concat([df_filtered, df_transformation], ignore_index=True)
+                # Group by key columns and sum the values
+                aggregated_df = df_filtered.groupby(key_cols).sum(numeric_only=True).reset_index().copy()
+            
         elif aggregate_sector in ['13_total_final_energy_consumption', '12_total_final_consumption']:#these also need to ahve values calcualted for fuel subtotals, like TPES
             # If not calculating total primary energy supply, just perform the grouping and sum
             aggregated_df = df_filtered.groupby(key_cols).sum(numeric_only=True).reset_index().copy()
@@ -895,6 +914,29 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     fuel_aggregates_df = pd.concat([fuel_aggregates_layout_19, fuel_aggregates_results_19,
                                     fuel_aggregates_layout_20, fuel_aggregates_results_20,
                                     fuel_aggregates_layout_21_modified, fuel_aggregates_results_21_modified], ignore_index=True)
+
+    ########################################################
+    # Temp fix for 19_total, 20_total_renewables and 21_modern_renewables in 01_production in projected years
+    fuel_aggregates_df = fuel_aggregates_df[~((fuel_aggregates_df['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (fuel_aggregates_df['sectors'] == '01_production') & (fuel_aggregates_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])))].copy()
+    breakpoint()
+    # Filter for 01_production and subfuels 'x'
+    df_production = df_melted[(df_melted['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (df_melted['sectors'] == '01_production') & (df_melted['subfuels'] == 'x')].copy()
+    # Sum the values for '19_total'
+    total_19_production = df_production.groupby([x for x in shared_categories + ['year'] if x != 'fuels'], as_index=False)['value'].sum().copy()
+    # Add 'fuels' column
+    total_19_production['fuels'] = '19_total'
+    # Filter for renewables
+    renewables_df = df_production[df_production['fuels'].isin(['10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass'])].copy()
+    # Sum the values for '20_total_renewables' and '21_modern_renewables'
+    renewables_production = renewables_df.groupby([x for x in shared_categories + ['year'] if x != 'fuels'], as_index=False)['value'].sum().copy()
+    # Add 'fuels' column
+    renewables_production['fuels'] = '20_total_renewables'
+    # Copy the DataFrame for '21_modern_renewables'
+    modern_renewables_production = renewables_production.copy()
+    modern_renewables_production['fuels'] = '21_modern_renewables'
+    # Concatenate the DataFrames back to fuel_aggregates_df
+    fuel_aggregates_df = pd.concat([fuel_aggregates_df, total_19_production, renewables_production, modern_renewables_production], ignore_index=True).copy()
+    ########################################################
 
     # Pivot the aggregated DataFrame
     fuel_aggregates_pivoted = fuel_aggregates_df.pivot_table(index=shared_categories, columns='year', values='value').reset_index()
