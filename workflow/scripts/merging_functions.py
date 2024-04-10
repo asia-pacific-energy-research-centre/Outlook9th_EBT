@@ -555,7 +555,7 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
             numeric_cols = tfc_df.select_dtypes(include=[np.number]).columns
             tfc_df[numeric_cols] = tfc_df[numeric_cols] * -1
             # Filter df to only include the transformation sector
-            transformation_sector_df = df_filtered[df_filtered['sectors'].isin(['09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy'])].copy()
+            transformation_sector_df = df_filtered[df_filtered['sectors'].isin(['08_transfers', '09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy'])].copy()
             # Concatenating the two DataFrames
             tpes_df = pd.concat([transformation_sector_df, tfc_df], ignore_index=True)
             tpes_bottom_up_df = tpes_df.groupby(key_cols).sum(numeric_only=True).reset_index()
@@ -915,7 +915,7 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
                                     fuel_aggregates_layout_20, fuel_aggregates_results_20,
                                     fuel_aggregates_layout_21_modified, fuel_aggregates_results_21_modified], ignore_index=True)
 
-    ########################################################
+    #######################################################
     # Temp fix for 19_total, 20_total_renewables and 21_modern_renewables in 01_production in projected years
     fuel_aggregates_df = fuel_aggregates_df[~((fuel_aggregates_df['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (fuel_aggregates_df['sectors'] == '01_production') & (fuel_aggregates_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])))].copy()
     breakpoint()
@@ -936,7 +936,7 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     modern_renewables_production['fuels'] = '21_modern_renewables'
     # Concatenate the DataFrames back to fuel_aggregates_df
     fuel_aggregates_df = pd.concat([fuel_aggregates_df, total_19_production, renewables_production, modern_renewables_production], ignore_index=True).copy()
-    ########################################################
+    #######################################################
 
     # Pivot the aggregated DataFrame
     fuel_aggregates_pivoted = fuel_aggregates_df.pivot_table(index=shared_categories, columns='year', values='value').reset_index()

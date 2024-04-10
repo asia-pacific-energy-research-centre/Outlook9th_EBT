@@ -214,6 +214,12 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # final_df with rows ordered in the same sequence as layout_df based on the columns in shared_categories
     final_df = layout_df[shared_categories].merge(final_df, on=shared_categories, sort=False)
     
+    #############################
+    # Temp fix for 01_production 15_solid_biomass and 16_others subtotal label
+    # Change TRUE to FALSE under 'subtotal_results' column if it's '01_production' in 'sectors' and '15_solid_biomass' or '16_others' in 'fuels'
+    final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['15_solid_biomass', '16_others'])), 'subtotal_results'] = False
+    #############################
+    
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY_ID}/merged'
     # Check if the folder already exists
