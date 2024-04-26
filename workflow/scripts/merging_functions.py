@@ -202,7 +202,7 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         breakpoint()  
     
     # Filter out rows with '12_x_other_solar' in 'subfuels'
-    melted_df = melted_df[melted_df['subfuels'] != '12_x_other_solar']
+    # melted_df = melted_df[melted_df['subfuels'] != '12_x_other_solar']
 
     # Save the dataframe before subtotal calculations
     melted_df.to_csv('melted_df_before_subtotals.csv', index=False)
@@ -213,7 +213,6 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     #then run it to calauclte a subtotl of each group, including the new subtotals for subsectors, where the subfuel is x. 
     subtotalled_results = pd.concat([subtotalled_results,calculate_subtotal_for_columns(pd.concat([subtotalled_results,melted_df]), ['subfuels'])], ignore_index=True)
     
-        
     # Fill 'x' for the aggregated levels as they will just be nas
     for col in sets_of_cols_to_sum[-1]:
         # Save the dataframe to CSV for inspection
@@ -918,7 +917,6 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     #######################################################
     # Temp fix for 19_total, 20_total_renewables and 21_modern_renewables in 01_production in projected years
     fuel_aggregates_df = fuel_aggregates_df[~((fuel_aggregates_df['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (fuel_aggregates_df['sectors'] == '01_production') & (fuel_aggregates_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])))].copy()
-    breakpoint()
     # Filter for 01_production and subfuels 'x'
     df_production = df_melted[(df_melted['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (df_melted['sectors'] == '01_production') & (df_melted['subfuels'] == 'x')].copy()
     # Sum the values for '19_total'
@@ -1194,6 +1192,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         
         # SGP file has some issues with the following rows
         bad_values_rows_exceptions_dict['SGP_18_electricity_output_in_gwh'] = {'economy':'17_SGP', 'sectors':'18_electricity_output_in_gwh', 'subfuels':'x'}
+        
+        # PRC file has some issues with the following rows
+        bad_values_rows_exceptions_dict['PRC_10_losses_and_own_use'] = {'economy':'05_PRC', 'sectors':'10_losses_and_own_use', 'fuels':'08_gas', 'subfuels':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
@@ -1243,6 +1244,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             
             # ROK file has some issues with the following rows
             missing_rows_exceptions_dict['09_05_chemical_heat_for_electricity_production'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sub1sectors':'09_05_chemical_heat_for_electricity_production'}
+            
+            # PRC file has some issues with the following rows
+            missing_rows_exceptions_dict['15_03_rail'] = {'_merge':'new_layout_df', 'economy':'05_PRC', 'sub1sectors':'15_03_rail', 'fuels':'01_coal', 'subfuels':'01_x_thermal_coal'}
 
             #use the keys as column names to remove the rows in the dict:
             # for ignored_issue in missing_rows_exceptions_dict.keys():
