@@ -133,7 +133,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
 
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
-    concatted_results_df.to_csv('data/temp/error_checking/concatted_results_df.csv')
+    # concatted_results_df.to_csv('data/temp/error_checking/concatted_results_df.csv')
     ##############################
     
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
@@ -156,7 +156,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     
     results_layout_df = merging_functions.format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df,missing_sectors_df)
     
-    results_layout_df.to_csv('results_layout_df_before_drop.csv')
+    # results_layout_df.to_csv('results_layout_df_before_drop.csv')
     
     #add subtotals to shared_categories now its in all the dfs
     shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']
@@ -168,7 +168,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     #and drop aggregate fuels since we will recalculate them
     results_layout_df = results_layout_df.loc[~results_layout_df['fuels'].isin(['19_total', '21_modern_renewables', '20_total_renewables'])].copy()
     
-    results_layout_df.to_csv('results_layout_df_after_drop.csv')
+    # results_layout_df.to_csv('results_layout_df_after_drop.csv')
 
     # Define a dictionary that maps each sector group to its corresponding total column
     sector_mappings = [
