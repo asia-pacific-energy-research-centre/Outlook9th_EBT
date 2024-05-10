@@ -221,11 +221,17 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
 
     seventh_subset = sixth_subset[~sixth_subset['sub1sectors'].isin(hyd_vector)].copy()
 
-    hyd_df = hyd_df[(hyd_df['fuels'].isin(hyd_fuels)) &
-                    (hyd_df['subfuels'].isin(hyd_subfuels))].copy()
+    hyd_df = hyd_df[(hyd_df['fuels'].isin(hyd_fuels)) & (hyd_df['subfuels'].isin(hyd_subfuels))].copy()
 
-    merged_df_clean_wide = pd.concat([seventh_subset, ine_df, trn_df, bld_df, ag_df,
-                                    pow_df, ref_df, hyd_df]).copy().reset_index(drop = True)
+    merged_df_clean_wide = pd.concat([seventh_subset, ine_df, trn_df, bld_df, ag_df, pow_df, ref_df, hyd_df]).copy().reset_index(drop = True)
+    
+    merged_df_clean_wide.to_csv('./data/temp/error_checking/merged_df_clean_wide_before_filter.csv', index = False)
+    # Drop rows where 'fuels' is '17_x_green_electricity' and 'sectors' is not '09_total_transformation'
+    condition = (merged_df_clean_wide['fuels'] == '17_x_green_electricity') & (merged_df_clean_wide['sectors'] != '09_total_transformation_sector')
+    merged_df_clean_wide = merged_df_clean_wide[~condition].copy()
+    # Set the values in the year columns to 0 only for rows where 'fuels' is '17_x_green_electricity'
+    merged_df_clean_wide.loc[merged_df_clean_wide['fuels'] == '17_x_green_electricity', year_list] = 0
+    merged_df_clean_wide.to_csv('./data/temp/error_checking/merged_df_clean_wide_after_filter.csv', index = False)
 
     ############################################################################################################
     #TODO WHY DOES THIS NEED TO BE DONE? WHY ARE THEY NOT REQUESTED
