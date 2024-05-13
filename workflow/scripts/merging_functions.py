@@ -88,7 +88,8 @@ def label_subtotals(results_layout_df, shared_categories):
     #####################################################################
     #SUBFUNCTION
     ######################################################################
-        
+    if 'is_subtotal' in results_layout_df.columns:
+        results_layout_df = results_layout_df.drop(columns=['is_subtotal'])
     # Melt the DataFrame
     df_melted = results_layout_df.melt(id_vars=shared_categories, var_name='year', value_name='value')
     
