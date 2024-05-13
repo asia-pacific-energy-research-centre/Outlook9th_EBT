@@ -8,11 +8,7 @@ import os
 import shutil
 
 #when we have new data from ESTO you will want to set this to False or None and run the data through the whole pipeline to get results/model_df_wide_' + date_today +'.csv' for modellers to use as an input
-<<<<<<< HEAD
-SINGLE_ECONOMY_ID_VAR = '05_PRC' #'19_THA'# '19_THA' #20_USA 03_CDA
-=======
 SINGLE_ECONOMY_ID_VAR = '03_CDA' #'19_THA'# '19_THA' #20_USA 03_CDA
->>>>>>> e191c10 (CDA)
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
 EBT_EARLIEST_YEAR = 1980
