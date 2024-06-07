@@ -24,6 +24,28 @@ The onus is on the modellers to ensure that their data is in the correct format,
 ### To do List:
 - consider whether we want 19_total fuel and also subtotals of fuels within 09_total_transformation. The creation of these totals creates confusing values since they are the sums of negatives (input_fuel) and positives (output_fuel), e.g. -natural_gas + lng
   
+  
+### Incorporating supply components repo into the EBT system:
+
+*Note that the supply components repo also contains scripts to project pipeline transport demand and transformation own use. But from hereon they will be referred to by their purpose or as 'supply components'. The supply component of the supply components repo will have it's purpose referred to as 'minor supply components'.*
+
+For the short term we have decided to include the supply components repo in the EBT system. This is because the supply components are simple scripts that dont need to be changed much, and it is easier to keep them in the same system as the EBTs so they dont need to be run manually. The code has been designed to be easily run separately using the output from the EBT system, so it is easy to separate them again if necessary. Some slight changes to the supply components system methodology were needed, although these changes only involved being more specific about the data that was used for calculations.
+
+These components will be run after the merging_results() function, to simulate the process of runnning the EBT system, giving the merged results to the modellers and then having the modeller run the supply components using those merged results (if the merged results dont have the necessary data the supply components will simply just calculate values using 0's). *note that this means that its important the EBT operator has all the correct data (e.g. all demand data for pipelines and trans_own_use_addon) in the data\modelled_data\ECONOMY_ID folder before running the supply components functions, because they will not get notified if this isnt the case.*
+
+At the end of running the supply components functions, the results will be saved into the data/modelled_data folder, simulating the modeller running the supply components process, saving the results into the integration folder and the EBT system operator then taking those results and putting them in the modelled_data folder. In the case of pipeline transport and transformation own use, the EBT operator would've needed to run the EBT as soon as this data is put into integration, however this process will also just run the merging_results() function again after running the supply components functions to automatically update the data. This makes the supply components functions very unobtrusive, even shortening the previous process!
+
+The supply components contains 3 scripts: 
+
+1. pipeline transport: 
+This takes in data from the EBT system and separates historical data from projection data. It then calculates the ratio of gas consumption to total consumption in the pipeline sector and uses this ratio to calculate the energy consumption (of gas, petroleum prods and electricity) in the pipeline sector for the projection years.  This was done after demand was modelled, because the energy used for pipeline transport is a function of the demand of gas.
+
+2. transformation, own use and nonspecified (trans_own_use_addon()):
+Much like the pipeline_transport function, this function takes in demand data from the EBT system and separates historical data from projection data. It then calculates the energy consumption in the calculates the energy used for other-transformation, own use and nonspecified for the projection years.  This is also only done after demand is modelled. 
+
+3. minor supply components:
+this script takes in the transformation and demand data and calculates the energy used for some minor supply components (e.g. biofuel supply). This is done after all transformation is modelled, at the same time as the supply modelling is done. *this could cause minor confusion for supply or transformation modellers if they accidentally think they need to use any of the outputs from this in their modelling. Although this doesnt seem likely, it is something to be aware of.*
+
 ## Using Conda
 
 ### Creating the Conda environment

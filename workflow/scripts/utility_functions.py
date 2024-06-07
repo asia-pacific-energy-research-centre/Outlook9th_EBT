@@ -8,7 +8,7 @@ import os
 import shutil
 
 #when we have new data from ESTO you will want to set this to False or None and run the data through the whole pipeline to get results/model_df_wide_' + date_today +'.csv' for modellers to use as an input
-SINGLE_ECONOMY_ID_VAR = '18_CT' #'19_THA'# '19_THA' #20_USA 03_CDA
+SINGLE_ECONOMY_ID_VAR = '05_PRC' #'19_THA'# '19_THA' #20_USA 03_CDA
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
 EBT_EARLIEST_YEAR = 1980
@@ -81,4 +81,49 @@ def move_files_to_archive_for_economy(LOCAL_FILE_PATH, economy):
             breakpoint()
             shutil.move(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/{file}', f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/archive/{file}')
 
-                
+
+def compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df):
+    #join the dfs on the index cols and then compare rows
+    joined_df = old_final_energy_df.merge(final_energy_df, on=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels', 'subtotal_layout', 'subtotal_results'], suffixes=('_old', '_new'), how='outer', indicator=True)
+    #compare the values in the rows as well as looking at the indicator column
+    not_both = joined_df[joined_df['_merge'] != 'both']
+    not_both.to_csv('not_both.csv')
+    #compare vallues by calcuating difference between the two values. keep rows where any of the values are different then keep those rows with all the cols
+    diff_cols = []
+    for col in joined_df.columns:
+        if col.endswith('_old'):
+            col_root = col[:-4]
+            joined_df[col_root + '_diff'] = joined_df[col] - joined_df[col_root + '_new']
+            diff_cols.append(col_root + '_diff')
+    #drop the rows that are not needed
+    joined_df = joined_df.drop(columns=['_merge'])
+    joined_df = joined_df[joined_df[diff_cols].sum(axis=1) != 0]
+    #reorder the columns so the diff cols are next to the cols ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels', 'subtotal_layout', 'subtotal_results']
+    cols = joined_df.columns.tolist()
+    cols = cols[:10] + diff_cols + cols[10:len(cols)-len(diff_cols)]
+    joined_df = joined_df[cols]
+    joined_df.to_csv('joined_df.csv')
+    
+
+def run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH, MOVE_OLD_FILES_TO_ARCHIVE=False):
+    """
+    This is really just meant for moving every economy's model_df_clean_wide df into {LOCAL_FILE_PATH}\Modelling\Integration\{ECONOMY_ID}\00_LayoutTemplate so the modellers can use it as a starting point for their modelling.
+    
+    it will remove the original files from the folder and move them to an archive folder in the same directory using the function utils.move_files_to_archive_for_economy(LOCAL_FILE_PATH, economy) if MOVE_OLD_FILES_TO_ARCHIVE is True
+    """
+    from main import main
+    file_date_id = datetime.now().strftime('%Y%m%d')
+    for economy in ALL_ECONOMY_IDS:
+        
+        if MOVE_OLD_FILES_TO_ARCHIVE:
+            move_files_to_archive_for_economy(LOCAL_FILE_PATH, economy)
+        final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(ONLY_RUN_UP_TO_MERGING = True, SINGLE_ECONOMY_ID=economy)
+        model_df_clean_wide.to_csv(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/model_df_wide_{economy}_{file_date_id}.csv', index=False)
+        
+        reference_df = model_df_clean_wide[model_df_clean_wide['scenarios'] == 'reference'].copy().reset_index(drop = True)
+        target_df = model_df_clean_wide[model_df_clean_wide['scenarios'] == 'target'].copy().reset_index(drop = True)
+        
+        reference_df.to_csv(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/model_df_wide_ref_{economy}_{file_date_id}.csv', index=False)
+        target_df.to_csv(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/model_df_wide_tgt_{economy}_{file_date_id}.csv', index=False)
+        print('Done run_main_up_to_merging_for_every_economy for ' + economy)
+        

@@ -32,13 +32,13 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
 
     if (isinstance(SINGLE_ECONOMY_ID, str)):
         # Define the path pattern for the results data files
-        results_data_path = 'data/demand_results_data/'+SINGLE_ECONOMY_ID+'/*'
+        results_data_path = 'data/modelled_data/'+SINGLE_ECONOMY_ID+'/*'
         print(results_data_path)
     else:
         print("Not implemented yet.")
 
     # Define the path pattern for the results data files
-    #results_data_path = 'data/demand_results_data/*'
+    #results_data_path = 'data/modelled_data/*'
     # Get a list of all matching results data file paths
     results_data_files = [f for f in glob.glob(results_data_path) if os.path.isfile(f)]
     # Check if results_data_files is empty
@@ -119,7 +119,6 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         basename = os.path.basename(file)
         filtered_results_df['origin'] = basename.split('.')[0]
         #the origin col is used because some data will come from two different results files, yet have the same sector and fuels columns but different levels of detail. This means that after we remove subtotals and then try to recreate them in calculate_subtotals, we might end up with duplicate rows. So we need to be able to identify that these rows came from different origin files so the duplicates can be removed by being summed together.
-        
         filtered_results_df_subtotals_labelled = merging_functions.label_subtotals(filtered_results_df, shared_categories + ['origin'])
         # Combine the results_df with all the other results_dfs we have read so far
         concatted_results_df = pd.concat([concatted_results_df, filtered_results_df_subtotals_labelled])
@@ -135,7 +134,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
     # concatted_results_df.to_csv('data/temp/error_checking/concatted_results_df.csv')
     ##############################
-    
+
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
     layout_df = layout_df[layout_df['economy'].isin(economies)].copy()
     #drop years in range(OUTLOOK_BASE_YEAR, OUTLOOK_BASE_YEAR+1) as we dont need it. This will help to speed up the process. 
@@ -145,6 +144,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     layout_df_subtotals_recalculated = merging_functions.calculate_subtotals(layout_df, shared_categories, DATAFRAME_ORIGIN='layout')
     
     ############################## 
+    
     trimmed_layout_df, missing_sectors_df = merging_functions.trim_layout_before_merging_with_results(layout_df_subtotals_recalculated,concatted_results_df)
     trimmed_concatted_results_df = merging_functions.trim_results_before_merging_with_layout(concatted_results_df, shared_categories)
     #rename subtotal columns before merging:
@@ -155,7 +155,6 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     merged_df = pd.merge(trimmed_layout_df, trimmed_concatted_results_df, on=shared_categories, how="outer", indicator=True)
     
     results_layout_df = merging_functions.format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df,missing_sectors_df)
-    
     # results_layout_df.to_csv('results_layout_df_before_drop.csv')
     
     #add subtotals to shared_categories now its in all the dfs
@@ -203,6 +202,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     fuel_aggregates_df = merging_functions.calculate_fuel_aggregates(sector_aggregates_df, results_layout_df, shared_categories)
     
     final_df = merging_functions.create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,results_layout_df, shared_categories)
+    
     #now check for issues with the new aggregates and subtotals by using the layout file as the reference    
     merging_functions.check_for_issues_by_comparing_to_layout_df(final_df, shared_categories_w_subtotals, new_aggregate_sectors, layout_df, REMOVE_LABELLED_SUBTOTALS=False)
     #######################################
