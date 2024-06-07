@@ -47,6 +47,7 @@ def label_subtotals(results_layout_df, shared_categories):
         
         ############################# 
         #if more than one value are not zero/nan for this group, then it could be a subtotal, if not, its a definite non-subtotal since its the most specific data we have for this group.
+        
         value_mask = (abs(df['value'])> 0)
         
         # Group by all columns except 'value' and sub_col and check how many values are >0 or <0 for that group
@@ -307,6 +308,13 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     #     breakpoint()
     ###################
     #make final_df wide
+    #check for duplicates
+    duplicates = final_df[final_df.duplicated(subset=shared_categories+['year'], keep=False)]
+    #if there are duplicates then save them to a csv so we can check them later and throw an error.
+    if duplicates.shape[0] > 0:
+        duplicates.to_csv('data/temp/error_checking/duplicates_in_subtotaled_df.csv', index=False)
+        breakpoint()
+        raise Exception("There are duplicates in the subtotaled DataFrame.")
     final_df_wide = final_df.pivot(index=shared_categories+['is_subtotal'], columns='year', values='value').reset_index()
     ###################
     try:
@@ -594,13 +602,11 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
                     for col in numeric_cols:
                         value1 = row[col]
                         value2 = corresponding_row[col].values[0]
-                        
                         # Check if both values are not NaN or zero, and if difference exceeds tolerance
                         if not (np.isnan(value1) or np.isnan(value2) or value1 == 0 or value2 == 0):
                             if np.abs(value1 - value2) > 100000:
                                 # Save the differing rows
-                                differences = differences.append(row)
-                                differences = differences.append(corresponding_row)
+                                differences = pd.concat([differences, pd.DataFrame([row]), corresponding_row])
 
             # Remove duplicates if any
             differences = differences.drop_duplicates()
@@ -1373,7 +1379,8 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
                 'subfuels': mapped_values['subfuels'],
                 **{str(year): row[year] for year in range(OUTLOOK_BASE_YEAR + 1, OUTLOOK_LAST_YEAR + 1)}
             }
-            transformed_data = transformed_data.append(new_row, ignore_index=True)
+            transformed_data = pd.concat([transformed_data, pd.DataFrame([new_row])], ignore_index=True)
+            # transformed_data = transformed_data.append(new_row, ignore_index=True)
 
         sheet_data = pd.concat([sheet_data, transformed_data])
 
@@ -1460,7 +1467,8 @@ def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OU
                 proportion_dict = {}
                 for _, row in summed.iterrows():
                     if row['subfuels'] != 'x':
-                        proportion = row['value'] / total_values.iloc[0]
+                        # proportion = row['value'] / total_values.iloc[0]
+                        proportion = row['value'] / total_values.iloc[0] if total_values.iloc[0] != 0 else 0
                         proportion_dict[row['subfuels']] = proportion
 
                 # Create new rows in df using the proportions
@@ -1472,7 +1480,9 @@ def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OU
                         new_row['subfuels'] = subfuel
                         for year in range(OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR+1):
                             new_row[str(year)] = new_row[str(year)] * proportion
-                        df = df.append(new_row, ignore_index=True)
+                        # Append the new row to df
+                        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)    
+                        # df = df.append(new_row, ignore_index=True)
         # Drop the total rows (with 'x' in 'subfuels') for the current fuel type
         df = df.drop(df[(df['fuels'] == fuel) & (df['subfuels'] == 'x')].index)
 

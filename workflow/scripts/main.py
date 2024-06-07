@@ -8,7 +8,9 @@ import E_calculate_emissions as E
 import F_incorporate_capacity as F
 import utility_functions as utils
 import merging_functions
+import supply_component_repo_functions
 from datetime import datetime
+import pandas as pd
 
 def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_ID_VAR):
     """
@@ -43,6 +45,14 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
     if (isinstance(SINGLE_ECONOMY_ID, str)) and not (ONLY_RUN_UP_TO_MERGING):#if we arent using a single economy we dont need to merge
         # Merge the results
         final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
+        print('\n ################################################# \nRunning supply component repo functions and merging_results right afterwards: \n')
+        supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
+        supply_component_repo_functions.trans_own_use_addon(SINGLE_ECONOMY_ID, final_energy_df)
+        supply_component_repo_functions.minor_supply_components(SINGLE_ECONOMY_ID, final_energy_df)
+        old_final_energy_df = final_energy_df.copy()
+        final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
+        # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
+        print('Done running supply component repo functions and merging_results \n################################################\n')
         
         #calc emissions:
         emissions_df = E.calculate_emissions(final_energy_df,SINGLE_ECONOMY_ID)
@@ -54,34 +64,15 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
     # Return the final DataFrame
     return final_energy_df, emissions_df, capacity_df, model_df_clean_wide
 
-def run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH, MOVE_OLD_FILES_TO_ARCHIVE=False):
-    """
-    This is really just meant for moving every economy's model_df_clean_wide df into {LOCAL_FILE_PATH}\Modelling\Integration\{ECONOMY_ID}\00_LayoutTemplate so the modellers can use it as a starting point for their modelling.
-    
-    it will remove the original files from the folder and move them to an archive folder in the same directory using the function utils.move_files_to_archive_for_economy(LOCAL_FILE_PATH, economy) if MOVE_OLD_FILES_TO_ARCHIVE is True
-    """
-    file_date_id = datetime.now().strftime('%Y%m%d')
-    for economy in utils.ALL_ECONOMY_IDS:
-        
-        if MOVE_OLD_FILES_TO_ARCHIVE:
-            utils.move_files_to_archive_for_economy(LOCAL_FILE_PATH, economy)
-        final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(ONLY_RUN_UP_TO_MERGING = True, SINGLE_ECONOMY_ID=economy)
-        model_df_clean_wide.to_csv(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/model_df_wide_{economy}_{file_date_id}.csv', index=False)
-        
-        reference_df = model_df_clean_wide[model_df_clean_wide['scenarios'] == 'reference'].copy().reset_index(drop = True)
-        target_df = model_df_clean_wide[model_df_clean_wide['scenarios'] == 'target'].copy().reset_index(drop = True)
-        
-        reference_df.to_csv(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/model_df_wide_ref_{economy}_{file_date_id}.csv', index=False)
-        target_df.to_csv(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/model_df_wide_tgt_{economy}_{file_date_id}.csv', index=False)
-        print('Done run_main_up_to_merging_for_every_economy for ' + economy)
-        
-    
 #%%
 # Run the main function and store the result
-final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main()
+if __name__ == "__main__":#this will allow us to import main into other scripts without running the code below
+    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main()
+    # test(SINGLE_ECONOMY_ID='20_USA')
 #C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th
-# run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th', MOVE_OLD_FILES_TO_ARCHIVE=True)
+# utils.run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th', MOVE_OLD_FILES_TO_ARCHIVE=True)
 
-# run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/hyuga.kasai/APERC/Outlook-9th - Modelling', MOVE_OLD_FILES_TO_ARCHIVE=True)
+# utils.run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/hyuga.kasai/APERC/Outlook-9th - Modelling', MOVE_OLD_FILES_TO_ARCHIVE=True)
 
 #%%
+# %%
