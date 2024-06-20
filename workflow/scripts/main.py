@@ -84,4 +84,4 @@ final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main()
 
 # run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/hyuga.kasai/APERC/Outlook-9th - Modelling', MOVE_OLD_FILES_TO_ARCHIVE=True)
 
-#%%
+#%% 
