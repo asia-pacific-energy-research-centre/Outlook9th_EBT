@@ -20,12 +20,25 @@ def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
     # Drop final_df from memory to free up space
     del final_df
     
-    for model in ['power', 'transport']:
+    ###################
+    #UNTIL ALL PREFIXES ARE CHANGED PERMANENTLY WE WILL DO THIS
+    done = False
+    pattern = f'data/processed/{SINGLE_ECONOMY_ID}/capacity_data/*'
+    files = glob.glob(pattern)
+    for file in files:
+        if 'EBT_capacity_' in file:
+            done = True
+            os.rename(file, file.replace('EBT_capacity_','EBT_generation_capacity_'))
+    if done:
+        print('################### \n changing gen capacity prefixes remember to drop this when its not needed anymore \n ###################')
+    ###################
+    
+    for sheet in ['generation_capacity', 'transport_stocks', 'transport_stock_shares', 'transport_activity']:
         # Read in the capacity data
-        pattern = f'data/processed/{SINGLE_ECONOMY_ID}/capacity_data/*{model}*.csv'
+        pattern = f'data/processed/{SINGLE_ECONOMY_ID}/capacity_data/*{sheet}*.csv'
         files = glob.glob(pattern)
         if len(files) == 0:
-            print(f'Could not find capacity data for {model}')
+            print(f'Could not find capacity data for {sheet}')
         else:
             for file in files:
                 capacity_df = pd.read_csv(file)
@@ -34,7 +47,11 @@ def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
                 # if set(capacity_df.columns.tolist()) != set(all_capacity_data.columns.tolist()):
                 #     print('cols do not match expected cols for {} models capacity data: {}'.format(model, set(capacity_df.columns.tolist()) - set(all_capacity_data.columns.tolist())))
                 #     break
-
+                #insert sheet name before the yearscols but after everything else
+                capacity_df['sheet'] = sheet
+                capacity_df = capacity_df[columns_to_keep + ['sheet'] + [col for col in capacity_df.columns if col not in columns_to_keep + ['sheet']]]
+                
+                
                 # Concatenate to all_capacity_data
                 all_capacity_data = pd.concat([all_capacity_data, capacity_df], ignore_index=True)
 
