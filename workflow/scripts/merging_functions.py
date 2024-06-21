@@ -613,8 +613,8 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
                 raise Exception(f"Differences found in TPES calculation with {df_filtered.name} DataFrame and saved to 'tpes_differences_{df_filtered.name}.csv'.")
             else:
                 print(f"No significant differences found in TPES calculation with {df_filtered.name} DataFrame.")
-                aggregated_df = tpes_top_down_df.copy()
-                # aggregated_df = tpes_bottom_up_df.copy()
+                # aggregated_df = tpes_top_down_df.copy()
+                aggregated_df = tpes_bottom_up_df.copy()
                 aggregated_df['subtotal_layout'] = False
                 aggregated_df['subtotal_results'] = False
             
@@ -1228,6 +1228,10 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         
         # PRC file has some issues with the following rows
         bad_values_rows_exceptions_dict['PRC_10_losses_and_own_use'] = {'economy':'05_PRC', 'sectors':'10_losses_and_own_use', 'fuels':'08_gas', 'subfuels':'x'}
+        
+        # NZ file has some issues with the following rows
+        bad_values_rows_exceptions_dict['NZ_11_statistical_discrepancy'] = {'economy':'12_NZ', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['NZ_14_industry_sector'] = {'economy':'12_NZ', 'sectors':'14_industry_sector', 'sub1sectors':'14_03_manufacturing', 'sub2sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
@@ -1337,6 +1341,7 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
     sheet = wb[sheet_name]
 
     sheet_data = pd.DataFrame()
+    missing_entries = []
 
     for scenario in ['REF', 'TGT']:
         # Initialize variables for the scenario range
@@ -1393,6 +1398,9 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
                 continue
 
             mapped_values = mapping_dict.get(row[energy_demand_header], {'fuels': 'Unknown', 'subfuels': 'Unknown'})
+            if mapped_values == {'fuels': 'Unknown', 'subfuels': 'Unknown'}:
+                missing_entries.append(row[energy_demand_header])
+
             new_row = {
                 'scenarios': 'reference' if scenario == 'REF' else 'target',
                 'economy': economy[0],
@@ -1408,6 +1416,12 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
             transformed_data = transformed_data.append(new_row, ignore_index=True)
 
         sheet_data = pd.concat([sheet_data, transformed_data])
+
+    # Save missing entries to a DataFrame and CSV
+    if missing_entries:
+        missing_df = pd.DataFrame(missing_entries, columns=['Missing Entries'])
+        missing_df.to_csv('data/temp/error_checking/agriculture_missing_entries.csv', index=False)
+        raise Exception(f"Missing entries found in {sheet_name}.")
 
     return sheet_data
 
