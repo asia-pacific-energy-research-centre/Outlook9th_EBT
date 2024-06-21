@@ -291,7 +291,7 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
 
     # Bunkers 
     b_vector = ['04_international_marine_bunkers', '05_international_aviation_bunkers']
-    b_fuels = ['07_petroleum_products', '16_others', '19_total', '20_total_renewables', '21_modern_renewables'] 
+    b_fuels = ['07_petroleum_products', '08_gas', '16_others', '19_total', '20_total_renewables', '21_modern_renewables'] 
 
     b_df = merged_df_clean_wide[merged_df_clean_wide['sectors'].isin(b_vector)].copy()
     nob_df = merged_df_clean_wide[~merged_df_clean_wide['sectors'].isin(b_vector)].copy()
