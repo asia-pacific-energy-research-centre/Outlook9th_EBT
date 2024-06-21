@@ -118,9 +118,15 @@ def pipeline_transport(economy, model_df_clean_wide):
         ratio_df.loc[1, 'fuels'] = '08_gas'
         ratio_df.loc[2, 'fuels'] = '17_electricity'
         
+        #check pipe df isnt all zeros. if it is then just skip. 
+        sum_vals = pipe_df[proj_years].sum().sum()
+        if sum_vals == 0:
+            print(f'{economy} {scenario} has no pipeline transport data. skipping its calculation.')
+            continue
         # Define ratio in most recent historical
         for year in [latest_hist] + proj_years_str:
             for fuel in relevant_fuels[:-1]:
+                breakpoint()
                 if pipe_df.loc[pipe_df['fuels'] == '19_total', latest_hist].values[0] == 0:
                     ratio_df.loc[ratio_df['fuels'] == fuel, year] = 0
                 else:
