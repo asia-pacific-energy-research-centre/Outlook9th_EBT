@@ -1238,6 +1238,15 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         # NZ file has some issues with the following rows
         bad_values_rows_exceptions_dict['NZ_11_statistical_discrepancy'] = {'economy':'12_NZ', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['NZ_14_industry_sector'] = {'economy':'12_NZ', 'sectors':'14_industry_sector', 'sub1sectors':'14_03_manufacturing', 'sub2sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        
+        # PNG file has some issues with the following rows
+        bad_values_rows_exceptions_dict['PNG_09_06_gas_processing_plants'] = {'economy':'13_PNG', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'08_gas', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['PNG_14_industry_sector'] = {'economy':'13_PNG', 'sectors':'14_industry_sector', 'fuels':'07_petroleum_products', 'subfuels':'x'}
+        
+        # HKC file has some issues with the following rows
+        bad_values_rows_exceptions_dict['HKC_11_statistical_discrepancy'] = {'economy':'06_HKC', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'08_gas', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['HKC_14_industry_sector'] = {'economy':'06_HKC', 'sectors':'14_industry_sector', 'fuels':'16_others', 'subfuels':'x'}
+        
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
