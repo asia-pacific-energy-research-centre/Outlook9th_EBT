@@ -47,6 +47,7 @@ def label_subtotals(results_layout_df, shared_categories):
         
         ############################# 
         #if more than one value are not zero/nan for this group, then it could be a subtotal, if not, its a definite non-subtotal since its the most specific data we have for this group.
+        
         value_mask = (abs(df['value'])> 0)
         
         # Group by all columns except 'value' and sub_col and check how many values are >0 or <0 for that group
@@ -88,7 +89,8 @@ def label_subtotals(results_layout_df, shared_categories):
     #####################################################################
     #SUBFUNCTION
     ######################################################################
-        
+    if 'is_subtotal' in results_layout_df.columns:
+        results_layout_df = results_layout_df.drop(columns=['is_subtotal'])
     # Melt the DataFrame
     df_melted = results_layout_df.melt(id_vars=shared_categories, var_name='year', value_name='value')
     
@@ -259,7 +261,7 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     merged_data['value_diff_pct'] = abs((merged_data['value'] - merged_data['value_new_subtotal']) / merged_data['value'])
     subtotals_with_different_values = merged_data[(merged_data['_merge'] == 'both') & (merged_data['value_diff_pct'] > EPSILON_PERCENT) & (merged_data['is_subtotal'] == True)].copy()
     
-    ###add some exceptions weve already dealt with:
+    ###add some exceptions were already dealt with:
     #drop any 14_industry_sector in sectors if the DATAFRAME_ORIGIN is results:
     if DATAFRAME_ORIGIN == 'results':
         subtotals_with_different_values = subtotals_with_different_values[subtotals_with_different_values['sectors'] != '14_industry_sector'].copy() 
@@ -306,6 +308,13 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     #     breakpoint()
     ###################
     #make final_df wide
+    #check for duplicates
+    duplicates = final_df[final_df.duplicated(subset=shared_categories+['year'], keep=False)]
+    #if there are duplicates then save them to a csv so we can check them later and throw an error.
+    if duplicates.shape[0] > 0:
+        duplicates.to_csv('data/temp/error_checking/duplicates_in_subtotaled_df.csv', index=False)
+        breakpoint()
+        raise Exception("There are duplicates in the subtotaled DataFrame.")
     final_df_wide = final_df.pivot(index=shared_categories+['is_subtotal'], columns='year', values='value').reset_index()
     ###################
     try:
@@ -567,15 +576,17 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
             # Calculate TPES top down
             # Filter df to only include the supply sectors
             supply_sectors_df = df_filtered[df_filtered['sectors'].isin(['01_production','02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers','05_international_aviation_bunkers'])].copy()
-            # Define TFC sectors and negate their values
-            negative_sectors = ['03_exports', '04_international_marine_bunkers','05_international_aviation_bunkers' ]
-            # Make the values in all numeric columns where the sector is a negative sector, negative
-            negative_df = supply_sectors_df[supply_sectors_df['sectors'].isin(negative_sectors)].copy()
-            numeric_cols = negative_df.select_dtypes(include=[np.number]).columns
-            negative_df[numeric_cols] *= -1
-            supply_df = pd.concat([supply_sectors_df[~supply_sectors_df['sectors'].isin(negative_sectors)], negative_df], ignore_index=True).copy()
+            # # Define TFC sectors and negate their values
+            # negative_sectors = ['03_exports', '04_international_marine_bunkers','05_international_aviation_bunkers' ]
+            # # Make the values in all numeric columns where the sector is a negative sector, negative (Don't need to do this as these values are already negative, so just multiply by 1 to keep them negative or take it out in the future)
+            # negative_df = supply_sectors_df[supply_sectors_df['sectors'].isin(negative_sectors)].copy()
+            # numeric_cols = negative_df.select_dtypes(include=[np.number]).columns
+            # negative_df[numeric_cols] *= 1
+            # supply_df = pd.concat([supply_sectors_df[~supply_sectors_df['sectors'].isin(negative_sectors)], negative_df], ignore_index=True).copy()
             
-            tpes_top_down_df = supply_df.groupby(key_cols).sum(numeric_only=True).reset_index()
+            # tpes_top_down_df = supply_df.groupby(key_cols).sum(numeric_only=True).reset_index()
+            
+            tpes_top_down_df = supply_sectors_df.groupby(key_cols).sum(numeric_only=True).reset_index().copy()
             
             # Identify numeric columns for comparison
             numeric_cols = tpes_top_down_df.select_dtypes(include=[np.number]).columns
@@ -593,13 +604,11 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
                     for col in numeric_cols:
                         value1 = row[col]
                         value2 = corresponding_row[col].values[0]
-                        
                         # Check if both values are not NaN or zero, and if difference exceeds tolerance
                         if not (np.isnan(value1) or np.isnan(value2) or value1 == 0 or value2 == 0):
                             if np.abs(value1 - value2) > 100000:
                                 # Save the differing rows
-                                differences = differences.append(row)
-                                differences = differences.append(corresponding_row)
+                                differences = pd.concat([differences, pd.DataFrame([row]), corresponding_row])
 
             # Remove duplicates if any
             differences = differences.drop_duplicates()
@@ -610,7 +619,10 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
                 raise Exception(f"Differences found in TPES calculation with {df_filtered.name} DataFrame and saved to 'tpes_differences_{df_filtered.name}.csv'.")
             else:
                 print(f"No significant differences found in TPES calculation with {df_filtered.name} DataFrame.")
+                # aggregated_df = tpes_top_down_df.copy()
                 aggregated_df = tpes_bottom_up_df.copy()
+                aggregated_df['subtotal_layout'] = False
+                aggregated_df['subtotal_results'] = False
             
         elif aggregate_sector == '01_production':
             if df_filtered.name == 'layout':
@@ -924,16 +936,43 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     # Add 'fuels' column
     total_19_production['fuels'] = '19_total'
     # Filter for renewables
-    renewables_df = df_production[df_production['fuels'].isin(['10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass'])].copy()
+    renewables_df_production = df_melted[(df_melted['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (df_melted['sectors'] == '01_production') & df_melted['fuels'].isin(['10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass', '16_others']) & (df_melted['subfuels'].isin(['16_01_biogas', '16_03_municipal_solid_waste_renewable', '16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_08_other_liquid_biofuels', 'x']))].copy()
+    # Drop if 'fuel' is '16_others' and 'subfuels' is 'x'
+    renewables_df_production = renewables_df_production[~((renewables_df_production['fuels'] == '16_others') & (renewables_df_production['subfuels'] == 'x'))].copy()
+    # renewables_df = df_production[df_production['fuels'].isin(['10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass'])].copy()
     # Sum the values for '20_total_renewables' and '21_modern_renewables'
-    renewables_production = renewables_df.groupby([x for x in shared_categories + ['year'] if x != 'fuels'], as_index=False)['value'].sum().copy()
-    # Add 'fuels' column
+    renewables_production = renewables_df_production.groupby([x for x in shared_categories + ['year'] if x not in ['fuels', 'subfuels']], as_index=False)['value'].sum().copy()
+    # Add 'fuels' column and 'subfuels' column
     renewables_production['fuels'] = '20_total_renewables'
+    renewables_production['subfuels'] = 'x'
     # Copy the DataFrame for '21_modern_renewables'
     modern_renewables_production = renewables_production.copy()
     modern_renewables_production['fuels'] = '21_modern_renewables'
     # Concatenate the DataFrames back to fuel_aggregates_df
     fuel_aggregates_df = pd.concat([fuel_aggregates_df, total_19_production, renewables_production, modern_renewables_production], ignore_index=True).copy()
+    
+    # Temp fix for 19_total, 20_total_renewables and 21_modern_renewables in 07_total_primary_energy_supply in projected years
+    fuel_aggregates_df = fuel_aggregates_df[~((fuel_aggregates_df['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (fuel_aggregates_df['sectors'] == '07_total_primary_energy_supply') & (fuel_aggregates_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])))].copy()
+    # Filter for 07_total_primary_energy_supply and subfuels 'x'
+    df_primary_energy_supply = df_melted[(df_melted['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (df_melted['sectors'] == '07_total_primary_energy_supply') & (df_melted['subfuels'] == 'x')].copy()
+    # Sum the values for '19_total'
+    total_19_primary_energy_supply = df_primary_energy_supply.groupby([x for x in shared_categories + ['year'] if x != 'fuels'], as_index=False)['value'].sum().copy()
+    # Add 'fuels' column
+    total_19_primary_energy_supply['fuels'] = '19_total'
+    # Filter for renewables
+    renewables_df_tpes = df_melted[(df_melted['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)) & (df_melted['sectors'] == '07_total_primary_energy_supply') & df_melted['fuels'].isin(['10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass', '16_others']) & (df_melted['subfuels'].isin(['16_01_biogas', '16_03_municipal_solid_waste_renewable', '16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_08_other_liquid_biofuels', 'x']))].copy()
+    # Drop if 'fuel' is '16_others' and 'subfuels' is 'x'
+    renewables_df_tpes = renewables_df_tpes[~((renewables_df_tpes['fuels'] == '16_others') & (renewables_df_tpes['subfuels'] == 'x'))].copy()
+    # Sum the values for '20_total_renewables' and '21_modern_renewables'
+    renewables_primary_energy_supply = renewables_df_tpes.groupby([x for x in shared_categories + ['year'] if x not in ['fuels', 'subfuels']], as_index=False)['value'].sum().copy()
+    # Add 'fuels' column and 'subfuels' column
+    renewables_primary_energy_supply['fuels'] = '20_total_renewables'
+    renewables_primary_energy_supply['subfuels'] = 'x'
+    # Copy the DataFrame for '21_modern_renewables'
+    modern_renewables_primary_energy_supply = renewables_primary_energy_supply.copy()
+    modern_renewables_primary_energy_supply['fuels'] = '21_modern_renewables'
+    # Concatenate the DataFrames back to fuel_aggregates_df
+    fuel_aggregates_df = pd.concat([fuel_aggregates_df, total_19_primary_energy_supply, renewables_primary_energy_supply, modern_renewables_primary_energy_supply], ignore_index=True).copy()
     #######################################################
 
     # Pivot the aggregated DataFrame
@@ -1195,6 +1234,19 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         
         # PRC file has some issues with the following rows
         bad_values_rows_exceptions_dict['PRC_10_losses_and_own_use'] = {'economy':'05_PRC', 'sectors':'10_losses_and_own_use', 'fuels':'08_gas', 'subfuels':'x'}
+        
+        # NZ file has some issues with the following rows
+        bad_values_rows_exceptions_dict['NZ_11_statistical_discrepancy'] = {'economy':'12_NZ', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['NZ_14_industry_sector'] = {'economy':'12_NZ', 'sectors':'14_industry_sector', 'sub1sectors':'14_03_manufacturing', 'sub2sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        
+        # PNG file has some issues with the following rows
+        bad_values_rows_exceptions_dict['PNG_09_06_gas_processing_plants'] = {'economy':'13_PNG', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'08_gas', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['PNG_14_industry_sector'] = {'economy':'13_PNG', 'sectors':'14_industry_sector', 'fuels':'07_petroleum_products', 'subfuels':'x'}
+        
+        # HKC file has some issues with the following rows
+        bad_values_rows_exceptions_dict['HKC_11_statistical_discrepancy'] = {'economy':'06_HKC', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'08_gas', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['HKC_14_industry_sector'] = {'economy':'06_HKC', 'sectors':'14_industry_sector', 'fuels':'16_others', 'subfuels':'x'}
+        
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
@@ -1304,6 +1356,7 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
     sheet = wb[sheet_name]
 
     sheet_data = pd.DataFrame()
+    missing_entries = []
 
     for scenario in ['REF', 'TGT']:
         # Initialize variables for the scenario range
@@ -1360,6 +1413,9 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
                 continue
 
             mapped_values = mapping_dict.get(row[energy_demand_header], {'fuels': 'Unknown', 'subfuels': 'Unknown'})
+            if mapped_values == {'fuels': 'Unknown', 'subfuels': 'Unknown'}:
+                missing_entries.append(row[energy_demand_header])
+
             new_row = {
                 'scenarios': 'reference' if scenario == 'REF' else 'target',
                 'economy': economy[0],
@@ -1372,10 +1428,21 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
                 'subfuels': mapped_values['subfuels'],
                 **{str(year): row[year] for year in range(OUTLOOK_BASE_YEAR + 1, OUTLOOK_LAST_YEAR + 1)}
             }
+<<<<<<< HEAD
             # transformed_data = transformed_data.append(new_row, ignore_index=True)
             transformed_data = pd.concat([transformed_data, pd.DataFrame([new_row])], ignore_index=True)
+=======
+            transformed_data = pd.concat([transformed_data, pd.DataFrame([new_row])], ignore_index=True)
+            # transformed_data = transformed_data.append(new_row, ignore_index=True)
+>>>>>>> 31ef2fa2504b458c653c38107cda4fba48ee83ce
 
         sheet_data = pd.concat([sheet_data, transformed_data])
+
+    # Save missing entries to a DataFrame and CSV
+    if missing_entries:
+        missing_df = pd.DataFrame(missing_entries, columns=['Missing Entries'])
+        missing_df.to_csv('data/temp/error_checking/agriculture_missing_entries.csv', index=False)
+        raise Exception(f"Missing entries found in {sheet_name}.")
 
     return sheet_data
 
@@ -1460,7 +1527,8 @@ def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OU
                 proportion_dict = {}
                 for _, row in summed.iterrows():
                     if row['subfuels'] != 'x':
-                        proportion = row['value'] / total_values.iloc[0]
+                        # proportion = row['value'] / total_values.iloc[0]
+                        proportion = row['value'] / total_values.iloc[0] if total_values.iloc[0] != 0 else 0
                         proportion_dict[row['subfuels']] = proportion
 
                 # Create new rows in df using the proportions
@@ -1472,8 +1540,14 @@ def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OU
                         new_row['subfuels'] = subfuel
                         for year in range(OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR+1):
                             new_row[str(year)] = new_row[str(year)] * proportion
+<<<<<<< HEAD
                         # df = df.append(new_row, ignore_index=True)
                         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+=======
+                        # Append the new row to df
+                        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)    
+                        # df = df.append(new_row, ignore_index=True)
+>>>>>>> 31ef2fa2504b458c653c38107cda4fba48ee83ce
         # Drop the total rows (with 'x' in 'subfuels') for the current fuel type
         df = df.drop(df[(df['fuels'] == fuel) & (df['subfuels'] == 'x')].index)
 
