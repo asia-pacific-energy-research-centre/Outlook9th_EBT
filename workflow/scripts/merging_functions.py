@@ -1428,13 +1428,8 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
                 'subfuels': mapped_values['subfuels'],
                 **{str(year): row[year] for year in range(OUTLOOK_BASE_YEAR + 1, OUTLOOK_LAST_YEAR + 1)}
             }
-<<<<<<< HEAD
-            # transformed_data = transformed_data.append(new_row, ignore_index=True)
-            transformed_data = pd.concat([transformed_data, pd.DataFrame([new_row])], ignore_index=True)
-=======
             transformed_data = pd.concat([transformed_data, pd.DataFrame([new_row])], ignore_index=True)
             # transformed_data = transformed_data.append(new_row, ignore_index=True)
->>>>>>> 31ef2fa2504b458c653c38107cda4fba48ee83ce
 
         sheet_data = pd.concat([sheet_data, transformed_data])
 

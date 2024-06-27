@@ -27,7 +27,7 @@ ALL_ECONOMY_IDS = ["01_AUS", "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "0
 def set_working_directory():
     # Change the working drive
     wanted_wd = 'Outlook9th_EBT'
-    os.chdir(re.split(wanted_wd, os.getcwd())[0] + wanted_wd)
+    os.chdir(re.split(wanted_wd, os.getcwd())[0] + '/' + wanted_wd)
 
 def find_most_recent_file_date_id(directory_path):
     """Find the most recent file in a directory based on the date ID in the filename."""
