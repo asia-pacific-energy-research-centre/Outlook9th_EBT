@@ -1372,7 +1372,8 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
                 'subfuels': mapped_values['subfuels'],
                 **{str(year): row[year] for year in range(OUTLOOK_BASE_YEAR + 1, OUTLOOK_LAST_YEAR + 1)}
             }
-            transformed_data = transformed_data.append(new_row, ignore_index=True)
+            # transformed_data = transformed_data.append(new_row, ignore_index=True)
+            transformed_data = pd.concat([transformed_data, pd.DataFrame([new_row])], ignore_index=True)
 
         sheet_data = pd.concat([sheet_data, transformed_data])
 
@@ -1471,7 +1472,8 @@ def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OU
                         new_row['subfuels'] = subfuel
                         for year in range(OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR+1):
                             new_row[str(year)] = new_row[str(year)] * proportion
-                        df = df.append(new_row, ignore_index=True)
+                        # df = df.append(new_row, ignore_index=True)
+                        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         # Drop the total rows (with 'x' in 'subfuels') for the current fuel type
         df = df.drop(df[(df['fuels'] == fuel) & (df['subfuels'] == 'x')].index)
 
