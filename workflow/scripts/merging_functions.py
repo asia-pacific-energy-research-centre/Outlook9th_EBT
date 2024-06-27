@@ -1535,14 +1535,9 @@ def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OU
                         new_row['subfuels'] = subfuel
                         for year in range(OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR+1):
                             new_row[str(year)] = new_row[str(year)] * proportion
-<<<<<<< HEAD
-                        # df = df.append(new_row, ignore_index=True)
-                        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-=======
                         # Append the new row to df
                         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)    
                         # df = df.append(new_row, ignore_index=True)
->>>>>>> 31ef2fa2504b458c653c38107cda4fba48ee83ce
         # Drop the total rows (with 'x' in 'subfuels') for the current fuel type
         df = df.drop(df[(df['fuels'] == fuel) & (df['subfuels'] == 'x')].index)
 
