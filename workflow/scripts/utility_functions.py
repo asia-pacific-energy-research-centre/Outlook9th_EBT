@@ -8,7 +8,7 @@ import os
 import shutil
 
 #when we have new data from ESTO you will want to set this to False or None and run the data through the whole pipeline to get results/model_df_wide_' + date_today +'.csv' for modellers to use as an input
-SINGLE_ECONOMY_ID_VAR = '17_SGP' #'19_THA'# '19_THA' #20_USA 03_CDA
+SINGLE_ECONOMY_ID_VAR = '00_APEC' #'19_THA'# '19_THA' #20_USA 03_CDA
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
 EBT_EARLIEST_YEAR = 1980
@@ -23,6 +23,8 @@ FUEL_LAYOUT_SHEET = 'fuel_layout_20230329'
 ESTO_DATA_FILENAME = '00APEC_January2024'
 
 ALL_ECONOMY_IDS = ["01_AUS", "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN"]
+
+AGGREGATE_ECONOMIES = ['00_APEC', '22_SEA', '23_NEA', '23b_ONEA', '24_OAM', '25_OCE']
 
 def set_working_directory():
     # Change the working drive
