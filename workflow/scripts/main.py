@@ -6,6 +6,7 @@ import C_subset_data as C
 import D_merging_results as D
 import E_calculate_emissions as E
 import F_incorporate_capacity as F
+import G_aggregate_economies as G
 import utility_functions as utils
 import merging_functions
 import supply_component_repo_functions
@@ -33,34 +34,40 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
     # Set the working directory
     utils.set_working_directory()
     
-    # Perform initial read and save
-    df_no_year_econ_index = A.initial_read_and_save(SINGLE_ECONOMY_ID)
-    
-    # Create energy DataFrame
-    model_df_clean_wide = B.create_energy_df(df_no_year_econ_index, SINGLE_ECONOMY_ID)
-    
-    # Subset the data
-    model_df_clean_wide = C.subset_data(model_df_clean_wide, SINGLE_ECONOMY_ID)
-    
-    if (isinstance(SINGLE_ECONOMY_ID, str)) and not (ONLY_RUN_UP_TO_MERGING):#if we arent using a single economy we dont need to merge
-        # Merge the results
-        final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
-        print('\n ################################################# \nRunning supply component repo functions and merging_results right afterwards: \n')
-        supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
-        supply_component_repo_functions.trans_own_use_addon(SINGLE_ECONOMY_ID, final_energy_df)
-        supply_component_repo_functions.minor_supply_components(SINGLE_ECONOMY_ID, final_energy_df)
-        old_final_energy_df = final_energy_df.copy()
-        final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
-        # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
-        print('Done running supply component repo functions and merging_results \n################################################\n')
-        
-        #calc emissions:
-        emissions_df = E.calculate_emissions(final_energy_df,SINGLE_ECONOMY_ID)
-        
-        #calc capacity
-        capacity_df = F.incorporate_capacity_data(final_energy_df,SINGLE_ECONOMY_ID)
+    # Check if SINGLE_ECONOMY_ID is in utils.AGGREGATE_ECONOMIES
+    if SINGLE_ECONOMY_ID in utils.AGGREGATE_ECONOMIES:
+        # Run the aggregation function
+        G.aggregate_economies(SINGLE_ECONOMY_ID)
+        return None, None, None, None
     else:
-        return None, None, None, model_df_clean_wide
+        # Perform initial read and save
+        df_no_year_econ_index = A.initial_read_and_save(SINGLE_ECONOMY_ID)
+        
+        # Create energy DataFrame
+        model_df_clean_wide = B.create_energy_df(df_no_year_econ_index, SINGLE_ECONOMY_ID)
+        
+        # Subset the data
+        model_df_clean_wide = C.subset_data(model_df_clean_wide, SINGLE_ECONOMY_ID)
+        
+        if (isinstance(SINGLE_ECONOMY_ID, str)) and not (ONLY_RUN_UP_TO_MERGING):#if we arent using a single economy we dont need to merge
+            # Merge the results
+            final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
+            print('\n ################################################# \nRunning supply component repo functions and merging_results right afterwards: \n')
+            supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
+            supply_component_repo_functions.trans_own_use_addon(SINGLE_ECONOMY_ID, final_energy_df)
+            supply_component_repo_functions.minor_supply_components(SINGLE_ECONOMY_ID, final_energy_df)
+            old_final_energy_df = final_energy_df.copy()
+            final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
+            # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
+            print('Done running supply component repo functions and merging_results \n################################################\n')
+            
+            #calc emissions:
+            emissions_df = E.calculate_emissions(final_energy_df,SINGLE_ECONOMY_ID)
+            
+            #calc capacity
+            capacity_df = F.incorporate_capacity_data(final_energy_df,SINGLE_ECONOMY_ID)
+        else:
+            return None, None, None, model_df_clean_wide
     # Return the final DataFrame
     return final_energy_df, emissions_df, capacity_df, model_df_clean_wide
 
