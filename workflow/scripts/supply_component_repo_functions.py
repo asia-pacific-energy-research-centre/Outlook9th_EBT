@@ -22,6 +22,7 @@ def pipeline_transport(economy, model_df_clean_wide):
     The function saves the results in a CSV file in the Outlook9th_EBT\data\modelled_data folder for automatic use by the EBT process.
     """
     # 2022 and beyond
+    historical_years = list(range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1, 1))
     proj_years = list(range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1, 1))
     proj_years_str = [str(i) for i in proj_years]
 
@@ -117,16 +118,19 @@ def pipeline_transport(economy, model_df_clean_wide):
         ratio_df.loc[0, 'fuels'] = '07_petroleum_products'
         ratio_df.loc[1, 'fuels'] = '08_gas'
         ratio_df.loc[2, 'fuels'] = '17_electricity'
-        
+        breakpoint()
         #check pipe df isnt all zeros. if it is then just skip. 
-        sum_vals = pipe_df[proj_years].sum().sum()
-        if sum_vals == 0:
-            print(f'{economy} {scenario} has no pipeline transport data. skipping its calculation.')
-            continue
+        sum_vals_proj = tfc_df[proj_years].sum().sum()
+        sum_vals_hist = pipe_df[historical_years].sum().sum()
+        if sum_vals_proj == 0:
+            if sum_vals_hist == 0:
+                print(f'{economy} {scenario} has no pipeline transport data. skipping its calculation.')
+                continue
+            else:
+                raise Exception(f'{economy} {scenario} has no projected pipeline transport data but has historical data. This is not expected. Note that it could be because an economy had pipeline demand in the past but no longer has it. If this is the case then add an exception to the code to skip this economy.')
         # Define ratio in most recent historical
         for year in [latest_hist] + proj_years_str:
             for fuel in relevant_fuels[:-1]:
-                breakpoint()
                 if pipe_df.loc[pipe_df['fuels'] == '19_total', latest_hist].values[0] == 0:
                     ratio_df.loc[ratio_df['fuels'] == fuel, year] = 0
                 else:
@@ -180,7 +184,7 @@ def pipeline_transport(economy, model_df_clean_wide):
 
         #save to a folder to keep copies of the results
         pipe_df.to_csv(save_location + economy + '_pipeline_transport_' + scenario + '_' + timestamp + '.csv', index = False)
-        
+        breakpoint()
         #and save them to modelled_data folder too. but only after removing the latest version of the file
         for file in os.listdir(f'./data/modelled_data/{economy}/'):
             if re.search(economy + '_pipeline_transport_' + scenario, file):
