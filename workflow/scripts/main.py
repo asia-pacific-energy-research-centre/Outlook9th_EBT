@@ -53,10 +53,7 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             # Merge the results
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
             print('\n ################################################# \nRunning supply component repo functions and merging_results right afterwards: \n')
-            try:
-                supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
-            except:
-                breakpoint()
+            supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.trans_own_use_addon(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.minor_supply_components(SINGLE_ECONOMY_ID, final_energy_df)
             old_final_energy_df = final_energy_df.copy()
@@ -73,7 +70,6 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             return None, None, None, model_df_clean_wide
     # Return the final DataFrame
     return final_energy_df, emissions_df, capacity_df, model_df_clean_wide
-
 #%%
 # Run the main function and store the result
 if __name__ == "__main__":#this will allow us to import main into other scripts without running the code below
