@@ -57,10 +57,35 @@ def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
 
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY_ID}/capacity/'
+    old_folder_path = f'{folder_path}/old'
     # Check if the folder already exists
     if not os.path.exists(folder_path) and isinstance(SINGLE_ECONOMY_ID, str):
         # If the folder doesn't exist, create it
         os.makedirs(folder_path)
+
+    # Check if the old folder exists
+    if not os.path.exists(old_folder_path):
+        # If the old folder doesn't exist, create it
+        os.makedirs(old_folder_path)
+
+    # Identify the previous capacity file
+    previous_capacity_filename = None
+    if os.path.exists(folder_path):
+        for file in os.listdir(folder_path):
+            if file.startswith(f'capacity_{SINGLE_ECONOMY_ID}') and file.endswith('.csv'):
+                previous_capacity_filename = file
+                break
+
+    # Move the old capacity file to the 'old' folder if it exists
+    if previous_capacity_filename:
+        old_file_path = f'{folder_path}/{previous_capacity_filename}'
+        new_old_file_path = f'{old_folder_path}/{previous_capacity_filename}'
+        
+        # Remove the old file in the 'old' folder if it exists
+        if os.path.exists(new_old_file_path):
+            os.remove(new_old_file_path)
+        
+        os.rename(old_file_path, new_old_file_path)
 
     # Save the data to a new Excel file
     date_today = datetime.now().strftime('%Y%m%d')

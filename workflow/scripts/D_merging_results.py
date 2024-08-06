@@ -239,12 +239,37 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY_ID}/merged'
+    old_folder_path = f'{folder_path}/old'
     # Check if the folder already exists
     if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
         # If the folder doesn't exist, create it
         os.makedirs(folder_path)
     
+    # Check if the old folder exists
+    if not os.path.exists(old_folder_path):
+        # If the old folder doesn't exist, create it
+        os.makedirs(old_folder_path)
+    
     merging_functions.compare_to_previous_merge(final_df, shared_categories_w_subtotals, results_data_path=folder_path,previous_merged_df_filename=previous_merged_df_filename, new_subtotal_columns=['subtotal_layout', 'subtotal_results'], previous_subtotal_columns=['subtotal_historic','subtotal_predicted','subtotal'])
+
+    # Identify the previous merged file
+    previous_merged_df_filename = None
+    if os.path.exists(folder_path):
+        for file in os.listdir(folder_path):
+            if file.startswith(f'merged_file_energy_{SINGLE_ECONOMY_ID}') and file.endswith('.csv'):
+                previous_merged_df_filename = file
+                break
+
+    # Move the old merged file to the 'old' folder if it exists
+    if previous_merged_df_filename:
+        old_file_path = f'{folder_path}/{previous_merged_df_filename}'
+        new_old_file_path = f'{old_folder_path}/{previous_merged_df_filename}'
+        
+        # Remove the old file in the 'old' folder if it exists
+        if os.path.exists(new_old_file_path):
+            os.remove(new_old_file_path)
+        
+        os.rename(old_file_path, new_old_file_path)
 
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
@@ -253,7 +278,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         final_df.to_csv(f'{folder_path}/merged_file_energy_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
     else:
         final_df.to_csv(f'results/merged_file_energy_{date_today}.csv', index=False)
-        
+    
     return final_df
 
 

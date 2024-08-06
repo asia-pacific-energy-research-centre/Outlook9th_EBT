@@ -1247,6 +1247,12 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['HKC_11_statistical_discrepancy'] = {'economy':'06_HKC', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'08_gas', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['HKC_14_industry_sector'] = {'economy':'06_HKC', 'sectors':'14_industry_sector', 'fuels':'16_others', 'subfuels':'x'}
         
+        # BD file has some issues with the following rows
+        bad_values_rows_exceptions_dict['BD_08_transfers'] = {'economy':'02_BD', 'sectors':'08_transfers', 'sub1sectors':'x', 'fuels':'07_petroleum_products', 'subfuels':'x'}
+        
+        # RUS file has some issues with the following rows
+        bad_values_rows_exceptions_dict['RUS_11_statistical_discrepancy'] = {'economy':'16_RUS', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['RUS_19_heat_output_in_pj'] = {'economy':'16_RUS', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
@@ -1299,6 +1305,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             
             # PRC file has some issues with the following rows
             missing_rows_exceptions_dict['15_03_rail'] = {'_merge':'new_layout_df', 'economy':'05_PRC', 'sub1sectors':'15_03_rail', 'fuels':'01_coal', 'subfuels':'01_x_thermal_coal'}
+            
+            # BD file has some issues with the following rows
+            missing_rows_exceptions_dict['11_statistical_discrepancy'] = {'_merge':'new_layout_df', 'economy':'02_BD', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'21_modern_renewables', 'subfuels':'x'}
 
             #use the keys as column names to remove the rows in the dict:
             # for ignored_issue in missing_rows_exceptions_dict.keys():

@@ -22,6 +22,8 @@ def pipeline_transport(economy, model_df_clean_wide):
     The function saves the results in a CSV file in the Outlook9th_EBT\data\modelled_data folder for automatic use by the EBT process.
     """
     # 2022 and beyond
+    historical_years = list(range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1, 1))
+    historical_years_str = [str(i) for i in historical_years]
     proj_years = list(range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1, 1))
     proj_years_str = [str(i) for i in proj_years]
 
@@ -113,71 +115,93 @@ def pipeline_transport(economy, model_df_clean_wide):
         pipe_df = pipe_df.fillna(0)
     
         # Define ratio dataframe
-        ratio_df = pd.DataFrame(columns = ['fuels', latest_hist] + proj_years_str)
+        ratio_df = pd.DataFrame(columns = ['fuels', latest_hist] + proj_years)
         ratio_df.loc[0, 'fuels'] = '07_petroleum_products'
         ratio_df.loc[1, 'fuels'] = '08_gas'
         ratio_df.loc[2, 'fuels'] = '17_electricity'
-        
+
         #check pipe df isnt all zeros. if it is then just skip. 
-        sum_vals = pipe_df[proj_years].sum().sum()
-        if sum_vals == 0:
-            print(f'{economy} {scenario} has no pipeline transport data. skipping its calculation.')
-            continue
-        # Define ratio in most recent historical
-        for year in [latest_hist] + proj_years_str:
-            for fuel in relevant_fuels[:-1]:
-                breakpoint()
+        sum_vals_proj = tfc_df[proj_years].sum().sum()
+        sum_vals_hist = pipe_df[historical_years].sum().sum()
+        if sum_vals_proj == 0:
+            if sum_vals_hist == 0:
+                print(f'{economy} {scenario} has no pipeline transport data. skipping its calculation.')
+                continue
+            else:
+                raise Exception(f'{economy} {scenario} has no projected pipeline transport data but has historical data. This is not expected. Note that it could be because an economy had pipeline demand in the past but no longer has it. If this is the case then add an exception to the code to skip this economy.')
+        # Calculate initial ratios for the most recent historical year and projection years
+        for year in [latest_hist] + proj_years:
+            for fuel in relevant_fuels[:-1]:  # Exclude '19_total' from relevant fuels
                 if pipe_df.loc[pipe_df['fuels'] == '19_total', latest_hist].values[0] == 0:
+                    # If the total consumption for the latest historical year is zero, set ratio to zero
                     ratio_df.loc[ratio_df['fuels'] == fuel, year] = 0
                 else:
-                    ratio_df.loc[ratio_df['fuels'] == fuel, year] = pipe_df.loc[pipe_df['fuels'] == fuel, latest_hist].values[0] /\
+                    # Calculate the ratio of fuel consumption to total consumption for the latest historical year
+                    ratio_df.loc[ratio_df['fuels'] == fuel, year] = (
+                        pipe_df.loc[pipe_df['fuels'] == fuel, latest_hist].values[0] /
                         pipe_df.loc[pipe_df['fuels'] == '19_total', latest_hist].values[0]
+                    )
 
-        pipe_df = pipe_df.drop([3]).copy().reset_index(drop = True)
+        # Drop the '19_total' row as it's not needed for further calculations
+        pipe_df = pipe_df.drop([3]).copy().reset_index(drop=True)
 
-        # Incorporate fuel switching
-        # int_start = int(proj_years_str[0])
-        fs_full = scenario_dict[scenario][2]
-        fs_half = fs_full / 2
-        
+        # Fuel switching parameters
+        fs_full = scenario_dict[scenario][2]  # Full fuel switching ratio for electricity
+        fs_half = fs_full / 2  # Half fuel switching ratio for petroleum products and gas
+
+        # Apply fuel switching for each projection year
         for year in proj_years:
+            # Increase electricity ratio until it reaches 1
             if ratio_df.loc[ratio_df['fuels'] == '17_electricity', year - 1].values[0] <= (1 - fs_full):
-                ratio_df.loc[ratio_df['fuels'] == '17_electricity', year] = ratio_df.loc[ratio_df['fuels'] == '17_electricity', year - 1].values[0] + fs_full
+                ratio_df.loc[ratio_df['fuels'] == '17_electricity', year] = (
+                    ratio_df.loc[ratio_df['fuels'] == '17_electricity', year - 1].values[0] + fs_full
+                )
             else:
                 ratio_df.loc[ratio_df['fuels'] == '17_electricity', year] = 1
-                
-            if (ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] >= fs_half) & \
-                (ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] >= fs_half):
-                
-                ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year] = ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] - fs_half
-                ratio_df.loc[ratio_df['fuels'] == '08_gas', year] = ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] - fs_half
-            
+
+            # Decrease petroleum products and gas ratios if both are above the half switching ratio
+            if (ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] >= fs_half) and \
+            (ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] >= fs_half):
+                ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year] = (
+                    ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] - fs_half
+                )
+                ratio_df.loc[ratio_df['fuels'] == '08_gas', year] = (
+                    ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] - fs_half
+                )
+
+            # Set ratio to zero if it falls below the half switching ratio
             if ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] < fs_half:
                 ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year] = 0
-
             if ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] < fs_half:
                 ratio_df.loc[ratio_df['fuels'] == '08_gas', year] = 0
 
-            if (ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] >= fs_full) & \
-                (ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] == 0):
-                ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year] = ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] - fs_full
+            # Further adjust ratios if one of them is zero
+            if (ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] >= fs_full) and \
+            (ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] == 0):
+                ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year] = (
+                    ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] - fs_full
+                )
+            if (ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] == 0) and \
+            (ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] >= fs_full):
+                ratio_df.loc[ratio_df['fuels'] == '08_gas', year] = (
+                    ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] - fs_full
+                )
 
-            if (ratio_df.loc[ratio_df['fuels'] == '07_petroleum_products', year - 1].values[0] == 0) & \
-                (ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] >= fs_full):
-                ratio_df.loc[ratio_df['fuels'] == '08_gas', year] = ratio_df.loc[ratio_df['fuels'] == '08_gas', year - 1].values[0] - fs_full 
-        
-        # Now populate the pipeline dataframe
+        # Populate the pipeline dataframe with projected data
         for year in proj_years:
             if tfc_df.loc[0, year - 1] == 0:
+                # If previous year's total final consumption is zero, set ratio to zero
                 ratio = 0
-
             else:
+                # Calculate the ratio of current year to previous year's total final consumption
                 ratio = tfc_df.loc[0, year] / tfc_df.loc[0, year - 1]
 
-            for fuel in relevant_fuels[:-1]:
+            for fuel in relevant_fuels[:-1]:  # Exclude '19_total' from relevant fuels
                 pipe_df[year] = pipe_df[year].astype(float)
-                pipe_df.loc[pipe_df['fuels'] == fuel, year] = (pipe_df.loc[:, year - 1].sum() * ratio * ratio_df.loc[ratio_df['fuels'] == fuel, year].values[0])#.astype(int)
-
+                # Update pipeline data for the current year using the calculated ratio and fuel-specific ratio
+                pipe_df.loc[pipe_df['fuels'] == fuel, year] = (
+                    pipe_df.loc[:, year - 1].sum() * ratio * ratio_df.loc[ratio_df['fuels'] == fuel, year].values[0]
+                )
         #save to a folder to keep copies of the results
         pipe_df.to_csv(save_location + economy + '_pipeline_transport_' + scenario + '_' + timestamp + '.csv', index = False)
         
@@ -306,48 +330,61 @@ def trans_own_use_addon(economy, model_df_clean_wide):
         trans_results_df = pd.DataFrame(columns = trans_df.columns)
         own_results_df = pd.DataFrame(columns = own_df.columns)
         nons_results_df = pd.DataFrame(columns = nons_df.columns)
-
+        # Iterate over each unique fuel in the total final consumption DataFrame
         for fuel in tfc_df['fuels'].unique():
-            fuel_agg_row = tfc_df[tfc_df['fuels'] == fuel].copy().reset_index(drop = True)
+            # Extract rows for the current fuel
+            fuel_agg_row = tfc_df[tfc_df['fuels'] == fuel].copy().reset_index(drop=True)
 
-            trans_results_interim = trans_df[trans_df['fuels'] == fuel].copy().reset_index(drop = True)
-            own_results_interim = own_df[own_df['fuels'] == fuel].copy().reset_index(drop = True)
-            nons_results_interim = nons_df[nons_df['fuels'] == fuel].copy().reset_index(drop = True)
+            # Extract rows for the current fuel from transformation, own use, and nonspecified use DataFrames
+            trans_results_interim = trans_df[trans_df['fuels'] == fuel].copy().reset_index(drop=True)
+            own_results_interim = own_df[own_df['fuels'] == fuel].copy().reset_index(drop=True)
+            nons_results_interim = nons_df[nons_df['fuels'] == fuel].copy().reset_index(drop=True)
 
+            # Iterate over each projection year to calculate ratios and populate DataFrames
             for year in proj_years:
                 if fuel_agg_row.loc[0, year - 1] == 0:
+                    # If previous year's total final consumption is zero, set ratio to zero
                     ratio = 0
-
                 else:
+                    # Calculate the ratio of current year's total final consumption to the previous year's
                     ratio = fuel_agg_row.loc[0, year] / fuel_agg_row.loc[0, year - 1]
-                
-                # Now populate the transformation and own use dataframe based on the growth ratio calculated above
+
+                # Populate the transformation DataFrame based on the calculated ratio
                 for row in trans_results_interim.index:
                     trans_results_interim[year] = trans_results_interim[year].astype(float)
-                    trans_results_interim.loc[row, year] = (trans_results_interim.loc[row, year - 1] * ratio)#.astype(int)
+                    trans_results_interim.loc[row, year] = trans_results_interim.loc[row, year - 1] * ratio
 
+                # Populate the own use DataFrame based on the calculated ratio
                 for row in own_results_interim.index:
                     own_results_interim[year] = own_results_interim[year].astype(float)
-                    own_results_interim.loc[row, year] = (own_results_interim.loc[row, year - 1] * ratio)#.astype(int)
+                    own_results_interim.loc[row, year] = own_results_interim.loc[row, year - 1] * ratio
 
+                # Populate the nonspecified use DataFrame based on the calculated ratio
                 for row in nons_results_interim.index:
                     nons_results_interim[year] = nons_results_interim[year].astype(float)
-                    nons_results_interim.loc[row, year] = (nons_results_interim.loc[row, year - 1] * ratio)#.astype(int)
+                    nons_results_interim.loc[row, year] = nons_results_interim.loc[row, year - 1] * ratio
 
+            # Concatenate the interim results with the main results DataFrames
             if trans_results_df.empty:
+                # If the main transformation results DataFrame is empty, initialize it with the interim results
                 trans_results_df = trans_results_interim.copy()
-            else:             
-                trans_results_df = pd.concat([trans_results_df, trans_results_interim]).copy().reset_index(drop = True)
-            
+            else:
+                # Otherwise, concatenate the interim results with the main DataFrame and reset index
+                trans_results_df = pd.concat([trans_results_df, trans_results_interim]).copy().reset_index(drop=True)
+
             if own_results_df.empty:
+                # If the main own use results DataFrame is empty, initialize it with the interim results
                 own_results_df = own_results_interim.copy()
             else:
-                own_results_df = pd.concat([own_results_df, own_results_interim]).copy().reset_index(drop = True)
+                # Otherwise, concatenate the interim results with the main DataFrame and reset index
+                own_results_df = pd.concat([own_results_df, own_results_interim]).copy().reset_index(drop=True)
 
             if nons_results_df.empty:
+                # If the main nonspecified use results DataFrame is empty, initialize it with the interim results
                 nons_results_df = nons_results_interim.copy()
             else:
-                nons_results_df = pd.concat([nons_results_df, nons_results_interim]).copy().reset_index(drop = True)
+                # Otherwise, concatenate the interim results with the main DataFrame and reset index
+                nons_results_df = pd.concat([nons_results_df, nons_results_interim]).copy().reset_index(drop=True)
 
         #save to a folder to keep copies of the results
         trans_results_df.to_csv(save_location + economy + '_other_transformation_' + scenario + '_' + timestamp + '.csv', index = False)

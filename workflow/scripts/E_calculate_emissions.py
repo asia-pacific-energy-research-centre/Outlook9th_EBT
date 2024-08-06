@@ -125,10 +125,35 @@ def calculate_emissions(final_df,SINGLE_ECONOMY_ID):
     
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY_ID}/emissions/'
+    old_folder_path = f'{folder_path}/old'
     # Check if the folder already exists
     if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
         # If the folder doesn't exist, create it
         os.makedirs(folder_path)
+
+    # Check if the old folder exists
+    if not os.path.exists(old_folder_path):
+        # If the old folder doesn't exist, create it
+        os.makedirs(old_folder_path)
+
+    # Identify the previous emissions file
+    previous_emissions_filename = None
+    if os.path.exists(folder_path):
+        for file in os.listdir(folder_path):
+            if file.startswith(f'emissions_{SINGLE_ECONOMY_ID}') and file.endswith('.csv'):
+                previous_emissions_filename = file
+                break
+
+    # Move the old emissions file to the 'old' folder if it exists
+    if previous_emissions_filename:
+        old_file_path = f'{folder_path}/{previous_emissions_filename}'
+        new_old_file_path = f'{old_folder_path}/{previous_emissions_filename}'
+        
+        # Remove the old file in the 'old' folder if it exists
+        if os.path.exists(new_old_file_path):
+            os.remove(new_old_file_path)
+        
+        os.rename(old_file_path, new_old_file_path)
 
     #save the data to a new Excel file
     date_today = datetime.now().strftime('%Y%m%d')
