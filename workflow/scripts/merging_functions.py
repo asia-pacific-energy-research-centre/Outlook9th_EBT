@@ -619,8 +619,11 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
                 raise Exception(f"Differences found in TPES calculation with {df_filtered.name} DataFrame and saved to 'tpes_differences_{df_filtered.name}.csv'.")
             else:
                 print(f"No significant differences found in TPES calculation with {df_filtered.name} DataFrame.")
-                # aggregated_df = tpes_top_down_df.copy()
-                aggregated_df = tpes_bottom_up_df.copy()
+                # If MERGE_SUPPLY_RESULTS is True, use the top-down TPES calculation
+                if MERGE_SUPPLY_RESULTS:
+                    aggregated_df = tpes_top_down_df.copy()
+                else:
+                    aggregated_df = tpes_bottom_up_df.copy()
                 aggregated_df['subtotal_layout'] = False
                 aggregated_df['subtotal_results'] = False
             
@@ -1253,6 +1256,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         # RUS file has some issues with the following rows
         bad_values_rows_exceptions_dict['RUS_11_statistical_discrepancy'] = {'economy':'16_RUS', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['RUS_19_heat_output_in_pj'] = {'economy':'16_RUS', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'x'}
+        
+        # MEX file has some issues with the following rows
+        bad_values_rows_exceptions_dict['MEX_11_statistical_discrepancy'] = {'economy':'11_MEX', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
