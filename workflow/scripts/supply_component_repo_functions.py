@@ -132,18 +132,29 @@ def pipeline_transport(economy, model_df_clean_wide):
         # Calculate initial ratios for the most recent historical year and projection years
         for year in [latest_hist] + proj_years:
             for fuel in relevant_fuels[:-1]:  # Exclude '19_total' from relevant fuels
-                if pipe_df.loc[pipe_df['fuels'] == '19_total', latest_hist].values[0] == 0:
+                filtered_pipe_df = pipe_df.loc[pipe_df['fuels'] == '19_total', latest_hist]
+                
+                # Skip processing if the filtered DataFrame is empty
+                if filtered_pipe_df.empty:
+                    print(f"Skipping year {latest_hist} for '19_total' as there is no data.")
+                    continue
+
+                if filtered_pipe_df.values[0] == 0:
                     # If the total consumption for the latest historical year is zero, set ratio to zero
                     ratio_df.loc[ratio_df['fuels'] == fuel, year] = 0
                 else:
                     # Calculate the ratio of fuel consumption to total consumption for the latest historical year
                     ratio_df.loc[ratio_df['fuels'] == fuel, year] = (
-                        pipe_df.loc[pipe_df['fuels'] == fuel, latest_hist].values[0] /
-                        pipe_df.loc[pipe_df['fuels'] == '19_total', latest_hist].values[0]
+                        pipe_df.loc[pipe_df['fuels'] == fuel, latest_hist].values[0] / 
+                        filtered_pipe_df.values[0]
                     )
 
         # Drop the '19_total' row as it's not needed for further calculations
-        pipe_df = pipe_df.drop([3]).copy().reset_index(drop=True)
+        # Check if index 3 exists in the DataFrame
+        if 3 in pipe_df.index:
+            pipe_df = pipe_df.drop([3]).reset_index(drop=True)
+        else:
+            print("Index 3 not found in pipe_df. Skipping drop operation.")
 
         # Fuel switching parameters
         fs_full = scenario_dict[scenario][2]  # Full fuel switching ratio for electricity
