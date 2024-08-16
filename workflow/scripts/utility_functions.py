@@ -8,7 +8,7 @@ import os
 import shutil
 
 #when we have new data from ESTO you will want to set this to False or None and run the data through the whole pipeline to get results/model_df_wide_' + date_today +'.csv' for modellers to use as an input
-SINGLE_ECONOMY_ID_VAR = '12_NZ' #'19_THA'# '19_THA' #20_USA 03_CDA
+SINGLE_ECONOMY_ID_VAR = '04_CHL' #'19_THA'# '19_THA' #20_USA 03_CDA
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
 # If merging supply results, set this to True and calculate TPES top down instead of bottom up
