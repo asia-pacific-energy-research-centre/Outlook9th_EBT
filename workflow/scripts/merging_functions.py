@@ -1259,6 +1259,10 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         
         # MEX file has some issues with the following rows
         bad_values_rows_exceptions_dict['MEX_11_statistical_discrepancy'] = {'economy':'11_MEX', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        
+        # CHL file has some issues with the following rows
+        bad_values_rows_exceptions_dict['CHL_11_statistical_discrepancy'] = {'economy':'04_CHL', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['CHL_12_solar'] = {'economy':'04_CHL', 'sub1sectors':'x', 'fuels':'12_solar', 'subfuels':'x'}
 
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
@@ -1314,6 +1318,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             
             # BD file has some issues with the following rows
             missing_rows_exceptions_dict['11_statistical_discrepancy'] = {'_merge':'new_layout_df', 'economy':'02_BD', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'21_modern_renewables', 'subfuels':'x'}
+            
+            # CHL file has some issues with the following rows
+            missing_rows_exceptions_dict['09_total_transformation_sector'] = {'_merge':'new_layout_df', 'economy':'04_CHL', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_05_chemical_heat_for_electricity_production', 'sub2sectors':'x', 'fuels':'21_modern_renewables', 'subfuels':'x'}
 
             #use the keys as column names to remove the rows in the dict:
             # for ignored_issue in missing_rows_exceptions_dict.keys():
