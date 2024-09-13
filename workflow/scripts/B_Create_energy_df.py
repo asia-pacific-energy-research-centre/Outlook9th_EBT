@@ -312,7 +312,7 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
                                                             '19_03_ap_chp_plants'])] 
 
     chp_pj_g = chp_pj.groupby(['economy', 'year', 'fuels'])['value']\
-        .sum().reset_index().assign(sectors = '19_01_chp plants')
+        .sum().reset_index().assign(sectors = '19_01_chp_plants')
 
     heat_pj = df_fuel_sector[df_fuel_sector['sectors'].isin(['19_02_map_heat_plants', 
                                                             '19_04_ap_heat_plants'])] 
@@ -335,7 +335,11 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
                                                                     '18_01_map_electricity_plants',
                                                                     '18_03_ap_electricity_plants',
                                                                     '18_02_map_chp_plants',
-                                                                    '18_04_ap_chp_plants'])]
+                                                                    '18_04_ap_chp_plants',
+                                                                    '19_01_map_chp_plants',
+                                                                    '19_03_ap_chp_plants',
+                                                                    '19_02_map_heat_plants',
+                                                                    '19_04_ap_heat_plants'])]
 
     df_fuel_sector_temp = pd.concat([df_fuel_sector,
                                     ele_tf_g, chp_tf_g, heat_tf_g,

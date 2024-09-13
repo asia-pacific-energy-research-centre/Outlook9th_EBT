@@ -456,7 +456,7 @@ def minor_supply_components(economy, model_df_clean_wide):
 
     relevant_supply = ['01_production', '02_imports', '03_exports']
     all_supply = ['01_production', '02_imports', '03_exports', '04_international_marine_bunkers', '05_international_aviation_bunkers',
-                '06_stock_changes', '07_total_primary_energy_supply']
+                '06_stock_changes']
 
     # Define columns for use
     df_columns = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
@@ -596,7 +596,7 @@ def minor_supply_components(economy, model_df_clean_wide):
                         * current_supply.loc[current_supply['sectors'] == component, 'ratio'].values[0]
             # if subfuels_supply_df.fuels.unique()[0] == '02_coal_products':
             #     breakpoint()#check for 02_coal_products 
-            supply_df = pd.concat([supply_df, subfuels_supply_df]).copy().reset_index(drop = True)            
+            supply_df = pd.concat([supply_df, subfuels_supply_df]).copy().reset_index(drop = True)
 
         #save to a folder to keep copies of the results
         supply_df.to_csv(save_location + economy + '_biomass_others_supply_' + scenario + '_' + timestamp + '.csv', index = False)                    

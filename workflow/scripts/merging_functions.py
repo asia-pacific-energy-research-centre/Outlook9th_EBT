@@ -639,7 +639,7 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
                 numeric_cols = df_transformation.select_dtypes(include=[np.number]).columns
                 df_transformation[numeric_cols] = df_transformation[numeric_cols].abs()
                 # Filter for just nuclear and the renewables
-                df_transformation = df_transformation[df_transformation['fuels'].isin(['09_nuclear', '10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '15_solid_biomass', '16_others'])].copy()
+                df_transformation = df_transformation[df_transformation['fuels'].isin(['09_nuclear', '10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '16_others'])].copy()
                 df_transformation = df_transformation[~df_transformation['subfuels'].isin(['16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources', '16_x_hydrogen', '16_x_ammonia'])].copy()
                 # Concatenate the two DataFrames
                 df_filtered = pd.concat([df_filtered, df_transformation], ignore_index=True)
@@ -1255,7 +1255,7 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         
         # RUS file has some issues with the following rows
         bad_values_rows_exceptions_dict['RUS_11_statistical_discrepancy'] = {'economy':'16_RUS', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'subfuels':'x'}
-        bad_values_rows_exceptions_dict['RUS_19_heat_output_in_pj'] = {'economy':'16_RUS', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'x'}
+        # bad_values_rows_exceptions_dict['RUS_19_heat_output_in_pj'] = {'economy':'16_RUS', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'x'}
         
         # MEX file has some issues with the following rows
         bad_values_rows_exceptions_dict['MEX_11_statistical_discrepancy'] = {'economy':'11_MEX', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
