@@ -11,6 +11,7 @@
 env/
 *.7z
 
+*.html
 #DONT IGNORE ANY FILES IN config, even if they are xlsx or csv
 !config/*
 **/archive/

@@ -10,6 +10,7 @@ import G_aggregate_economies as G
 import utility_functions as utils
 import merging_functions
 import supply_component_repo_functions
+import biofuels_refining_functions
 from datetime import datetime
 import pandas as pd
 
@@ -56,12 +57,15 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.trans_own_use_addon(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.minor_supply_components(SINGLE_ECONOMY_ID, final_energy_df)
+            biofuels_refining_functions.biofuels_refining(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True)
+            
             old_final_energy_df = final_energy_df.copy()
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
             # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
             print('Done running supply component repo functions and merging_results \n################################################\n')
             
             #calc emissions:
+            # breakpoint()
             emissions_df = E.calculate_emissions(final_energy_df,SINGLE_ECONOMY_ID)
             
             #calc capacity
@@ -82,3 +86,7 @@ if __name__ == "__main__":#this will allow us to import main into other scripts 
 
 #%%
 # %%
+# SINGLE_ECONOMY_ID = '15_PHL'
+# final_energy_df = pd.read_csv('final_energy_df.csv')
+# biofuels_refining_functions.biofuels_refining(SINGLE_ECONOMY_ID, final_energy_df)
+# #%%

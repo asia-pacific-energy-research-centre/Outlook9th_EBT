@@ -1,6 +1,3 @@
-#calcalate emissions on the merged data:
-#tak in merged final_df data (merged because it is the results and layout nerged) and the meissions factors , merge and then calculate emissions
-
 import pandas as pd
 import numpy as np
 import os
@@ -8,102 +5,67 @@ import glob
 from datetime import datetime
 from utility_functions import *
 
-def calculate_emissions(final_df,SINGLE_ECONOMY_ID):
-    #read in emissions factors
-    emissions_factors = pd.read_csv('config/9th_edition_emissions_factors.csv')
-    # emissions_factors.columns : fuel_code,	Emissions factor (MT/PJ)
-    
-    #melt the final_df on all cols except year cols
+def calculate_emissions(final_df, SINGLE_ECONOMY_ID):
+    # Make a copy of the final_df to avoid unintended modifications on the original
+    final_df_copy = final_df.copy()
+
+    # Read in emissions factors
+    emissions_factors = pd.read_csv('config/9th_edition_emissions_factors_all_gases_simplified.csv')
+
+    # Melt the final_df on all cols except year cols
     year_cols = [col for col in final_df.columns if str(col).isnumeric()]
-    #[year for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
     non_year_and_value_cols = [col for col in final_df.columns if col not in year_cols]
-    
-    final_df = pd.melt(final_df, id_vars=non_year_and_value_cols, value_vars=year_cols, var_name='year', value_name='value')
-    
-    # #######################################################
-    # # Preliminary step: Calculate proportions and adjust values for power sector gas with CCS
-    # def adjust_values_based_on_proportions(final_df):
-    #     # Define masks for relevant '18_01_02_gas_power' and 'ccs' data
-    #     relevant_mask = (
-    #         final_df['sub2sectors'].isin(['18_01_02_gas_power', '18_01_02_gas_power_ccs']) & 
-    #         (final_df['fuels'] == '08_gas') & 
-    #         (final_df['subfuels'] == 'x') & 
-    #         final_df['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)
-    #     )
-    #     relevant_df = final_df.loc[relevant_mask].copy()
 
-    #     # Calculate total values for combining '18_01_02_gas_power' and '18_01_02_gas_power_ccs'
-    #     totals = relevant_df.groupby(['scenarios', 'year'])['value'].transform('sum')
+    final_df_copy = pd.melt(final_df_copy, id_vars=non_year_and_value_cols, value_vars=year_cols, var_name='year', value_name='value')
 
-    #     # Now calculate proportions for '18_01_02_gas_power' directly in relevant_df
-    #     relevant_df['proportion'] = relevant_df['value'] / totals
+    # Set any NaNs in the value col to 0
+    final_df_copy['value'] = final_df_copy['value'].fillna(0)
 
-    #     # Filter to get the proportions specifically for '18_01_02_gas_power'
-    #     proportions = relevant_df.loc[relevant_df['sub2sectors'] == '18_01_02_gas_power', ['scenarios', 'year', 'proportion']]
+    # Merge emissions factors based on fuels and sectors cols
+    final_df_copy = pd.merge(final_df_copy, emissions_factors, how='outer', on=['fuels', 'subfuels', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'], indicator=True)
 
-    #     # Identify '09_01_02_gas_power' rows to adjust and replicate for 'ccs'
-    #     gas_power_09_mask = (
-    #         (final_df['sub2sectors'] == '09_01_02_gas_power') & 
-    #         (final_df['sub3sectors'] == 'x') &
-    #         (final_df['fuels'] == '08_gas') & 
-    #         (final_df['subfuels'] == '08_01_natural_gas') & 
-    #         final_df['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)
-    #     )
+    # Handle duplicate rows after merging
+    if final_df_copy.duplicated(subset=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels', 'subtotal_layout', 'subtotal_results', 'year', 'Unit', 'Gas', 'CO2e emissions factor', 'Sector not applicable', 'Fuel not applicable', 'No expected energy use', '_merge']).any():
+        raise Exception('There are some duplicate rows in the merged dataframe.')
 
-    #     gas_power_09_df = final_df.loc[gas_power_09_mask]
-        
-    #     gas_power_09_df = gas_power_09_df.merge(proportions, on=['scenarios', 'year'], how='left')
-        
-    #     gas_power_09_ccs_df = gas_power_09_df.copy()
-    #     gas_power_09_ccs_df['sub2sectors'] = '09_01_02_gas_power_ccs'
-        
-    #     gas_power_09_df['value'] = gas_power_09_df['value'] * (gas_power_09_df['proportion'])
-    #     gas_power_09_df.drop(columns=['proportion'], inplace=True)
-        
-    #     gas_power_09_ccs_df['value'] = gas_power_09_ccs_df['value'] * (1 - gas_power_09_ccs_df['proportion'])
-    #     gas_power_09_ccs_df.drop(columns=['proportion'], inplace=True)
+    # Check for rows that did not merge correctly
+    if len(final_df_copy.loc[final_df_copy['_merge'] == 'left_only']) > 0:
+        raise Exception('Some rows did not merge with the emissions factors data. Please create more mappings for the missing values.')
 
-    #     gas_power_df = pd.concat([gas_power_09_df, gas_power_09_ccs_df], ignore_index=True)
-        
-    #     final_df = final_df.loc[~gas_power_09_mask]
+    # Remove right_only rows
+    final_df_copy = final_df_copy[final_df_copy['_merge'] != 'right_only'].drop(columns=['_merge'])
 
-    #     # Append the new 'ccs' rows to the DataFrame
-    #     final_df = pd.concat([final_df, gas_power_df], ignore_index=True)
+    # Set emissions factor to 0 where sectors or fuels are not applicable
+    condition = (final_df_copy['Sector not applicable'] == True) | (final_df_copy['Fuel not applicable'] == True) | (final_df_copy['No expected energy use'] == True)
+    final_df_copy.loc[condition, 'CO2e emissions factor'] = 0
 
-    #     return final_df
-    # #######################################################
-    # final_df = adjust_values_based_on_proportions(final_df)
-    
-    #merge with final_df where the fuel_code matches either the fuels col or subfuels col.
-    x_in_subfuels = final_df.loc[final_df['subfuels']=='x']
-    not_x_in_subfuels = final_df.loc[final_df['subfuels']!='x']
-    #merge with emissions_factors
-    x_in_subfuels = pd.merge(x_in_subfuels, emissions_factors, how='left', left_on='fuels', right_on='fuel_code')
-    not_x_in_subfuels = pd.merge(not_x_in_subfuels, emissions_factors, how='left', left_on='subfuels', right_on='fuel_code')
-    
-    #concat
-    final_df = pd.concat([x_in_subfuels, not_x_in_subfuels])
-    
+    # Drop unnecessary columns
+    final_df_copy = final_df_copy.drop(columns=['Unit', 'Sector not applicable', 'Fuel not applicable', 'No expected energy use'])
+
+    # Check for duplicate rows again
+    if final_df_copy.duplicated(subset=non_year_and_value_cols + ['year', 'Gas']).any():
+        raise Exception('There are some duplicate rows in the final emissions dataframe.')
+
     def split_ccs_rows(df):
         # Reset index to ensure clean indexing
         df = df.reset_index(drop=True)
-        
-        # Define conditions for industry and power sector CCS rows
-        industry_ccs_condition = df['sub3sectors'].str.endswith('_ccs') & df['sub3sectors'].str.startswith('14_')
-        power_ccs_condition = df['sub2sectors'].str.endswith('_ccs') & df['sub2sectors'].str.startswith('09_')
-        
+
+        # Define conditions for CCS rows
+        industry_ccs_condition = df['sub3sectors'].str.endswith('_ccs') & df['sub3sectors'].str.startswith('14_') & df['Gas'] == 'CARBON DIOXIDE'
+        power_ccs_condition = df['sub2sectors'].str.endswith('_ccs') & df['sub2sectors'].str.startswith('09_') & df['Gas'] == 'CARBON DIOXIDE'
+
         # Create a copy for manipulation
-        df_copy = df.copy()
+        df_copy = df.loc[industry_ccs_condition | power_ccs_condition].copy()
 
         # Apply sector-specific factors
-        df_copy.loc[industry_ccs_condition, 'Emissions factor (MT/PJ)'] *= 0.8
-        df_copy.loc[power_ccs_condition, 'Emissions factor (MT/PJ)'] *= 0.9
-        df_copy.loc[industry_ccs_condition, 'sub3sectors'] = df_copy.loc[industry_ccs_condition, 'sub3sectors'] + '_cap'
-        df_copy.loc[power_ccs_condition, 'sub2sectors'] = df_copy.loc[power_ccs_condition, 'sub2sectors'] + '_cap'
+        df_copy.loc[industry_ccs_condition, 'CO2e emissions factor'] *= 0.8
+        df_copy.loc[power_ccs_condition, 'CO2e emissions factor'] *= 0.9
+        df_copy.loc[industry_ccs_condition, 'sub3sectors'] += '_cap'
+        df_copy.loc[power_ccs_condition, 'sub2sectors'] += '_cap'
 
         # Adjust original df for the non-captured portion
-        df.loc[industry_ccs_condition, 'Emissions factor (MT/PJ)'] *= (1 - 0.8)
-        df.loc[power_ccs_condition, 'Emissions factor (MT/PJ)'] *= (1 - 0.9)
+        df.loc[industry_ccs_condition, 'CO2e emissions factor'] *= (1 - 0.8)
+        df.loc[power_ccs_condition, 'CO2e emissions factor'] *= (1 - 0.9)
 
         # Concatenate the modified copy back with the original dataframe
         df_final = pd.concat([df, df_copy], ignore_index=True)
@@ -111,55 +73,62 @@ def calculate_emissions(final_df,SINGLE_ECONOMY_ID):
         return df_final
 
     # Apply the emissions factor adjustments
-    final_df = split_ccs_rows(final_df)
-    
-    #calculate emissions
-    final_df['emissions'] = final_df['value'] * final_df['Emissions factor (MT/PJ)']
-    
+    final_df_copy = split_ccs_rows(final_df_copy)
+
+    # Set emissions factors for bunkers sectors to 0
+    final_df_copy.loc[final_df_copy['sectors'] == '05_international_aviation_bunkers', 'CO2e emissions factor'] = 0
+    final_df_copy.loc[final_df_copy['sectors'] == '06_international_marine_bunkers', 'CO2e emissions factor'] = 0
+
+    # Calculate emissions
+    final_df_copy['CO2e emissions (Mt/PJ)'] = final_df_copy['value'] * final_df_copy['CO2e emissions factor']
+
     # Drop unnecessary columns
-    final_df.drop(columns=['Emissions factor (MT/PJ)', 'value', 'fuel_code'], inplace=True)
-    
-    #make wide
-    final_df = final_df.pivot_table(index=non_year_and_value_cols, columns='year', values='emissions').reset_index()
-    #save emissions
-    
-    # Define the folder path where you want to save the file
+    final_df_copy.drop(columns=['CO2e emissions factor', 'value'], inplace=True)
+
+    # Aggregate emissions data
+    final_df_aggregate = final_df_copy.groupby(non_year_and_value_cols + ['year']).sum().reset_index()
+    final_df_aggregate['Gas'] = 'CO2e'
+
+    # Concatenate aggregate and original emissions data
+    final_df_copy = pd.concat([final_df_copy, final_df_aggregate], ignore_index=True)
+
+    # Check for duplicates and NaNs
+    if final_df_copy.duplicated(subset=non_year_and_value_cols + ['year', 'Gas']).any():
+        raise Exception('There are some duplicate rows in the final emissions dataframe.')
+    if final_df_copy.isnull().any().any():
+        raise Exception('There are some NaNs in the final emissions dataframe.')
+
+    # Pivot data to make it wide format
+    final_df_copy = final_df_copy.pivot_table(index=non_year_and_value_cols + ['Gas'], columns='year', values='CO2e emissions (Mt/PJ)').reset_index()
+
+    # Save emissions data
     folder_path = f'results/{SINGLE_ECONOMY_ID}/emissions/'
     old_folder_path = f'{folder_path}/old'
-    # Check if the folder already exists
-    if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
-        # If the folder doesn't exist, create it
+    if not os.path.exists(folder_path) and isinstance(SINGLE_ECONOMY_ID, str):
         os.makedirs(folder_path)
-
-    # Check if the old folder exists
     if not os.path.exists(old_folder_path):
-        # If the old folder doesn't exist, create it
         os.makedirs(old_folder_path)
 
-    # Identify the previous emissions file
-    previous_emissions_filename = None
-    if os.path.exists(folder_path):
-        for file in os.listdir(folder_path):
-            if file.startswith(f'emissions_{SINGLE_ECONOMY_ID}') and file.endswith('.csv'):
-                previous_emissions_filename = file
-                break
+    gas_to_filename = {'CO2e': 'emissions_co2e', 'CARBON DIOXIDE': 'emissions_co2', 'METHANE': 'emissions_ch4', 'NITROUS OXIDE': 'emissions_no2'}
+    for gas in gas_to_filename.keys():
+        gas_df = final_df_copy.loc[final_df_copy['Gas'] == gas].copy()
+        gas_df.drop(columns=['Gas'], inplace=True)
+        filename = gas_to_filename[gas]
 
-    # Move the old emissions file to the 'old' folder if it exists
-    if previous_emissions_filename:
-        old_file_path = f'{folder_path}/{previous_emissions_filename}'
-        new_old_file_path = f'{old_folder_path}/{previous_emissions_filename}'
-        
-        # Remove the old file in the 'old' folder if it exists
-        if os.path.exists(new_old_file_path):
-            os.remove(new_old_file_path)
-        
-        os.rename(old_file_path, new_old_file_path)
+        # Move previous emissions file to 'old' folder if exists
+        previous_emissions_filename = next((file for file in os.listdir(folder_path) if file.startswith(f'{filename}_{SINGLE_ECONOMY_ID}') and file.endswith('.csv')), None)
+        if previous_emissions_filename:
+            old_file_path = f'{folder_path}/{previous_emissions_filename}'
+            new_old_file_path = f'{old_folder_path}/{previous_emissions_filename}'
+            if os.path.exists(new_old_file_path):
+                os.remove(new_old_file_path)
+            os.rename(old_file_path, new_old_file_path)
 
-    #save the data to a new Excel file
-    date_today = datetime.now().strftime('%Y%m%d')
-    if (isinstance(SINGLE_ECONOMY_ID, str)):
-        final_df.to_csv(f'{folder_path}/emissions_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
-    else:
-        final_df.to_csv(f'results/emissions_{date_today}.csv', index=False)
-        
-    return final_df#CURRENTLY, NO DOUBT THERE ARE SISUES WITH THIS, SUCH AS HAVING NO SUBSECTORAL CONSIDERATION. I.E. ARE THERE ANY EMISSIONS FOR NON ENERGY USE?
+        # Save the new emissions data
+        date_today = datetime.now().strftime('%Y%m%d')
+        if isinstance(SINGLE_ECONOMY_ID, str):
+            gas_df.to_csv(f'{folder_path}/{filename}_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
+        else:
+            gas_df.to_csv(f'results/{filename}_{date_today}.csv', index=False)
+
+    return final_df_copy
