@@ -12,6 +12,7 @@ import numpy as np
 import glob
 from datetime import datetime
 from utility_functions import *
+import yaml 
 
 timestamp = datetime.now().strftime('%Y_%m_%d')
 # wanted_wd = 'Outlook9th_EBT'
@@ -227,7 +228,7 @@ def pipeline_transport(economy, model_df_clean_wide):
 
 
 def trans_own_use_addon(economy, model_df_clean_wide):
-    """Much like the pipeline_transport function, this function takes in demand data from the EBT system and separates historical data from projection data. It then calculates the energy consumption in the calculates the energy used for other-transformation, own use and nonspecified for the projection years.  This is also only done after demand is modelled. 
+    """Much like the pipeline_transport function, this function takes in demand data from the EBT system and separates historical data from projection data. It then calculates the energy consumption for other-transformation, own use and nonspecified for the projection years.  This is also only done after demand is modelled. 
     The function saves the results in a CSV file in the Outlook9th_EBT\data\modelled_data folder for automatic use by the EBT process.
 
     """
@@ -621,3 +622,4 @@ def minor_supply_components(economy, model_df_clean_wide):
 
     # Coal products
     # No production
+    
