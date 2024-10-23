@@ -74,24 +74,8 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
     # Return the final DataFrame
     return final_energy_df, emissions_df, capacity_df, model_df_clean_wide
 #%%
-import os
-import re
 # Run the main function and store the result
-if __name__ == "__main__":#this will allow us to import main into other scripts without running the code below
-    ALL_ECONOMY_IDS = ["01_AUS", "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN"]#
-    
-    for SINGLE_ECONOMY_ID in ALL_ECONOMY_IDS:
-        #data\modelled_data\05_PRC\05_PRC_biomass_others_supply_ref_2024_10_16.csv < find and delete every one of these files:
-        # for file in os.listdir(f'./data/modelled_data/{SINGLE_ECONOMY_ID}/'):
-        #     if re.search(SINGLE_ECONOMY_ID + '_biomass_others_supply', file):
-        #         os.remove(f'./data/modelled_data/{SINGLE_ECONOMY_ID}/' + file)
-        try:
-            final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID = SINGLE_ECONOMY_ID)
-            print(f'Finished running main for {SINGLE_ECONOMY_ID}')
-        except Exception as e:
-            print(f'Error running main for {SINGLE_ECONOMY_ID}: {e}')
-            
-        
+if __name__ == "__main__":
     final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main()
     # test(SINGLE_ECONOMY_ID='20_USA')
 #C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th
