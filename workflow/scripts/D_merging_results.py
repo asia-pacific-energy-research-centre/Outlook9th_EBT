@@ -9,7 +9,7 @@ from utility_functions import *
 import merging_functions
 import warnings
     
-def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_filename=None):
+def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_filename=None, PRINT=False):
     """Takes the layout file and the results files, and merges them together.  The results files are generated from the model runs in the demand model, and the layout file is generated from the historical data file and the layout file template. 
     The process is messy and in some places doesnt seem to take the simplest way forwards. Most of the time this is because of compromises that are made because of the different level of detail between inputs, and the layout file. So the code here is complex, but relatively flexible.
     Some issues with the structure of the data that we need to deal with:
@@ -51,7 +51,8 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     #FIRST, LOAD IN ALL THE RESULTS FILES AND CONCAT THEM TOGETHER. THEN WE CAN MERGE THEM WITH THE LAYOUT FILE AND IDENTIFY ANY STRUCTURAL ISSUES
     # Iterate over the results files
     for file in results_data_files:
-        print(f"Start processing {file}...")
+        if PRINT:
+            print(f"Start processing {file}...")
         # Check if the file is an Excel file
         if file.endswith('.xlsx'):
             xls = pd.ExcelFile(file)
@@ -66,18 +67,20 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
                     results_df = pd.read_excel(file, sheet_name=-1)  # Processing for already transformed agriculture files
             else:
                 results_df = pd.read_excel(file, sheet_name=-1)  # Processing for non-agriculture files
-
-            print(f"Processing Excel file {file}...")
+            if PRINT:
+                print(f"Processing Excel file {file}...")
 
         # Process CSV files
         elif file.endswith('.csv'):
             # Check if 'pipeline' or 'buildings' is in the file name (case-insensitive)
             if 'pipeline' in file.lower(): # or 'buildings' in file.lower():
                 results_df = merging_functions.split_subfuels(file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR) # Split subfuels for pipeline and buildings files
-                print(f"Processing CSV file {file} with split subfuels...")
+                if PRINT:
+                    print(f"Processing CSV file {file} with split subfuels...")
             else:
                 results_df = pd.read_csv(file)
-                print(f"Processing CSV file {file}...")
+                if PRINT:
+                    print(f"Processing CSV file {file}...")
 
         # Handle unsupported file formats
         else:

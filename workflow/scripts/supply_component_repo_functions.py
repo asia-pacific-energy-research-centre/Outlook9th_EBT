@@ -454,7 +454,11 @@ def minor_supply_components(economy, model_df_clean_wide):
     lignite_subfuel_df = pd.read_csv('./config/supply_components_data/lignite_subfuels.csv', header = None)
 
     subfuels_list = lignite_subfuel_df[0].values.tolist() + biomass_subfuel_df[0].values.tolist() + others_subfuel_df[0].values.tolist()
-
+    
+    ##########################
+    subfuels_list = check_for_biogas_capacity_projections(economy, subfuels_list)#we have started modelling biogas in the biofuel refinery model so we ahve to remove it from the list of subfuels to model here, if its being modelled in the biofuel refinery model! (for some economies it is and for some it isnt)
+    ##########################
+    
     relevant_supply = ['01_production', '02_imports', '03_exports']
     all_supply = ['01_production', '02_imports', '03_exports', '04_international_marine_bunkers', '05_international_aviation_bunkers',
                 '06_stock_changes']
@@ -622,4 +626,22 @@ def minor_supply_components(economy, model_df_clean_wide):
 
     # Coal products
     # No production
-    
+
+def check_for_biogas_capacity_projections(economy, subfuels_list):
+    #check if there is any biogas projections in the config\biofuel_refining_capacity_parameters.xlsx and the sheet ECONOMY_capacity. If there are projections then the sum of additional_energy_pj where fuel is 16_01_biogas should be greater than 0. If it is then we will NOT calculate the biogas supply here too:
+    biofuel_refining_capacity = pd.read_excel('./config/biofuel_refining_capacity_parameters.xlsx', sheet_name = economy + '_capacity')
+    if biofuel_refining_capacity[biofuel_refining_capacity['EBT_fuel'] == '16_01_biogas']['additional_energy_pj'].sum() > 0:
+        subfuels_list = [x for x in subfuels_list if x != '16_01_biogas']
+        #we also wanna remove the biogas from current input data files:
+        for scenario in ['ref', 'tgt']:
+            for file in os.listdir(f'./data/modelled_data/{economy}/'):
+                if re.search(economy + '_biomass_others_supply_' + scenario, file):
+                    #open it and delete the biogas rows
+                    df = pd.read_csv(f'./data/modelled_data/{economy}/' + file)
+                    df = df[~df['subfuels'].str.contains('16_01_biogas')].copy().reset_index(drop = True)
+                    df.to_csv(f'./data/modelled_data/{economy}/' + file, index = False)
+                    print(f'Biogas projections found in the biofuel refining capacity file for {economy}. Biogas supply will not be calculated in the supply components function and any previous calculations have been removed from the modelled_data folder.')
+                
+    else:
+        pass
+    return subfuels_list
