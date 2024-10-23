@@ -8,7 +8,7 @@ import os
 import shutil
 
 #when we have new data from ESTO you will want to set this to False or None and run the data through the whole pipeline to get results/model_df_wide_' + date_today +'.csv' for modellers to use as an input
-SINGLE_ECONOMY_ID_VAR = '05_PRC' #'19_THA'# '19_THA' #20_USA 03_CDA
+SINGLE_ECONOMY_ID_VAR = '00_APEC'# '05_PRC' #'19_THA'# '19_THA' #20_USA 03_CDA#something going wrong with "09_ROK",
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
 # If merging supply results, set this to True and calculate TPES top down instead of bottom up
@@ -34,7 +34,7 @@ def set_working_directory():
     wanted_wd = 'Outlook9th_EBT'
     os.chdir(re.split(wanted_wd, os.getcwd())[0] + '/' + wanted_wd)
 
-def find_most_recent_file_date_id(directory_path):
+def find_most_recent_file_date_id(directory_path, RETURN_DATE_ID = False):
     """Find the most recent file in a directory based on the date ID in the filename."""
     # List all files in the directory
     files = os.listdir(directory_path)
@@ -42,7 +42,7 @@ def find_most_recent_file_date_id(directory_path):
     # Initialize variables to keep track of the most recent file and date
     most_recent_date = datetime.min
     most_recent_file = None
-
+    date_id = None
     # Define a regex pattern for the date ID (format YYYYMMDD)
     date_pattern = re.compile(r'(\d{8})')
     
@@ -68,7 +68,10 @@ def find_most_recent_file_date_id(directory_path):
         print(f"The most recent file is: {most_recent_file} with the date ID {most_recent_date.strftime('%Y%m%d')}")
     else:
         print("No files found with a valid date ID.")
-    return most_recent_file
+    if RETURN_DATE_ID:
+        return most_recent_file, date_id
+    else:
+        return most_recent_file
     
 def move_files_to_archive_for_economy(LOCAL_FILE_PATH, economy):
     #create archive folder if not there

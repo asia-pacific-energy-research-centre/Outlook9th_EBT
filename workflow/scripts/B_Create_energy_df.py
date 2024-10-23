@@ -44,7 +44,9 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
                     how = 'left', 
                     left_on = 'fuels', 
                     right_on = 'clean_egeda_fuel_name')
-
+    if df_fuel['fuels'].isnull().sum() > 0:
+        print('There are missing values in fuels')
+        breakpoint()#should we check for nas in here?#TODO 10/22/2024 esp worried about nas in certain economies which dont report things like aviation fuel or navigation fuel in transport.
     ## Replace the fules series
     # 1. create "replace_materials" series that is based on "unique_the_end_of_fuels" series with NaN filled by fuels
     # 2. The content of "replace_materials" series ```df_fuel['replace_materials'] = df_fuel['unique_the_end_of_fuels'].fillna(df_fuel['fuels'])
@@ -167,7 +169,7 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
     # - BTW, df_fuel_sector is the latest, cleaned dataframe of the EGEDA historical data.
 
     # Fuel
-
+    
     thermal_coal = df_fuel_sector[df_fuel_sector['fuels'].isin(['01_02_other_bituminous_coal', 
                                                                 '01_03_subbituminous_coal', 
                                                                 '01_04_anthracite'])]

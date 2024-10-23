@@ -53,7 +53,7 @@ def biorefining_excel_to_dict(biofuel_refining_capacity_parameters_file_path):
     return data
             
             
-def biofuels_refining(economy, model_df_clean_wide, PLOT = True, biofuel_refining_capacity_parameters_file_path = 'config/biofuel_refining_capacity_parameters.xlsx'):
+def biofuels_refining(economy, model_df_clean_wide, PLOT = True, biofuel_refining_capacity_parameters_file_path = 'config/biofuel_refining_capacity_parameters.xlsx', fuels_modelled_elsewhere = {'16_01_biogas':'supply_components'}):
     """to save workload we are just going to do biofuels refining within this model. it will take in demand from the power and demand sectors and then depending on a few paramerters, it will output production, imports and exports of liquid biofuels. 
     The parameters will be: 
     capacity additions (of each biofuel)
@@ -86,16 +86,14 @@ def biofuels_refining(economy, model_df_clean_wide, PLOT = True, biofuel_refinin
     """
         
     config = biorefining_excel_to_dict(biofuel_refining_capacity_parameters_file_path)
-    # #open up the yaml with the parameters we need
-    # with open('config/modelling_parameters.yml', 'r') as file:
-    #     config = yaml.safe_load(file)
-        
+    config = remove_fuels_modelled_elsewhere_that_arent_modelled_here(economy, config, fuels_modelled_elsewhere)
     capacity_df, detailed_capcaity_df, production_df = prepare_biorefining_capacity_data(economy, model_df_clean_wide, config)
     consumption_df = prepare_biorefining_consumption_data(economy, model_df_clean_wide, config)
     final_refining_df = calculate_biofuels_refining_exports_imports(model_df_clean_wide, consumption_df, production_df)
-    if PLOT:
+    if PLOT and final_refining_df.shape[0] > 0:
         print('Plotting biofuels data')
         plot_biofuels_data(final_refining_df, economy)
+        
     save_results(final_refining_df, detailed_capcaity_df, capacity_df, economy)
     ###########################################################
     ###########################################################
@@ -293,6 +291,7 @@ def calculate_biofuels_refining_exports_imports(model_df_clean_wide, consumption
     
     #melt the sectors (01_production, 02_imports, 03_exports) so they are in one column and then pivot the years so they are in columns:
     final_df = final_df.melt(id_vars = ['scenarios', 'economy', 'subfuels', 'year'], value_vars = ['consumption', '01_production', '02_imports', '03_exports'], var_name = 'sectors', value_name = 'energy_pj')
+    year_cols = final_df['year'].unique().tolist()
     #pivot years
     final_df = final_df.pivot_table(index = ['scenarios', 'economy', 'subfuels', 'sectors'], columns = 'year', values = 'energy_pj').reset_index()
     
@@ -305,7 +304,6 @@ def calculate_biofuels_refining_exports_imports(model_df_clean_wide, consumption
         print('There are {} NaNs in the final_df'.format(final_df[final_df['sectors'] != 'consumption'].isnull().sum().sum()))
         breakpoint()
         raise Exception('There are NaNs in the final_df')
-        
     return final_df
 
 def plot_biofuels_data(final_refining_df, economy):
@@ -387,7 +385,7 @@ def save_results(final_refining_df, detailed_capcaity_df, capacity_df, economy):
         for file in os.listdir(f'./data/modelled_data/{economy}/'):
             if re.search(economy + '_biofuels_refining_' + scenario, file):
                 os.remove(f'./data/modelled_data/{economy}/' + file)
-                
+        
         supply_df.to_csv(f'./data/modelled_data/{economy}/' + economy + '_biofuels_refining_' + scenario + '_' + timestamp + '.csv', index = False)
     #and save detailed_capcaity_df to the results folder but only after removing the latest version of the file
     for file in os.listdir('./results/supply_components/04_biofuels_refining/{}/'.format(economy)):
@@ -397,6 +395,29 @@ def save_results(final_refining_df, detailed_capcaity_df, capacity_df, economy):
         if re.search(economy + '_biofuels_refining_capacity', file):
             if os.path.exists('./results/supply_components/04_biofuels_refining/{}/'.format(economy) + file):
                 os.remove('./results/supply_components/04_biofuels_refining/{}/'.format(economy) + file)
-            
+       
     detailed_capcaity_df.to_csv(save_location + economy + '_biofuels_refining_capacity_additions_detailed_' + timestamp + '.csv', index = False)
     capacity_df.to_csv(save_location + economy + '_biofuels_refining_capacity_' + timestamp + '.csv', index = False)
+
+
+def remove_fuels_modelled_elsewhere_that_arent_modelled_here(economy, config, fuels_modelled_elsewhere):
+    #check the biofuels_refining_capacity_additions' and 'EBT_biofuels_list' and whether there is data for each of the fuels in the EBT_biofuels_list. where an economy doesnt have data for a fuel in the EBT_biofuels_list and is modelled eslewhere (e.g. the supply components), add it to fuels_to_not_model
+    fuels_to_not_model = []
+    FOUND=False
+    for economy_params in config['biofuels_refining_capacity_additions']:
+        if economy_params['economy'] != economy:
+            continue
+        EBT_biofuels_list = config['EBT_biofuels_list']
+        for fuel in EBT_biofuels_list:
+            for capacity_addition in economy_params['capacity_additions']:
+            
+                if (capacity_addition['EBT_fuel'] == fuel) & (int(capacity_addition['additional_energy_pj']) != 0):
+                    FOUND = True
+                    break
+                
+            if not FOUND:
+                fuels_to_not_model.append(fuel)
+    #now we have the fuels to not model, we can remove them from the EBT_biofuels_list if they are modelled elsewhere
+    fuels_to_not_model = [x for x in fuels_to_not_model if x in fuels_modelled_elsewhere.keys()]
+    config['EBT_biofuels_list'] = [x for x in config['EBT_biofuels_list'] if x not in fuels_to_not_model]    
+    return config
