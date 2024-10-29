@@ -8,7 +8,7 @@ import os
 import shutil
 
 #when we have new data from ESTO you will want to set this to False or None and run the data through the whole pipeline to get results/model_df_wide_' + date_today +'.csv' for modellers to use as an input
-SINGLE_ECONOMY_ID_VAR = '00_APEC'# '05_PRC' #'19_THA'# '19_THA' #20_USA 03_CDA#something going wrong with "09_ROK",
+SINGLE_ECONOMY_ID_VAR = '05_PRC'# '05_PRC' #'19_THA'# '19_THA' #20_USA 03_CDA#something going wrong with "09_ROK",
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
 # If merging supply results, set this to True and calculate TPES top down instead of bottom up
@@ -135,3 +135,41 @@ def run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH, MOVE_OLD_FILES_TO_
         target_df.to_csv(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/model_df_wide_tgt_{economy}_{file_date_id}.csv', index=False)
         print('Done run_main_up_to_merging_for_every_economy for ' + economy)
         
+        
+
+def shift_output_files_to_visualisation_input(economy_ids = ["01_AUS", "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN"], results_path = r'C:\Users\finbar.maunsell\github\Outlook9th_EBT\results', visualisation_input_path = r'C:\Users\finbar.maunsell\github\9th_edition_visualisation\input_data',file_date_id = '20241029'):
+    #create method to shift the files in C:\Users\finbar.maunsell\github\Outlook9th_EBT\results\ECONOMY_ID to C:\Users\finbar.maunsell\github\9th_edition_visualisation\input_data\ECONOMY_ID
+    #files are:
+    # capacity_12_NZ_20241023.csv
+    # emissions_ch4_12_NZ_20241025
+    # emissions_co2_12_NZ_20241025
+    # emissions_co2e_12_NZ_20241025
+    # emissions_no2_12_NZ_20241025
+    # merged_file_energy_12_NZ_20241023
+    #where 12_NZ is the economy id and 20241023 is the dateid
+   
+    import os
+    import shutil
+    import datetime
+    
+    files_to_retrieve = ['capacity', 'emissions_ch4', 'emissions_co2', 'emissions_co2e', 'emissions_no2', 'merged_file_energy']
+    
+    #loop over the economy ids
+    for economy_id in economy_ids:
+        #set the path to the economy id folder
+        economy_id_path = os.path.join(results_path, economy_id)
+        #loop over the files in the economy id folder. you will need to do a walk to get the files in the subfolders
+        for file in files_to_retrieve:
+            file = f'{file}_{economy_id}_{file_date_id}.csv'
+            #now walk thourgh the files in the economy id folder
+            for root, dirs, files in os.walk(economy_id_path):
+                for file_ in files:
+                    if file_ == file:
+                        #get the path to the file
+                        file_path = os.path.join(root, file_)
+                        #get the new file path
+                        new_file_path = os.path.join(visualisation_input_path, economy_id, file)
+                        #move the file to the new file path
+                        if not os.path.exists(os.path.join(visualisation_input_path, economy_id)):
+                            os.makedirs(os.path.join(visualisation_input_path, economy_id))
+                        shutil.move(file_path, new_file_path)

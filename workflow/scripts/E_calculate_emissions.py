@@ -5,7 +5,7 @@ import glob
 from datetime import datetime
 from utility_functions import *
 
-def calculate_emissions(final_df, SINGLE_ECONOMY_ID):
+def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_FUELS = False):
     # Make a copy of the final_df to avoid unintended modifications on the original
     final_df_copy = final_df.copy()
 
@@ -23,14 +23,22 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID):
 
     # Merge emissions factors based on fuels and sectors cols
     final_df_copy = pd.merge(final_df_copy, emissions_factors, how='outer', on=['fuels', 'subfuels', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'], indicator=True)
-
+    
     # Handle duplicate rows after merging
     if final_df_copy.duplicated(subset=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels', 'subtotal_layout', 'subtotal_results', 'year', 'Unit', 'Gas', 'CO2e emissions factor', 'Sector not applicable', 'Fuel not applicable', 'No expected energy use', '_merge']).any():
+        breakpoint()
         raise Exception('There are some duplicate rows in the merged dataframe.')
 
     # Check for rows that did not merge correctly
     if len(final_df_copy.loc[final_df_copy['_merge'] == 'left_only']) > 0:
-        raise Exception('Some rows did not merge with the emissions factors data. Please create more mappings for the missing values.')
+        breakpoint()
+        #save to a csv for inspection
+        # final_df_copy.loc[final_df_copy['_merge'] == 'left_only'].to_csv(f'left_only_{SINGLE_ECONOMY_ID}.csv')
+        a = len(final_df_copy.loc[final_df_copy['_merge'] == 'left_only'])
+        # print(f'Some rows {a} did not merge with the emissions factors data. Please create more mappings for the missing values.')
+        
+        final_df_copy = final_df_copy[final_df_copy['_merge'] != 'left_only']
+        raise Exception(f'Some rows {a} did not merge with the emissions factors data. Please create more mappings for the missing values.')
 
     # Remove right_only rows
     final_df_copy = final_df_copy[final_df_copy['_merge'] != 'right_only'].drop(columns=['_merge'])
@@ -78,9 +86,32 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID):
     # Set emissions factors for bunkers sectors to 0
     final_df_copy.loc[final_df_copy['sectors'] == '05_international_aviation_bunkers', 'CO2e emissions factor'] = 0
     final_df_copy.loc[final_df_copy['sectors'] == '06_international_marine_bunkers', 'CO2e emissions factor'] = 0
-
+    
+    #set any ZERO_NET_EMISSION_FUELS to 0 - it is useful to have their emisisons available:
+    if INCLUDE_ZERO_NET_EMISSION_FUELS == False:
+        ZERO_NET_EMISSION_FUELS = [
+            '15_solid_biomass',
+            '15_01_fuelwood_and_woodwaste',
+            '15_02_bagasse',
+            '16_09_other_sources',
+            '15_03_charcoal',
+            '15_04_black_liquor',
+            '15_05_other_biomass',
+            '16_others',
+            '16_01_biogas',
+            '16_02_industrial_waste',
+            '16_03_municipal_solid_waste_renewable',
+            '16_04_municipal_solid_waste_nonrenewable',
+            '16_05_biogasoline',
+            '16_06_biodiesel',
+            '16_07_bio_jet_kerosene',
+            '16_08_other_liquid_biofuels'
+        ]
+        final_df_copy.loc[final_df_copy['fuels'].isin(ZERO_NET_EMISSION_FUELS), 'CO2e emissions factor'] = 0
+    
     # Calculate emissions
-    final_df_copy['CO2e emissions (Mt/PJ)'] = final_df_copy['value'] * final_df_copy['CO2e emissions factor']
+    # final_df_copy['value'] = abs(final_df_copy['value']) (change any negative values to absolute first))
+    final_df_copy['CO2e emissions (Mt/PJ)'] = (final_df_copy['value'] * final_df_copy['CO2e emissions factor'])
 
     # Drop unnecessary columns
     final_df_copy.drop(columns=['CO2e emissions factor', 'value'], inplace=True)
