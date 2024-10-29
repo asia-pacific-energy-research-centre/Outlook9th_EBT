@@ -1418,10 +1418,9 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
         # Calculate the ending column letter based on the number of years
         end_col_num = energy_demand_cell.column + 81  # 81 additional columns after the start column (1990-2070)
         end_col_letter = get_column_letter(end_col_num)
-
-        # Read the data from the Excel file
-        data_df = pd.read_excel(excel_file, sheet_name=sheet_name, header=start_row - 1, usecols=f"{start_col}:{end_col_letter}")
-
+        
+        data_df = read_excel_with_bounds_check(excel_file, sheet_name, start_row, start_col, end_col_letter)
+            
         # Drop rows after 'Total'
         energy_demand_header = data_df.columns[0]
         total_index = data_df.index[data_df[energy_demand_header] == 'Total'].tolist()
@@ -1459,6 +1458,7 @@ def process_sheet(sheet_name, excel_file, economy, OUTLOOK_BASE_YEAR, OUTLOOK_LA
     if missing_entries:
         missing_df = pd.DataFrame(missing_entries, columns=['Missing Entries'])
         missing_df.to_csv('data/temp/error_checking/agriculture_missing_entries.csv', index=False)
+        breakpoint()
         raise Exception(f"Missing entries found in {sheet_name}.")
 
     return sheet_data
@@ -1565,3 +1565,34 @@ def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OU
 
     return df
 
+import string
+def read_excel_with_bounds_check(excel_file, sheet_name, start_row, start_col, end_col_letter):
+    # Read the entire sheet to determine the available columns
+    full_df = pd.read_excel(excel_file, sheet_name=sheet_name, header=start_row - 1)
+    available_columns = full_df.columns
+
+    try:
+        # Convert end_col_letter to column index, if it is a letter
+        if isinstance(end_col_letter, str):
+            end_col_index = available_columns.get_loc(end_col_letter)
+        else:
+            end_col_index = len(available_columns) - 1
+    except KeyError:
+        print(f"Warning: In Agriculture data, end column '{end_col_letter}' is not available. Defaulting to last column.")
+        end_col_index = len(available_columns) - 1
+
+    # Ensure column indices are within bounds
+    if end_col_index >= len(available_columns):
+        end_col_index = len(available_columns) - 1
+
+    # Convert column indices back to Excel letter range for usecols
+    if end_col_index // 26 == 0:
+        end_col_letter = string.ascii_uppercase[end_col_index]
+    else:
+        end_col_letter = string.ascii_uppercase[end_col_index // 26 - 1] + string.ascii_uppercase[end_col_index % 26]
+    column_range = f"{start_col}:{end_col_letter}"
+        
+    # Read the data from the Excel file with the adjusted usecols parameter
+    data_df = pd.read_excel(excel_file, sheet_name=sheet_name, header=start_row - 1, usecols=column_range)
+
+    return data_df
