@@ -172,4 +172,4 @@ def shift_output_files_to_visualisation_input(economy_ids = ["01_AUS", "02_BD", 
                         #move the file to the new file path
                         if not os.path.exists(os.path.join(visualisation_input_path, economy_id)):
                             os.makedirs(os.path.join(visualisation_input_path, economy_id))
-                        shutil.move(file_path, new_file_path)
+                        shutil.copy(file_path, new_file_path)

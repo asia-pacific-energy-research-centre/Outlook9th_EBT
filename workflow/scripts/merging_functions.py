@@ -638,9 +638,8 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
                 # Change all values into positive
                 numeric_cols = df_transformation.select_dtypes(include=[np.number]).columns
                 df_transformation[numeric_cols] = df_transformation[numeric_cols].abs()
-                # Filter for just nuclear and the renewables
-                df_transformation = df_transformation[df_transformation['fuels'].isin(['09_nuclear', '10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind', '16_others'])].copy()
-                df_transformation = df_transformation[~df_transformation['subfuels'].isin(['16_02_industrial_waste', '16_04_municipal_solid_waste_nonrenewable', '16_09_other_sources', '16_x_hydrogen', '16_x_ammonia'])].copy()
+                # Filter for transformation inputs that dont already have their supply modelled:
+                df_transformation = df_transformation[df_transformation['fuels'].isin(['09_nuclear', '10_hydro', '11_geothermal', '12_solar', '13_tide_wave_ocean', '14_wind']) | df_transformation['subfuels'].isin(['16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable', '16_08_other_liquid_biofuels', '16_09_other_sources'])].copy()
                 # Concatenate the two DataFrames
                 df_filtered = pd.concat([df_filtered, df_transformation], ignore_index=True)
                 # Group by key columns and sum the values

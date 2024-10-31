@@ -115,7 +115,19 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
             print(null_sectors)
         filtered_results_df = results_df[~results_df['sectors'].isin(null_sectors)].copy()
         
+        if results_df.empty or filtered_results_df.empty:
+            continue
         #########RUN COMMON CHECKS ON THE RESULTS FILE.#########
+        #check that the economy in economy col is the single_economy_id:
+        if SINGLE_ECONOMY_ID in ALL_ECONOMY_IDS:
+            #check that the economy in economy col is the single_economy_id:
+            if results_df['economy'].nunique() > 1:
+                breakpoint()
+                raise ValueError(f"Not one economy in the results file {file}.")
+            elif results_df['economy'].unique()[0] != SINGLE_ECONOMY_ID:
+                breakpoint()
+                raise ValueError(f"Economy in results file {file} is not the same as the single economy id {SINGLE_ECONOMY_ID}.")
+            
         merging_functions.check_bunkers_are_negative(filtered_results_df, file)
         merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
         #########RUN COMMON CHECKS ON THE RESULTS FILE OVER.#########

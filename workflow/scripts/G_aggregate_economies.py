@@ -36,7 +36,6 @@ def aggregate_economies(SINGLE_ECONOMY_ID):
 
     # Grab the latest energy, emissions, and capacity data files for each economy
     for economy in economies:
-        breakpoint()
         try:
             # Define the folder path where the data files are stored
             folder_path = f'results/{economy}/'
@@ -90,7 +89,6 @@ def aggregate_economies(SINGLE_ECONOMY_ID):
         #make any nas 0in the year cols
         df[year_cols] = df[year_cols].fillna(0)
         return df.groupby(non_year_cols).sum().reset_index()
-    breakpoint()
     all_energy_data = group_and_sum(all_energy_data)
     all_emissions_co2_data = group_and_sum(all_emissions_co2_data)
     all_emissions_no2_data = group_and_sum(all_emissions_no2_data)
@@ -138,7 +136,7 @@ def aggregate_economies(SINGLE_ECONOMY_ID):
             all_data.to_csv(f'{folder_path}/{file_name_id}_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
         else:
             all_data.to_csv(f'results/{file_name_id}_{date_today}.csv', index=False)
-    breakpoint()
+            
     # Save the aggregated data
     save_aggregated_data(all_energy_data, 'merged_file_energy', 'merged_file_energy')
     save_aggregated_data(all_emissions_co2_data, 'emissions', 'emissions_co2')
