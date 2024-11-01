@@ -118,6 +118,13 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         if results_df.empty or filtered_results_df.empty:
             continue
         #########RUN COMMON CHECKS ON THE RESULTS FILE.#########
+        #if there are any subtotal columns, check none of them are true, cause not sure if we should keep them or not. and then remove the cols
+        subtotal_cols = [col for col in filtered_results_df.columns if 'subtotal' in col]
+        if len(subtotal_cols) > 0:
+            if filtered_results_df[subtotal_cols].sum().sum() > 0:
+                raise ValueError(f"Subtotal columns found in {file}, not sure if we should keep them or not.")
+            filtered_results_df.drop(columns=subtotal_cols, inplace=True)
+            
         #check that the economy in economy col is the single_economy_id:
         if SINGLE_ECONOMY_ID in ALL_ECONOMY_IDS:
             #check that the economy in economy col is the single_economy_id:
