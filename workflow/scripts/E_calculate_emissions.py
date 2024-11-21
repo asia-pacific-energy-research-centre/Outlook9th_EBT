@@ -1,6 +1,3 @@
-#calcalate emissions on the merged data:
-#tak in merged final_df data (merged because it is the results and layout nerged) and the meissions factors , merge and then calculate emissions
-
 import pandas as pd
 import numpy as np
 import os
@@ -8,158 +5,298 @@ import glob
 from datetime import datetime
 from utility_functions import *
 
-def calculate_emissions(final_df,SINGLE_ECONOMY_ID):
-    #read in emissions factors
-    emissions_factors = pd.read_csv('config/9th_edition_emissions_factors.csv')
-    # emissions_factors.columns : fuel_code,	Emissions factor (MT/PJ)
-    
-    #melt the final_df on all cols except year cols
+def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_FUELS = False):
+    # Make a copy of the final_df to avoid unintended modifications on the original
+    final_df_copy = final_df.copy()
+
+    # Read in emissions factors
+    emissions_factors = pd.read_csv('config/9th_edition_emissions_factors_all_gases_simplified.csv')
+
+    # Melt the final_df on all cols except year cols
     year_cols = [col for col in final_df.columns if str(col).isnumeric()]
-    #[year for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
     non_year_and_value_cols = [col for col in final_df.columns if col not in year_cols]
+
+    final_df_copy = pd.melt(final_df_copy, id_vars=non_year_and_value_cols, value_vars=year_cols, var_name='year', value_name='value')
+
+    # Set any NaNs in the value col to 0
+    final_df_copy['value'] = final_df_copy['value'].fillna(0)
+
+    #within emisisons factors, filter for the correct values in tehse cols: 'GWP_type', 'GWP', then drop these cols
+    emissions_factors = emissions_factors.loc[(emissions_factors['GWP_type'] == 'GWP_100')].copy()
+    emissions_factors.drop(columns=['GWP_type', 'GWP'], inplace=True)
+    # Merge emissions factors based on fuels and sectors cols
+    final_df_copy = pd.merge(final_df_copy, emissions_factors, how='outer', on=['fuels', 'subfuels', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'], indicator=True)
     
-    final_df = pd.melt(final_df, id_vars=non_year_and_value_cols, value_vars=year_cols, var_name='year', value_name='value')
-    
-    # #######################################################
-    # # Preliminary step: Calculate proportions and adjust values for power sector gas with CCS
-    # def adjust_values_based_on_proportions(final_df):
-    #     # Define masks for relevant '18_01_02_gas_power' and 'ccs' data
-    #     relevant_mask = (
-    #         final_df['sub2sectors'].isin(['18_01_02_gas_power', '18_01_02_gas_power_ccs']) & 
-    #         (final_df['fuels'] == '08_gas') & 
-    #         (final_df['subfuels'] == 'x') & 
-    #         final_df['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)
-    #     )
-    #     relevant_df = final_df.loc[relevant_mask].copy()
+    # Handle duplicate rows after merging
+    if final_df_copy.duplicated(subset=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels', 'subtotal_layout', 'subtotal_results', 'year', 'Unit', 'Gas', 'CO2e emissions factor', 'Sector not applicable', 'Fuel not applicable', 'No expected energy use', '_merge']).any():
+        breakpoint()
+        raise Exception('There are some duplicate rows in the merged dataframe.')
 
-    #     # Calculate total values for combining '18_01_02_gas_power' and '18_01_02_gas_power_ccs'
-    #     totals = relevant_df.groupby(['scenarios', 'year'])['value'].transform('sum')
+    # Check for rows that did not merge correctly
+    if len(final_df_copy.loc[final_df_copy['_merge'] == 'left_only']) > 0:
+        breakpoint()
+        a = final_df_copy.loc[final_df_copy['_merge'] == 'left_only']
+        a.to_csv(f'./data/temp/error_checking/emissions_missing_mappings_{SINGLE_ECONOMY_ID}.csv')        
+        final_df_copy = final_df_copy[final_df_copy['_merge'] != 'left_only']
+        raise Exception(f'Some rows {a} did not merge with the emissions factors data. Please create more mappings for the missing values.')
 
-    #     # Now calculate proportions for '18_01_02_gas_power' directly in relevant_df
-    #     relevant_df['proportion'] = relevant_df['value'] / totals
+    # Remove right_only rows
+    final_df_copy = final_df_copy[final_df_copy['_merge'] != 'right_only'].drop(columns=['_merge'])
 
-    #     # Filter to get the proportions specifically for '18_01_02_gas_power'
-    #     proportions = relevant_df.loc[relevant_df['sub2sectors'] == '18_01_02_gas_power', ['scenarios', 'year', 'proportion']]
+    # Set emissions factor to 0 where sectors or fuels are not applicable
+    condition = (final_df_copy['Sector not applicable'] == True) | (final_df_copy['Fuel not applicable'] == True) | (final_df_copy['No expected energy use'] == True)
+    final_df_copy.loc[condition, 'CO2e emissions factor'] = 0
 
-    #     # Identify '09_01_02_gas_power' rows to adjust and replicate for 'ccs'
-    #     gas_power_09_mask = (
-    #         (final_df['sub2sectors'] == '09_01_02_gas_power') & 
-    #         (final_df['sub3sectors'] == 'x') &
-    #         (final_df['fuels'] == '08_gas') & 
-    #         (final_df['subfuels'] == '08_01_natural_gas') & 
-    #         final_df['year'].between(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR)
-    #     )
+    # Drop unnecessary columns
+    final_df_copy = final_df_copy.drop(columns=['Unit', 'Sector not applicable', 'Fuel not applicable', 'No expected energy use'])
 
-    #     gas_power_09_df = final_df.loc[gas_power_09_mask]
-        
-    #     gas_power_09_df = gas_power_09_df.merge(proportions, on=['scenarios', 'year'], how='left')
-        
-    #     gas_power_09_ccs_df = gas_power_09_df.copy()
-    #     gas_power_09_ccs_df['sub2sectors'] = '09_01_02_gas_power_ccs'
-        
-    #     gas_power_09_df['value'] = gas_power_09_df['value'] * (gas_power_09_df['proportion'])
-    #     gas_power_09_df.drop(columns=['proportion'], inplace=True)
-        
-    #     gas_power_09_ccs_df['value'] = gas_power_09_ccs_df['value'] * (1 - gas_power_09_ccs_df['proportion'])
-    #     gas_power_09_ccs_df.drop(columns=['proportion'], inplace=True)
+    # Check for duplicate rows again
+    if final_df_copy.duplicated(subset=non_year_and_value_cols + ['year', 'Gas']).any():
+        raise Exception('There are some duplicate rows in the final emissions dataframe.')
 
-    #     gas_power_df = pd.concat([gas_power_09_df, gas_power_09_ccs_df], ignore_index=True)
-        
-    #     final_df = final_df.loc[~gas_power_09_mask]
-
-    #     # Append the new 'ccs' rows to the DataFrame
-    #     final_df = pd.concat([final_df, gas_power_df], ignore_index=True)
-
-    #     return final_df
-    # #######################################################
-    # final_df = adjust_values_based_on_proportions(final_df)
-    
-    #merge with final_df where the fuel_code matches either the fuels col or subfuels col.
-    x_in_subfuels = final_df.loc[final_df['subfuels']=='x']
-    not_x_in_subfuels = final_df.loc[final_df['subfuels']!='x']
-    #merge with emissions_factors
-    x_in_subfuels = pd.merge(x_in_subfuels, emissions_factors, how='left', left_on='fuels', right_on='fuel_code')
-    not_x_in_subfuels = pd.merge(not_x_in_subfuels, emissions_factors, how='left', left_on='subfuels', right_on='fuel_code')
-    
-    #concat
-    final_df = pd.concat([x_in_subfuels, not_x_in_subfuels])
-    
     def split_ccs_rows(df):
         # Reset index to ensure clean indexing
         df = df.reset_index(drop=True)
-        
-        # Define conditions for industry and power sector CCS rows
-        industry_ccs_condition = df['sub3sectors'].str.endswith('_ccs') & df['sub3sectors'].str.startswith('14_')
-        power_ccs_condition = df['sub2sectors'].str.endswith('_ccs') & df['sub2sectors'].str.startswith('09_')
+
+        # Define conditions for CCS rows
+        industry_ccs_condition = df['sub3sectors'].str.endswith('_ccs') & df['sub3sectors'].str.startswith('14_') & (df['Gas'] == 'CARBON DIOXIDE')
+        power_ccs_condition = df['sub2sectors'].str.endswith('_ccs') & df['sub2sectors'].str.startswith('09_') & (df['Gas'] == 'CARBON DIOXIDE')
         
         # Create a copy for manipulation
-        df_copy = df.copy()
+        df_copy = df.loc[industry_ccs_condition | power_ccs_condition].copy()
 
+        #and remove asny positive values in 09_total_transformation_sector since they are not combustion emissions, they are produced energy
+        df_copy.loc[(df_copy['sectors'] == '09_total_transformation_sector') & (df_copy['value'] > 0), 'value'] = 0
+        #then set all values in 09_total_transformation_sector to positive 
+        df_copy.loc[(df_copy['sectors'] == '09_total_transformation_sector'), 'value'] = abs(df_copy.loc[(df_copy['sectors'] == '09_total_transformation_sector'), 'value'])
+        #check for any remaining negative values in the df_copy
+        if df_copy.loc[df_copy['value'] < 0].shape[0] > 0:
+            breakpoint()
+            raise Exception('There are some negative CO2e emissions factors in the CCS rows. Please check the data.')
+        
         # Apply sector-specific factors
-        df_copy.loc[industry_ccs_condition, 'Emissions factor (MT/PJ)'] *= 0.8
-        df_copy.loc[power_ccs_condition, 'Emissions factor (MT/PJ)'] *= 0.9
-        df_copy.loc[industry_ccs_condition, 'sub3sectors'] = df_copy.loc[industry_ccs_condition, 'sub3sectors'] + '_cap'
-        df_copy.loc[power_ccs_condition, 'sub2sectors'] = df_copy.loc[power_ccs_condition, 'sub2sectors'] + '_cap'
+        df_copy.loc[industry_ccs_condition, 'CO2e emissions factor'] *= -INDUSTRY_CCS_ABATEMENT_RATE
+        df_copy.loc[power_ccs_condition, 'CO2e emissions factor'] *= -POWER_CCS_ABATEMENT_RATE
+        df_copy.loc[industry_ccs_condition, 'sub3sectors'] += '_captured_emissions'
+        df_copy.loc[power_ccs_condition, 'sub2sectors'] += '_captured_emissions'
 
-        # Adjust original df for the non-captured portion
-        df.loc[industry_ccs_condition, 'Emissions factor (MT/PJ)'] *= (1 - 0.8)
-        df.loc[power_ccs_condition, 'Emissions factor (MT/PJ)'] *= (1 - 0.9)
+        # # Adjust original df for the non-captured portion #NOTE I RMEOVED THIS BECAUSE IT SEEMED LIKE THE BEST METHOD SHOULD BE TO ALLOW THE USER TO MINUS THE CAPTURED PORTION FROM THE TOTAL EMISSIONS TEHMSELVES
+        # df.loc[industry_ccs_condition, 'CO2e emissions factor'] *= INDUSTRY_CCS_ABATEMENT_RATE
+        # df.loc[power_ccs_condition, 'CO2e emissions factor'] *= POWER_CCS_ABATEMENT_RATE
 
         # Concatenate the modified copy back with the original dataframe
         df_final = pd.concat([df, df_copy], ignore_index=True)
 
         return df_final
 
-    # Apply the emissions factor adjustments
-    final_df = split_ccs_rows(final_df)
+    # Apply the emissions factor adjustments for CCS
+    final_df_copy = split_ccs_rows(final_df_copy)
+
+    # Set emissions factors for bunkers sectors to 0
+    final_df_copy.loc[final_df_copy['sectors'] == '05_international_aviation_bunkers', 'CO2e emissions factor'] = 0
+    final_df_copy.loc[final_df_copy['sectors'] == '06_international_marine_bunkers', 'CO2e emissions factor'] = 0
+    #and remove asny positive values in 09_total_transformation_sector since they are not combustion emissions, they are produced energy
+    final_df_copy.loc[(final_df_copy['sectors'] == '09_total_transformation_sector') & (final_df_copy['value'] > 0), 'CO2e emissions factor'] = 0
     
-    #calculate emissions
-    final_df['emissions'] = final_df['value'] * final_df['Emissions factor (MT/PJ)']
+    # #and set 10_02_transmission_and_distribution_losses to 0
+    # final_df_copy.loc[(final_df_copy['sub1sectors'] == '10_02_transmission_and_distribution_losses'), 'CO2e emissions factor'] = 0#actually nope, this is already excluded in the emissions factors since it has Sector not applicable = True (same as the non applicable tranformation sectors)
     
+    #set any ZERO_NET_EMISSION_FUELS to 0 - it is useful to have their emisisons available but not for this output:
+    if INCLUDE_ZERO_NET_EMISSION_FUELS == False:
+        ZERO_NET_EMISSION_FUELS = [
+            '15_solid_biomass',
+            '15_01_fuelwood_and_woodwaste',
+            '15_02_bagasse',
+            '16_09_other_sources',
+            '15_03_charcoal',
+            '15_04_black_liquor',
+            '15_05_other_biomass',
+            '16_others',
+            '16_01_biogas',
+            '16_02_industrial_waste',
+            '16_03_municipal_solid_waste_renewable',
+            '16_04_municipal_solid_waste_nonrenewable',
+            '16_05_biogasoline',
+            '16_06_biodiesel',
+            '16_07_bio_jet_kerosene',
+            '16_08_other_liquid_biofuels'
+        ]
+        final_df_copy.loc[final_df_copy['fuels'].isin(ZERO_NET_EMISSION_FUELS), 'CO2e emissions factor'] = 0
+    
+    # Calculate emissions
+    # final_df_copy['value'] = abs(final_df_copy['value']) (change any negative values to absolute first))
+    final_df_copy['CO2e emissions (Mt/PJ)'] = (final_df_copy['value'] * final_df_copy['CO2e emissions factor'])
+
     # Drop unnecessary columns
-    final_df.drop(columns=['Emissions factor (MT/PJ)', 'value', 'fuel_code'], inplace=True)
+    final_df_copy.drop(columns=['CO2e emissions factor', 'value'], inplace=True)
     
-    #make wide
-    final_df = final_df.pivot_table(index=non_year_and_value_cols, columns='year', values='emissions').reset_index()
-    #save emissions
+    ###############
+    final_df_copy = calculate_aggregate_total_combustion_values(final_df_copy, non_year_and_value_cols)
+    ###############
+    final_df_copy = aggregate_co2e_emissions(final_df_copy, non_year_and_value_cols, SINGLE_ECONOMY_ID)
+    ###############
     
-    # Define the folder path where you want to save the file
+    # Check for duplicates and NaNs
+    if final_df_copy.duplicated(subset=non_year_and_value_cols + ['year', 'Gas']).any():
+        breakpoint()
+        raise Exception('There are some duplicate rows in the final emissions dataframe.')
+    if final_df_copy.isnull().any().any():
+        breakpoint()
+        raise Exception('There are some NaNs in the final emissions dataframe.')
+
+    # Pivot data to make it wide format
+    final_df_copy = final_df_copy.pivot_table(index=non_year_and_value_cols + ['Gas'], columns='year', values='CO2e emissions (Mt/PJ)').reset_index()
+    
+    # Save emissions data
     folder_path = f'results/{SINGLE_ECONOMY_ID}/emissions/'
     old_folder_path = f'{folder_path}/old'
-    # Check if the folder already exists
-    if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
-        # If the folder doesn't exist, create it
+    if not os.path.exists(folder_path) and isinstance(SINGLE_ECONOMY_ID, str):
         os.makedirs(folder_path)
-
-    # Check if the old folder exists
     if not os.path.exists(old_folder_path):
-        # If the old folder doesn't exist, create it
         os.makedirs(old_folder_path)
 
-    # Identify the previous emissions file
-    previous_emissions_filename = None
-    if os.path.exists(folder_path):
-        for file in os.listdir(folder_path):
-            if file.startswith(f'emissions_{SINGLE_ECONOMY_ID}') and file.endswith('.csv'):
-                previous_emissions_filename = file
-                break
+    gas_to_filename = {'CO2e': 'emissions_co2e', 'CARBON DIOXIDE': 'emissions_co2', 'METHANE': 'emissions_ch4', 'NITROUS OXIDE': 'emissions_no2'}
+    for gas in gas_to_filename.keys():
+        gas_df = final_df_copy.loc[final_df_copy['Gas'] == gas].copy()
+        gas_df.drop(columns=['Gas'], inplace=True)
+        filename = gas_to_filename[gas]
 
-    # Move the old emissions file to the 'old' folder if it exists
-    if previous_emissions_filename:
-        old_file_path = f'{folder_path}/{previous_emissions_filename}'
-        new_old_file_path = f'{old_folder_path}/{previous_emissions_filename}'
-        
-        # Remove the old file in the 'old' folder if it exists
-        if os.path.exists(new_old_file_path):
-            os.remove(new_old_file_path)
-        
-        os.rename(old_file_path, new_old_file_path)
+        # Move previous emissions file to 'old' folder if exists
+        previous_emissions_filename = next((file for file in os.listdir(folder_path) if file.startswith(f'{filename}_{SINGLE_ECONOMY_ID}') and file.endswith('.csv')), None)
+        if previous_emissions_filename:
+            old_file_path = f'{folder_path}/{previous_emissions_filename}'
+            new_old_file_path = f'{old_folder_path}/{previous_emissions_filename}'
+            if os.path.exists(new_old_file_path):
+                os.remove(new_old_file_path)
+            os.rename(old_file_path, new_old_file_path)
 
-    #save the data to a new Excel file
-    date_today = datetime.now().strftime('%Y%m%d')
-    if (isinstance(SINGLE_ECONOMY_ID, str)):
-        final_df.to_csv(f'{folder_path}/emissions_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
-    else:
-        final_df.to_csv(f'results/emissions_{date_today}.csv', index=False)
-        
-    return final_df#CURRENTLY, NO DOUBT THERE ARE SISUES WITH THIS, SUCH AS HAVING NO SUBSECTORAL CONSIDERATION. I.E. ARE THERE ANY EMISSIONS FOR NON ENERGY USE?
+        # Save the new emissions data
+        date_today = datetime.now().strftime('%Y%m%d')
+        if isinstance(SINGLE_ECONOMY_ID, str):
+            gas_df.to_csv(f'{folder_path}/{filename}_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
+        else:
+            gas_df.to_csv(f'results/{filename}_{date_today}.csv', index=False)
+
+    return final_df_copy
+
+
+def calculate_aggregate_total_combustion_values(final_df_copy, non_year_and_value_cols):
+    #also, since its a useful input, we want to extract and calc the total combustion emissions by gas type  we will sum these up and set the sector to '20_total_combustion_emissions' so we have an easy way to extract the total combustion emissions for each gas type
+    selected_categories = [
+    "09_total_transformation_sector",
+    "10_losses_and_own_use",
+    "14_industry_sector",
+    "15_transport_sector",
+    "16_other_sector"
+    ]
+    historical_data = final_df_copy.loc[final_df_copy['year'] <= OUTLOOK_BASE_YEAR].copy()
+    projected_data = final_df_copy.loc[final_df_copy['year'] > OUTLOOK_BASE_YEAR].copy()
+    total_emissions_historical = historical_data.loc[historical_data['sectors'].isin(selected_categories) & (historical_data['subtotal_layout']==False)].copy()
+    total_emissions_projected = projected_data.loc[projected_data['sectors'].isin(selected_categories) & (projected_data['subtotal_results']==False)].copy()
+    
+    #set the subtotal col for the opposite type to False snce it doesnt matter since its essentially 0 anyway (we're operating in tall dfs right now but if we made it wide they would be 0)
+    total_emissions_historical['subtotal_results'] = False
+    total_emissions_projected['subtotal_layout'] = False
+    
+    #also drop anything where _captured_emissions is in the subsectors3 or 2 columnssince we are only interested in the total combustion emissions and not the net emissions
+    captured_emissions_proj = total_emissions_projected.loc[(total_emissions_projected['sub3sectors'].str.contains('_captured_emissions', na=False)) | (total_emissions_projected['sub2sectors'].str.contains('_captured_emissions', na=False))].copy()
+    captured_emissions_hist = total_emissions_historical.loc[(total_emissions_historical['sub3sectors'].str.contains('_captured_emissions', na=False)) | (total_emissions_historical['sub2sectors'].str.contains('_captured_emissions', na=False))].copy()  
+    
+    total_emissions_historical = total_emissions_historical.loc[(~total_emissions_historical['sub3sectors'].str.contains('_captured_emissions', na=False)) & (~total_emissions_historical['sub2sectors'].str.contains('_captured_emissions', na=False))].copy()
+    total_emissions_projected = total_emissions_projected.loc[(~total_emissions_projected['sub2sectors'].str.contains('_captured_emissions', na=False) & (~total_emissions_projected['sub3sectors'].str.contains('_captured_emissions', na=False)))].copy()
+    
+    total_emissions_projected_copy = total_emissions_projected.copy()
+    total_emissions_historical_copy = total_emissions_historical.copy()
+    
+    total_emissions_historical['sectors'] = '20_total_combustion_emissions'
+    total_emissions_historical['sub1sectors'] = 'x'
+    total_emissions_historical['sub2sectors'] = 'x'
+    total_emissions_historical['sub3sectors'] = 'x'
+    total_emissions_historical['sub4sectors'] = 'x'    
+    
+    total_emissions_projected['sectors'] = '20_total_combustion_emissions'
+    total_emissions_projected['sub1sectors'] = 'x'
+    total_emissions_projected['sub2sectors'] = 'x'
+    total_emissions_projected['sub3sectors'] = 'x'
+    total_emissions_projected['sub4sectors'] = 'x'    
+    
+    #set any negative CO2e emissions (Mt/PJ)s to positive since we habe that in the transfromation sector and own use sector
+    total_emissions_historical['CO2e emissions (Mt/PJ)'] = abs(total_emissions_historical['CO2e emissions (Mt/PJ)'])
+    total_emissions_projected['CO2e emissions (Mt/PJ)'] = abs(total_emissions_projected['CO2e emissions (Mt/PJ)'])
+    
+    #sum these up 
+    total_emissions_historical = total_emissions_historical.groupby(non_year_and_value_cols + ['year', 'Gas']).sum().reset_index()
+    total_emissions_projected = total_emissions_projected.groupby(non_year_and_value_cols + ['year', 'Gas']).sum().reset_index()
+    
+    #concat
+    total_emissions = pd.concat([total_emissions_historical, total_emissions_projected], ignore_index=True)
+    final_df_copy = pd.concat([final_df_copy, total_emissions], ignore_index=True)
+    ###############
+    #and also to help the user we will create a fuel called 22_total_combustion_emissions which will just show be lines where the row is part of the total_combustion_emissions (i.e. the sector is within the selected_categories)
+    
+    total_emissions_projected_copy['fuels'] = '22_total_combustion_emissions'
+    total_emissions_projected_copy['subfuels'] = 'x'
+    
+    total_emissions_historical_copy['fuels'] = '22_total_combustion_emissions'
+    total_emissions_historical_copy['subfuels'] = 'x'
+    
+    #set any negative CO2e emissions (Mt/PJ)s to positive since we have that in the transfromation sector and own use sector
+    total_emissions_projected_copy['CO2e emissions (Mt/PJ)'] = abs(total_emissions_projected_copy['CO2e emissions (Mt/PJ)'])
+    total_emissions_historical_copy['CO2e emissions (Mt/PJ)'] = abs(total_emissions_historical_copy['CO2e emissions (Mt/PJ)'])
+
+    #sum these up 
+    total_emissions_projected_copy = total_emissions_projected_copy.groupby(non_year_and_value_cols + ['year', 'Gas']).sum().reset_index()
+    total_emissions_historical_copy = total_emissions_historical_copy.groupby(non_year_and_value_cols + ['year', 'Gas']).sum().reset_index()
+    
+    #concat
+    total_emissions_copy = pd.concat([total_emissions_historical_copy, total_emissions_projected_copy], ignore_index=True)
+    
+    final_df_copy = pd.concat([final_df_copy, total_emissions_copy], ignore_index=True)
+    ###############
+    
+    #and also calcualte total net emisisons. that is the emissions when you drop the effects of carbon capture. We will just calcualte it as a total in sectors and fuels so its not too complicated. To do this justconcat the captured_emissions_proj and captured_emissions_hist to total_emissions then rename the sectors to 21_total_combustion_emissions_net and fuels to 23_total_combustion_emissions_net. then sum it up!
+    net_emissions = pd.concat([captured_emissions_proj, captured_emissions_hist, total_emissions], ignore_index=True)
+    net_emissions['sectors'] = '21_total_combustion_emissions_net'
+    net_emissions['fuels'] = '23_total_combustion_emissions_net'
+    net_emissions['sub1sectors'] = 'x'
+    net_emissions['sub2sectors'] = 'x'
+    net_emissions['sub3sectors'] = 'x'
+    net_emissions['sub4sectors'] = 'x'
+    net_emissions['subfuels'] = 'x'
+    
+    net_emissions = net_emissions.groupby(non_year_and_value_cols + ['year', 'Gas']).sum().reset_index()
+    final_df_copy = pd.concat([final_df_copy, net_emissions], ignore_index=True)
+    
+    return final_df_copy
+
+
+def aggregate_co2e_emissions(final_df_copy, non_year_and_value_cols, SINGLE_ECONOMY_ID):
+    # Calculate CO2e emissions
+    # Aggregate emissions data to get co2e totals (not by gas type)
+    final_df_aggregate = final_df_copy.groupby(non_year_and_value_cols + ['year']).sum().reset_index()
+    final_df_aggregate['Gas'] = 'CO2e'
+    ###
+    #jsut because its often gonna be something we quetion, just calcaulte the difference in co2e and co2 emissions total using sector == 20_total_combustion_emissions
+    total_co2e_combustion_emissions = final_df_aggregate.loc[final_df_aggregate['sectors'] == '20_total_combustion_emissions'].copy()
+    total_co2_combustion_emissions = final_df_copy.loc[(final_df_copy['sectors'] == '20_total_combustion_emissions') & (final_df_copy['Gas'] == 'CARBON DIOXIDE')].copy()
+    
+    #merge, sum and then calc the difference. then save to a csv
+    total_combustion_emissions = pd.merge(total_co2e_combustion_emissions, total_co2_combustion_emissions, how='outer', on=non_year_and_value_cols + ['year'], indicator=True, suffixes=('_co2e', '_co2'))
+    total_combustion_emissions['CO2e emissions (Mt/PJ)_co2e'] = total_combustion_emissions['CO2e emissions (Mt/PJ)_co2e'].fillna(0)
+    total_combustion_emissions['CO2e emissions (Mt/PJ)_co2'] = total_combustion_emissions['CO2e emissions (Mt/PJ)_co2'].fillna(0)
+
+    #sum
+    total_combustion_emissions = total_combustion_emissions.groupby(non_year_and_value_cols + ['year']).sum(numeric_only=True).reset_index()
+    total_combustion_emissions['difference'] = total_combustion_emissions['CO2e emissions (Mt/PJ)_co2e'] - total_combustion_emissions['CO2e emissions (Mt/PJ)_co2']
+    total_combustion_emissions = total_combustion_emissions.groupby(non_year_and_value_cols + ['year']).sum(numeric_only=True).reset_index()
+    total_combustion_emissions['difference'] = total_combustion_emissions['CO2e emissions (Mt/PJ)_co2e'] - total_combustion_emissions['CO2e emissions (Mt/PJ)_co2']
+    total_combustion_emissions.to_csv(f'./data/temp/error_checking/difference_in_co2e_and_co2_emissions_{SINGLE_ECONOMY_ID}.csv')  
+    #save a plot to plotting_output
+    # ax = total_combustion_emissions.groupby('year').sum(numeric_only=True).reset_index().plot(x='year', y='difference', kind='line', title=f'Difference in sum of all gas emissions (co2e) compared to CO2 emissions for {SINGLE_ECONOMY_ID}', xlabel='Year', ylabel='(Mt/PJ)')
+    # fig = ax.get_figure()
+    # fig.savefig(f'./plotting_output/difference_in_co2e_and_co2_emissions_{SINGLE_ECONOMY_ID}.png')
+    
+    # Concatenate aggregate and original emissions data
+    final_df_copy = pd.concat([final_df_copy, final_df_aggregate], ignore_index=True)
+    return final_df_copy
+    

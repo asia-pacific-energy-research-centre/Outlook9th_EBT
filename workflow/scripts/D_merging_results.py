@@ -9,7 +9,7 @@ from utility_functions import *
 import merging_functions
 import warnings
     
-def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_filename=None):
+def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_filename=None, PRINT=False):
     """Takes the layout file and the results files, and merges them together.  The results files are generated from the model runs in the demand model, and the layout file is generated from the historical data file and the layout file template. 
     The process is messy and in some places doesnt seem to take the simplest way forwards. Most of the time this is because of compromises that are made because of the different level of detail between inputs, and the layout file. So the code here is complex, but relatively flexible.
     Some issues with the structure of the data that we need to deal with:
@@ -51,7 +51,8 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     #FIRST, LOAD IN ALL THE RESULTS FILES AND CONCAT THEM TOGETHER. THEN WE CAN MERGE THEM WITH THE LAYOUT FILE AND IDENTIFY ANY STRUCTURAL ISSUES
     # Iterate over the results files
     for file in results_data_files:
-        print(f"Start processing {file}...")
+        if PRINT:
+            print(f"Start processing {file}...")
         # Check if the file is an Excel file
         if file.endswith('.xlsx'):
             xls = pd.ExcelFile(file)
@@ -66,18 +67,20 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
                     results_df = pd.read_excel(file, sheet_name=-1)  # Processing for already transformed agriculture files
             else:
                 results_df = pd.read_excel(file, sheet_name=-1)  # Processing for non-agriculture files
-
-            print(f"Processing Excel file {file}...")
+            if PRINT:
+                print(f"Processing Excel file {file}...")
 
         # Process CSV files
         elif file.endswith('.csv'):
             # Check if 'pipeline' or 'buildings' is in the file name (case-insensitive)
             if 'pipeline' in file.lower(): # or 'buildings' in file.lower():
                 results_df = merging_functions.split_subfuels(file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR) # Split subfuels for pipeline and buildings files
-                print(f"Processing CSV file {file} with split subfuels...")
+                if PRINT:
+                    print(f"Processing CSV file {file} with split subfuels...")
             else:
                 results_df = pd.read_csv(file)
-                print(f"Processing CSV file {file}...")
+                if PRINT:
+                    print(f"Processing CSV file {file}...")
 
         # Handle unsupported file formats
         else:
@@ -112,7 +115,38 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
             print(null_sectors)
         filtered_results_df = results_df[~results_df['sectors'].isin(null_sectors)].copy()
         
+        if results_df.empty or filtered_results_df.empty:
+            continue
         #########RUN COMMON CHECKS ON THE RESULTS FILE.#########
+        files_with_subtotals_that_we_can_just_drop = ['CHL_Agriculture and Fishing_V1_tgt_2024_07_30.csv', 'CHL_Agriculture and Fishing_V1_ref_2024_07_30.csv', 'MEX_Agriculture_V1_ref_2024_07_04','MEX_Agriculture_V1_tgt_2024_07_04', 'PE_Agriculture and Fishing_V1_ref_2024_07_08.csv' , 'PE_Agriculture and Fishing_V1_tgt_2024_07_08.csv', 'PNG_Agriculture_V1_tgt_2024_06_21.csv', 'PNG_Agriculture_V1_ref_2024_06_21.csv', 'HKC_Agriculture_V1_ref_2024_04_11.csv', 'HKC_Agriculture_V1_tgt_2024_04_11.csv', 'VN_Agriculture and Fishing_V1_ref_2024_04_11.csv', 'VN_Agriculture and Fishing_V1_tgt_2024_04_11.csv']#WARNING BE CARFEUL DOING THIS BECAUSE IF WE HAVE MULTIPLE SUBTOTAL COLS AND ONE IS TRUE AND THE OTHER IS FALSE, WE WOULD DROP THE ROW AND POTEINTIALLY LOSE DATA. NORMALLY JUST SAFER TO REMOVE THE SUBTOTALS MANUAULLY OR EVEN LEAVE THEM IN (WE ARENT TOTALLY SURE THIS IS SAFE THO).
+        DROP_SUBTOTALS = False
+        for file_ in files_with_subtotals_that_we_can_just_drop:
+            if file_ in file:
+                DROP_SUBTOTALS = True
+                
+        #if there are any subtotal columns, check none of them are true, cause not sure if we should keep them or not. and then remove the cols
+        subtotal_cols = [col for col in filtered_results_df.columns if 'subtotal' in col]
+        if len(subtotal_cols) > 0:
+            if filtered_results_df[subtotal_cols].sum().sum() > 0:
+                if DROP_SUBTOTALS:
+                    for subtotal_col in subtotal_cols:
+                        if subtotal_col in filtered_results_df.columns:
+                            filtered_results_df = filtered_results_df.loc[filtered_results_df[subtotal_col]!=True].copy()
+                else:
+                    breakpoint()
+                    raise ValueError(f"Subtotal columns found in {file}, not sure if we should keep them or not.")
+            filtered_results_df.drop(columns=subtotal_cols, inplace=True)
+            
+        #check that the economy in economy col is the single_economy_id:
+        if SINGLE_ECONOMY_ID in ALL_ECONOMY_IDS:
+            #check that the economy in economy col is the single_economy_id:
+            if results_df['economy'].nunique() > 1:
+                breakpoint()
+                raise ValueError(f"Not one economy in the results file {file}.")
+            elif results_df['economy'].unique()[0] != SINGLE_ECONOMY_ID:
+                breakpoint()
+                raise ValueError(f"Economy in results file {file} is not the same as the single economy id {SINGLE_ECONOMY_ID}.")
+            
         merging_functions.check_bunkers_are_negative(filtered_results_df, file)
         merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
         #########RUN COMMON CHECKS ON THE RESULTS FILE OVER.#########
@@ -125,7 +159,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
 
     # Define the range of years to keep
     years_to_keep = set(range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR + 1))
-
+    
     # Filter out columns beyond OUTLOOK_LAST_YEAR
     # Convert column names to strings for comparison, as some might be integers
     concatted_results_df = concatted_results_df[[col for col in concatted_results_df.columns if str(col).isdigit() and int(col) in years_to_keep or not str(col).isdigit()]]

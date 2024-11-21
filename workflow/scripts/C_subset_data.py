@@ -86,7 +86,7 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     # Now keep the non-zero and non na rows in the rest of the frame
     bld_df2 = bld_df[~((bld_df['fuels'].isin(bld_fuels)) &
                     (bld_df['subfuels'].isin(bld_subfuels)))].copy()
-
+    
     # drop if all na
     bld_df2 = bld_df2.dropna(subset = year_list).copy()
     # drop if all zero
