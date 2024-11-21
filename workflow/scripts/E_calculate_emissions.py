@@ -97,8 +97,9 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
     final_df_copy.loc[final_df_copy['sectors'] == '06_international_marine_bunkers', 'CO2e emissions factor'] = 0
     #and remove asny positive values in 09_total_transformation_sector since they are not combustion emissions, they are produced energy
     final_df_copy.loc[(final_df_copy['sectors'] == '09_total_transformation_sector') & (final_df_copy['value'] > 0), 'CO2e emissions factor'] = 0
+    
     # #and set 10_02_transmission_and_distribution_losses to 0
-    # final_df_copy.loc[(final_df_copy['sub1sectors'] == '10_02_transmission_and_distribution_losses'), 'CO2e emissions factor'] = 0#actually nope, this is already excluded in the emissions factors since it has Sector not applicable = True
+    # final_df_copy.loc[(final_df_copy['sub1sectors'] == '10_02_transmission_and_distribution_losses'), 'CO2e emissions factor'] = 0#actually nope, this is already excluded in the emissions factors since it has Sector not applicable = True (same as the non applicable tranformation sectors)
     
     #set any ZERO_NET_EMISSION_FUELS to 0 - it is useful to have their emisisons available but not for this output:
     if INCLUDE_ZERO_NET_EMISSION_FUELS == False:
