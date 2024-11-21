@@ -115,6 +115,9 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
 
     df = pd.concat(df_list) # vertical combine
 
+    #drop rows with all nas
+    df = df.dropna(how='all')
+    
     # Standardisation
     # - standarlize col names and variable names
     # - blank, special symbols are not allowed 
@@ -159,8 +162,32 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
                                     .str.replace(':', '', regex = False)\
                                     .str.rstrip('_')
 
+    #check for any nas in any column and if there are raise an error
+    if df.isnull().any().any():
+        nas = df.columns[df.isnull().any()].tolist()
+        #save the nas to a file
+        df.to_csv(f'./data/temp/error_checking/nas_in_initial_data_{SINGLE_ECONOMY_ID}.csv')
+        #TEMPORARY FIX  
+        if SINGLE_ECONOMY_ID in ECONOMYS_WITH_INITIAL_NAS_AND_THEIR_COLS.keys():        
+            for na_col in nas:
+                if na_col not in ECONOMYS_WITH_INITIAL_NAS_AND_THEIR_COLS[SINGLE_ECONOMY_ID]:
+                    breakpoint()
+                    raise Exception(f'There are nas in the initial data for {SINGLE_ECONOMY_ID}. Check the file ./data/interim/nas_in_initial_data_{SINGLE_ECONOMY_ID}.csv for more information. The nas are in the column: {nas}')
+            #if its in the value column set values to 0, so that they can be kept in the data and not ruin any calculations. othewise if its in a non value col, drop teh row
+            if 'value' in nas:
+                df['value'] = df['value'].fillna(0)
+            df = df.dropna(subset=nas)
+        #TEMPORARY FIX  
+        elif SINGLE_ECONOMY_ID == False:
+            #we're creating a layout file. the nas should be dealt with economy by economy
+            df['value'] = df['value'].fillna(0)
+            df = df.dropna(subset=nas)
+            
+        else:
+            breakpoint()
+            raise Exception(f'There are nas in the initial data for {SINGLE_ECONOMY_ID}. Check the file ./data/interim/nas_in_initial_data_{SINGLE_ECONOMY_ID}.csv for more information. The nas are in the column: {nas}')
+    
     # Transfer item_number into two digits 
-
     df['fuels'] = df['fuels'].apply(lambda x: re.sub(r'\d+', lambda y: y.group(0).zfill(2), x))
     df['sectors'] = df['sectors'].apply(lambda x: re.sub(r'\d+', lambda y: y.group(0).zfill(2), x))
 

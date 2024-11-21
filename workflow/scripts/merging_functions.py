@@ -1262,7 +1262,23 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         # CHL file has some issues with the following rows
         bad_values_rows_exceptions_dict['CHL_11_statistical_discrepancy'] = {'economy':'04_CHL', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['CHL_12_solar'] = {'economy':'04_CHL', 'sub1sectors':'x', 'fuels':'12_solar', 'subfuels':'x'}
-
+        
+        #######TEMP FOR NEW ESTO DATA
+        #PROBALBY TEMP FOR THE PERIOD WHILE ESTO IS CLEANINGN THEIR 2022 DATA:
+        # 10_MAS	10_losses_and_own_use	x	x	x	x	08_gas	x	1984-TO-2021
+        # 10_MAS 11_statistical_discrepancy	x	x	x	x	08_gas	x	1984-TO-2021
+        bad_values_rows_exceptions_dict['MAS_10_losses_and_own_use'] = {'economy':'10_MAS', 'sectors':'10_losses_and_own_use', 'fuels':'08_gas', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['MAS_11_statistical_discrepancy'] = {'economy':'10_MAS', 'sectors':'11_statistical_discrepancy', 'fuels':'08_gas', 'subfuels':'x'}
+        
+        bad_values_rows_exceptions_dict['CT_19_heat_output_in_pj'] = {'economy':'18_CT', 'sectors':'19_heat_output_in_pj', 'sub1sectors':'x', 'fuels':'16_others', 'subfuels':'x'}
+        # 12_NZ	11_statistical_discrepancy	x	x	x	x	15_solid_biomass	x
+        bad_values_rows_exceptions_dict['NZ_11_statistical_discrepancy_biomass'] = {'economy':'12_NZ', 'sectors':'11_statistical_discrepancy', 'fuels':'15_solid_biomass', 'subfuels':'x'}
+        bad_values_rows_exceptions_dict['NZ_11_statistical_discrepancy_others'] = {'economy':'12_NZ', 'sectors':'11_statistical_discrepancy', 'fuels':'16_others', 'subfuels':'x'}
+        # 19_THA	11_statistical_discrepancy	x	x	x	x	06_crude_oil_and_ngl	x
+        bad_values_rows_exceptions_dict['THA_11_statistical_discrepancy'] = {'economy':'19_THA', 'sectors':'11_statistical_discrepancy', 'fuels':'06_crude_oil_and_ngl', 'subfuels':'x'}
+        
+        # breakpoint()#consider by december 2024 whether thes are still necessary or we shoiuld fix the data. or undeerlying issue.
+        #######TEMP FOR NEW ESTO DATA
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
         #use the keys as column names to remove the rows in the dict:
         for ignored_issue in bad_values_rows_exceptions_dict.keys():
@@ -1280,8 +1296,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         if merged_df_bad_values.shape[0] > 0:
             #put them in order to help see the issue
             merged_df_bad_values.sort_values(by=shared_categories_old, inplace=True)
-            merged_df_bad_values.to_csv('data/temp/error_checking/merged_df_bad_values.csv', index=False)
-            print("There are {} rows where the values in the results file do not match the values in the layout file. These rows have been saved to data/temp/error_checking/merged_df_bad_values.csv".format(merged_df_bad_values.shape[0]))
+            economy=merged_df_bad_values['economy'].unique()[0]
+            merged_df_bad_values.to_csv(f'data/temp/error_checking/merged_df_bad_values_{economy}.csv', index=False)
+            print("There are {} rows where the values in the results file do not match the values in the layout file. These rows have been saved to data/temp/error_checking/merged_df_bad_values_{}.csv".format(merged_df_bad_values.shape[0], economy))
             breakpoint()
         if missing_rows.shape[0] > 0:
             ###############
@@ -1321,6 +1338,11 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             # CHL file has some issues with the following rows
             missing_rows_exceptions_dict['09_total_transformation_sector'] = {'_merge':'new_layout_df', 'economy':'04_CHL', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_05_chemical_heat_for_electricity_production', 'sub2sectors':'x', 'fuels':'21_modern_renewables', 'subfuels':'x'}
 
+            ################TEMP FOR NEW ESTO DATA
+            
+            missing_rows_exceptions_dict['08_transfers'] = {'_merge':'new_layout_df', 'economy':'14_PE', 'sectors':'08_transfers', 'fuels':'07_petroleum_products', 'subfuels':'07_x_other_petroleum_products', 'sub1sectors':'x', 'sub2sectors':'x', 'sub3sectors':'x', 'sub4sectors':'x'}
+
+            ############################
             #use the keys as column names to remove the rows in the dict:
             # for ignored_issue in missing_rows_exceptions_dict.keys():
             #     #iterate through the dict to thin down to the rows we want to remove and then remove them by index
@@ -1340,14 +1362,16 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
                 missing_rows.sort_values(by=shared_categories_old, inplace=True)
                 #put the _merge col at front
                 missing_rows = missing_rows[['_merge'] + missing_rows.columns[:-1].tolist()]
-                missing_rows.to_csv('data/temp/error_checking/missing_rows.csv', index=False)
+                economy=missing_rows['economy'].unique()[0]
+                missing_rows.to_csv(f'data/temp/error_checking/missing_rows_{economy}.csv', index=False)
                 print("There are {} rows where the results file is missing rows from the layout file. These rows have been saved to data/temp/error_checking/missing_rows.csv".format(missing_rows.shape[0]))
                 breakpoint()
-        if merged_df_bad_values.shape[0] > 0 or missing_rows.shape[0] > 0:
+        if (merged_df_bad_values.shape[0] > 0 or missing_rows.shape[0] > 0) and not NEW_YEARS_IN_INPUT:
             #save the results_layout_df for user to check
             breakpoint()
-            results_layout_df.to_csv('data/temp/error_checking/results_layout_df.csv', index=False)
-            raise Exception("The layout df and the newly processes layout df do not match for the years in the layout file. This should not happen.")
+            economy = results_layout_df['economy'].unique()[0]
+            results_layout_df.to_csv(f'data/temp/error_checking/results_layout_df_{economy}.csv', index=False)
+            raise Exception("The layout df and the newly processed layout df do not match for the years in the layout file. This should not happen.")
         
 
 def power_move_x_in_chp_and_hp_to_biomass(results_df):

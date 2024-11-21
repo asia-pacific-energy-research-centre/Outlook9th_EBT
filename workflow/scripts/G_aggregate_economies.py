@@ -82,6 +82,20 @@ def aggregate_economies(SINGLE_ECONOMY_ID):
     all_emissions_co2e_data['economy'] = SINGLE_ECONOMY_ID
     all_capacity_data['economy'] = SINGLE_ECONOMY_ID
 
+    ####
+    #remove the stocks data from all_capacity and then add in spearately calcuated stocks data sicne it needs to be claculated differently to a sum (you need the origianl stocks data)
+    all_capacity_data = all_capacity_data[all_capacity_data['sheet'] != 'transport_stock_shares']
+    
+    #load it in from  data/processed/{SINGLE_ECONOMY_ID}/capacity_data/
+    apec_stocks_file = find_most_recent_file_date_id(f'data/processed/{SINGLE_ECONOMY_ID}/capacity_data/', filename_part = 'transport_stock_shares')
+    try:
+        apec_stocks = pd.read_csv(f'data/processed/{SINGLE_ECONOMY_ID}/capacity_data/{apec_stocks_file}')
+    except FileNotFoundError:
+        raise FileNotFoundError(f"No transport_stock_shares data files found for economy {SINGLE_ECONOMY_ID}. Ths data is provided separately by the transport modeller since it needs to be calculated using the stocks rather than a sum of shares")
+    apec_stocks['sheet'] = 'transport_stock_shares'   
+    all_capacity_data = pd.concat([all_capacity_data, apec_stocks], ignore_index=True)
+    ####
+    
     # Group by all columns except year columns and sum the values
     def group_and_sum(df):
         year_cols = [col for col in df.columns if str(col).isnumeric()]

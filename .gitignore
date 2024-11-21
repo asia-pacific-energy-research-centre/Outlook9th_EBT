@@ -10,6 +10,8 @@
 .vscode/settings.json
 env/
 *.7z
+*.txt
+*.png
 
 *.html
 #DONT IGNORE ANY FILES IN config, even if they are xlsx or csv

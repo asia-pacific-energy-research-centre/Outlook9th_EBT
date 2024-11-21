@@ -446,8 +446,11 @@ def minor_supply_components(economy, model_df_clean_wide):
     # latest EGEDA data
     # EGEDA_df = pd.read_csv(latest_EGEDA)
     
+    #PLEASE NOTE THERE ARE PRETTY BIG ISSUES WITH THE ACCOUNTING OF SUBTOTALS HERE (IN PLACES WE ARE SUMMING UP SUBTOTALS AND NON-SUBTOTALS AND ITS NOT CLEAR HOW TO FIX THAT WITHOUT A FULL REWRITE). HOWEVER THE WAY IT WAS DESIGNED FROM THE BEGINNING WAS BY IGNORING THE SUBTOTAL ISSUE. SO FOR NOW WE WILL KEEP IT THAT WAY, KNOWING THAT THE FINAL VALUES ARE PRETTY INSIGNIFICANT IN THE GRAND SCHEME OF THINGS.
+    
     # EGEDA_df = EGEDA_df[EGEDA_df['subtotal_results'] == False].copy().reset_index(drop = True)
     EGEDA_df = EGEDA_df.drop(columns = ['subtotal_layout', 'subtotal_results']).copy().reset_index(drop = True)
+    
     # sub1sectors transformation categories that need to be modelled
     biomass_subfuel_df = pd.read_csv('./config/supply_components_data/biomass_subfuels.csv', header = None)
     others_subfuel_df = pd.read_csv('./config/supply_components_data/others_subfuels.csv', header = None)
@@ -456,7 +459,8 @@ def minor_supply_components(economy, model_df_clean_wide):
     subfuels_list = lignite_subfuel_df[0].values.tolist() + biomass_subfuel_df[0].values.tolist() + others_subfuel_df[0].values.tolist()
     
     ##########################
-    subfuels_list = check_for_biogas_capacity_projections(economy, subfuels_list)#we have started modelling biogas in the biofuel refinery model so we ahve to remove it from the list of subfuels to model here, if its being modelled in the biofuel refinery model! (for some economies it is and for some it isnt)
+    #drop biofuels from the list of subfuels to model here, if its being modelled in the biofuel model!
+    subfuels_list = [fuel for fuel in subfuels_list if fuel not in ['16_05_biogasoline','16_06_biodiesel','16_07_bio_jet_kerosene','16_01_biogas','15_01_fuelwood_and_woodwaste','15_02_bagasse','15_03_charcoal','15_04_black_liquor','15_05_other_biomass']]
     ##########################
     
     relevant_supply = ['01_production', '02_imports', '03_exports']
@@ -610,7 +614,7 @@ def minor_supply_components(economy, model_df_clean_wide):
             supply_df = pd.concat([supply_df, subfuels_supply_df]).copy().reset_index(drop = True)
             
             
-
+        breakpoint()
         #save to a folder to keep copies of the results
         supply_df.to_csv(save_location + economy + '_biomass_others_supply_' + scenario + '_' + timestamp + '.csv', index = False)                    
         #and save them to modelled_data folder too. but only after removing the latest version of the file
@@ -634,22 +638,3 @@ def minor_supply_components(economy, model_df_clean_wide):
 
     # Coal products
     # No production
-
-def check_for_biogas_capacity_projections(economy, subfuels_list):
-    #check if there is any biogas projections in the config\biofuel_refining_capacity_parameters.xlsx and the sheet ECONOMY_capacity. If there are projections then the sum of additional_energy_pj where fuel is 16_01_biogas should be greater than 0. If it is then we will NOT calculate the biogas supply here too:
-    biofuel_refining_capacity = pd.read_excel('./config/biofuel_refining_capacity_parameters.xlsx', sheet_name = economy + '_capacity')
-    if biofuel_refining_capacity[biofuel_refining_capacity['EBT_fuel'] == '16_01_biogas']['additional_energy_pj'].sum() > 0:
-        subfuels_list = [x for x in subfuels_list if x != '16_01_biogas']
-        #we also wanna remove the biogas from current input data files:
-        for scenario in ['ref', 'tgt']:
-            for file in os.listdir(f'./data/modelled_data/{economy}/'):
-                if re.search(economy + '_biomass_others_supply_' + scenario, file):
-                    #open it and delete the biogas rows
-                    df = pd.read_csv(f'./data/modelled_data/{economy}/' + file)
-                    df = df[~df['subfuels'].str.contains('16_01_biogas')].copy().reset_index(drop = True)
-                    df.to_csv(f'./data/modelled_data/{economy}/' + file, index = False)
-                    print(f'Biogas projections found in the biofuel refining capacity file for {economy}. Biogas supply will not be calculated in the supply components function and any previous calculations have been removed from the modelled_data folder.')
-                
-    else:
-        pass
-    return subfuels_list
