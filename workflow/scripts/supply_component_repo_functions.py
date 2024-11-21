@@ -12,6 +12,7 @@ import numpy as np
 import glob
 from datetime import datetime
 from utility_functions import *
+import yaml 
 
 timestamp = datetime.now().strftime('%Y_%m_%d')
 # wanted_wd = 'Outlook9th_EBT'
@@ -227,7 +228,7 @@ def pipeline_transport(economy, model_df_clean_wide):
 
 
 def trans_own_use_addon(economy, model_df_clean_wide):
-    """Much like the pipeline_transport function, this function takes in demand data from the EBT system and separates historical data from projection data. It then calculates the energy consumption in the calculates the energy used for other-transformation, own use and nonspecified for the projection years.  This is also only done after demand is modelled. 
+    """Much like the pipeline_transport function, this function takes in demand data from the EBT system and separates historical data from projection data. It then calculates the energy consumption for other-transformation, own use and nonspecified for the projection years.  This is also only done after demand is modelled. 
     The function saves the results in a CSV file in the Outlook9th_EBT\data\modelled_data folder for automatic use by the EBT process.
 
     """
@@ -445,15 +446,23 @@ def minor_supply_components(economy, model_df_clean_wide):
     # latest EGEDA data
     # EGEDA_df = pd.read_csv(latest_EGEDA)
     
+    #PLEASE NOTE THERE ARE PRETTY BIG ISSUES WITH THE ACCOUNTING OF SUBTOTALS HERE (IN PLACES WE ARE SUMMING UP SUBTOTALS AND NON-SUBTOTALS AND ITS NOT CLEAR HOW TO FIX THAT WITHOUT A FULL REWRITE). HOWEVER THE WAY IT WAS DESIGNED FROM THE BEGINNING WAS BY IGNORING THE SUBTOTAL ISSUE. SO FOR NOW WE WILL KEEP IT THAT WAY, KNOWING THAT THE FINAL VALUES ARE PRETTY INSIGNIFICANT IN THE GRAND SCHEME OF THINGS.
+    
     # EGEDA_df = EGEDA_df[EGEDA_df['subtotal_results'] == False].copy().reset_index(drop = True)
     EGEDA_df = EGEDA_df.drop(columns = ['subtotal_layout', 'subtotal_results']).copy().reset_index(drop = True)
+    
     # sub1sectors transformation categories that need to be modelled
     biomass_subfuel_df = pd.read_csv('./config/supply_components_data/biomass_subfuels.csv', header = None)
     others_subfuel_df = pd.read_csv('./config/supply_components_data/others_subfuels.csv', header = None)
     lignite_subfuel_df = pd.read_csv('./config/supply_components_data/lignite_subfuels.csv', header = None)
 
     subfuels_list = lignite_subfuel_df[0].values.tolist() + biomass_subfuel_df[0].values.tolist() + others_subfuel_df[0].values.tolist()
-
+    
+    ##########################
+    #drop biofuels from the list of subfuels to model here, if its being modelled in the biofuel model!
+    subfuels_list = [fuel for fuel in subfuels_list if fuel not in ['16_05_biogasoline','16_06_biodiesel','16_07_bio_jet_kerosene','16_01_biogas','15_01_fuelwood_and_woodwaste','15_02_bagasse','15_03_charcoal','15_04_black_liquor','15_05_other_biomass']]
+    ##########################
+    
     relevant_supply = ['01_production', '02_imports', '03_exports']
     all_supply = ['01_production', '02_imports', '03_exports', '04_international_marine_bunkers', '05_international_aviation_bunkers',
                 '06_stock_changes']
@@ -594,10 +603,18 @@ def minor_supply_components(economy, model_df_clean_wide):
                 for component in relevant_supply:
                     subfuels_supply_df.loc[subfuels_supply_df['sectors'] == component, year] = all_cons.loc[all_cons['sectors'] == 'Total consumption', year].values[0]\
                         * current_supply.loc[current_supply['sectors'] == component, 'ratio'].values[0]
+                        
+            #make sure that all exports are negative and imports are positive:
+            if subfuels_supply_df.loc[subfuels_supply_df['sectors'] == '03_exports', proj_years].sum().sum() > 0:
+                subfuels_supply_df.loc[subfuels_supply_df['sectors'] == '03_exports', proj_years] = subfuels_supply_df.loc[subfuels_supply_df['sectors'] == '03_exports', proj_years] * -1
+            if subfuels_supply_df.loc[subfuels_supply_df['sectors'] == '02_imports', proj_years].sum().sum() < 0:
+                subfuels_supply_df.loc[subfuels_supply_df['sectors'] == '02_imports', proj_years] = subfuels_supply_df.loc[subfuels_supply_df['sectors'] == '02_imports', proj_years] * -1
             # if subfuels_supply_df.fuels.unique()[0] == '02_coal_products':
             #     breakpoint()#check for 02_coal_products 
             supply_df = pd.concat([supply_df, subfuels_supply_df]).copy().reset_index(drop = True)
-
+            
+            
+        breakpoint()
         #save to a folder to keep copies of the results
         supply_df.to_csv(save_location + economy + '_biomass_others_supply_' + scenario + '_' + timestamp + '.csv', index = False)                    
         #and save them to modelled_data folder too. but only after removing the latest version of the file
