@@ -118,11 +118,23 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         if results_df.empty or filtered_results_df.empty:
             continue
         #########RUN COMMON CHECKS ON THE RESULTS FILE.#########
+        files_with_subtotals_that_we_can_just_drop = ['CHL_Agriculture and Fishing_V1_tgt_2024_07_30.csv', 'CHL_Agriculture and Fishing_V1_ref_2024_07_30.csv', 'MEX_Agriculture_V1_ref_2024_07_04','MEX_Agriculture_V1_tgt_2024_07_04', 'PE_Agriculture and Fishing_V1_ref_2024_07_08.csv' , 'PE_Agriculture and Fishing_V1_tgt_2024_07_08.csv', 'PNG_Agriculture_V1_tgt_2024_06_21.csv', 'PNG_Agriculture_V1_ref_2024_06_21.csv', 'HKC_Agriculture_V1_ref_2024_04_11.csv', 'HKC_Agriculture_V1_tgt_2024_04_11.csv', 'VN_Agriculture and Fishing_V1_ref_2024_04_11.csv', 'VN_Agriculture and Fishing_V1_tgt_2024_04_11.csv']#WARNING BE CARFEUL DOING THIS BECAUSE IF WE HAVE MULTIPLE SUBTOTAL COLS AND ONE IS TRUE AND THE OTHER IS FALSE, WE WOULD DROP THE ROW AND POTEINTIALLY LOSE DATA. NORMALLY JUST SAFER TO REMOVE THE SUBTOTALS MANUAULLY OR EVEN LEAVE THEM IN (WE ARENT TOTALLY SURE THIS IS SAFE THO).
+        DROP_SUBTOTALS = False
+        for file_ in files_with_subtotals_that_we_can_just_drop:
+            if file_ in file:
+                DROP_SUBTOTALS = True
+                
         #if there are any subtotal columns, check none of them are true, cause not sure if we should keep them or not. and then remove the cols
         subtotal_cols = [col for col in filtered_results_df.columns if 'subtotal' in col]
         if len(subtotal_cols) > 0:
             if filtered_results_df[subtotal_cols].sum().sum() > 0:
-                raise ValueError(f"Subtotal columns found in {file}, not sure if we should keep them or not.")
+                if DROP_SUBTOTALS:
+                    for subtotal_col in subtotal_cols:
+                        if subtotal_col in filtered_results_df.columns:
+                            filtered_results_df = filtered_results_df.loc[filtered_results_df[subtotal_col]!=True].copy()
+                else:
+                    breakpoint()
+                    raise ValueError(f"Subtotal columns found in {file}, not sure if we should keep them or not.")
             filtered_results_df.drop(columns=subtotal_cols, inplace=True)
             
         #check that the economy in economy col is the single_economy_id:
@@ -147,7 +159,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
 
     # Define the range of years to keep
     years_to_keep = set(range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR + 1))
-
+    
     # Filter out columns beyond OUTLOOK_LAST_YEAR
     # Convert column names to strings for comparison, as some might be integers
     concatted_results_df = concatted_results_df[[col for col in concatted_results_df.columns if str(col).isdigit() and int(col) in years_to_keep or not str(col).isdigit()]]

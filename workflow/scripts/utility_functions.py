@@ -7,6 +7,14 @@ from datetime import datetime
 import os
 import shutil
 
+INDUSTRY_CCS_ABATEMENT_RATE = 0.2
+POWER_CCS_ABATEMENT_RATE = 0.1
+#TEMPORARY WHILE WE WAIT FOR ESTO FINALISED DATA:
+ECONOMYS_WITH_INITIAL_NAS_AND_THEIR_COLS = {
+    '16_RUS': ['value'],
+    '21_VN': ['value'],
+    '06_HKC': ['fuels', 'sectors'],
+}
 #when we have new data from ESTO you will want to set this to False or None and run the data through the whole pipeline to get results/model_df_wide_' + date_today +'.csv' for modellers to use as an input
 SINGLE_ECONOMY_ID_VAR = '05_PRC'# '05_PRC' #'19_THA'# '19_THA' #20_USA 03_CDA#something going wrong with "09_ROK",
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
@@ -15,7 +23,7 @@ SINGLE_ECONOMY_ID_VAR = '05_PRC'# '05_PRC' #'19_THA'# '19_THA' #20_USA 03_CDA#so
 MERGE_SUPPLY_RESULTS = True
 
 EBT_EARLIEST_YEAR = 1980
-OUTLOOK_BASE_YEAR = 2021
+OUTLOOK_BASE_YEAR = 2022
 OUTLOOK_LAST_YEAR = 2070
 
 SECTOR_LAYOUT_SHEET = 'sector_layout_20230719'
@@ -23,7 +31,9 @@ FUEL_LAYOUT_SHEET = 'fuel_layout_20230329'
 
 # ESTO_DATA_FILENAME = '00APEC_May2023'
 
-ESTO_DATA_FILENAME = '00APEC_January2024'
+ESTO_DATA_FILENAME = '00APEC_2024'#January
+NEW_YEARS_IN_INPUT = True#ONLY SET ME IF YOU ARE USING NEW DATA FROM ESTO WHICH SHOULD ONLY HAPPEN ONCE A YEAR
+SCENARIOS_list = ['reference', 'target']
 
 ALL_ECONOMY_IDS = ["01_AUS", "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN"]
 
@@ -34,7 +44,7 @@ def set_working_directory():
     wanted_wd = 'Outlook9th_EBT'
     os.chdir(re.split(wanted_wd, os.getcwd())[0] + '/' + wanted_wd)
 
-def find_most_recent_file_date_id(directory_path, RETURN_DATE_ID = False):
+def find_most_recent_file_date_id(directory_path, filename_part = None,RETURN_DATE_ID = False):
     """Find the most recent file in a directory based on the date ID in the filename."""
     # List all files in the directory
     files = os.listdir(directory_path)
@@ -48,6 +58,9 @@ def find_most_recent_file_date_id(directory_path, RETURN_DATE_ID = False):
     
     # Loop through the files to find the most recent one
     for file in files:
+        if filename_part is not None:
+            if filename_part not in file:
+                continue
         # Use regex search to find the date ID in the filename
         match = date_pattern.search(file)
         if match:
@@ -158,6 +171,16 @@ def shift_output_files_to_visualisation_input(economy_ids = ["01_AUS", "02_BD", 
     for economy_id in economy_ids:
         #set the path to the economy id folder
         economy_id_path = os.path.join(results_path, economy_id)
+        
+        #frst put the old files in a archive folder
+        if not os.path.exists(os.path.join(visualisation_input_path, 
+        economy_id, 'archive')):
+            os.makedirs(os.path.join(visualisation_input_path, economy_id, 'archive'))
+        #move the files to the archive folder
+        for file in os.listdir(os.path.join(visualisation_input_path, economy_id)):
+            if os.path.isfile(os.path.join(visualisation_input_path, economy_id, file)):
+                shutil.move(os.path.join(visualisation_input_path, economy_id, file), os.path.join(visualisation_input_path,  economy_id, 'archive', file))
+                
         #loop over the files in the economy id folder. you will need to do a walk to get the files in the subfolders
         for file in files_to_retrieve:
             file = f'{file}_{economy_id}_{file_date_id}.csv'
