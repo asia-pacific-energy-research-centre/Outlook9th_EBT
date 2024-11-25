@@ -12,6 +12,7 @@ env/
 *.7z
 *.txt
 *.png
+*.zip
 
 *.html
 #DONT IGNORE ANY FILES IN config, even if they are xlsx or csv

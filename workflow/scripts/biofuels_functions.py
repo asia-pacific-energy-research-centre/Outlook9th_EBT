@@ -658,11 +658,6 @@ def save_results(final_df, detailed_capacity_df, capacity_df, economy):
         for file in os.listdir(f'./data/modelled_data/{economy}/'):
             if re.search(economy + '_biofuels_' + scenario, file):
                 os.remove(f'./data/modelled_data/{economy}/' + file)
-            #also TEMP 
-            print('TEMP: removing the economy_biofuels_refining file')
-            if re.search(economy + '_biofuels_refining_'+ scenario, file):
-                breakpoint()#want to remove thiseventually
-                os.remove(f'./data/modelled_data/{economy}/' + file)
         
         supply_df.to_csv(f'./data/modelled_data/{economy}/' + economy + '_biofuels_' + scenario + '_' + timestamp + '.csv', index = False)
     #and save detailed_capacity_df to the results folder but only after removing the latest version of the file

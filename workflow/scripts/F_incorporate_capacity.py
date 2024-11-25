@@ -24,11 +24,14 @@ def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
     #UNTIL ALL PREFIXES ARE CHANGED PERMANENTLY WE WILL DO THIS
     done = False
     pattern = f'data/processed/{SINGLE_ECONOMY_ID}/capacity_data/*'
-    files = glob.glob(pattern)
-    for file in files:
-        if 'EBT_capacity_' in file:
-            done = True
-            os.rename(file, file.replace('EBT_capacity_','EBT_generation_capacity_'))
+    if os.path.exists(pattern):
+        files = glob.glob(pattern)
+        for file in files:
+            if 'EBT_capacity_' in file:
+                done = True
+                os.rename(file, file.replace('EBT_capacity_','EBT_generation_capacity_'))
+    else:
+        raise FileNotFoundError(f'Could not find any capacity data for {SINGLE_ECONOMY_ID} in {pattern}')
     if done:
         print('################### \n changing gen capacity prefixes remember to drop this when its not needed anymore \n ###################')
     ###################
