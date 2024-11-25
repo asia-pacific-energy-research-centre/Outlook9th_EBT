@@ -3,25 +3,17 @@
 import pandas as pd
 import os
 from datetime import datetime
-from utility_functions import find_most_recent_file_date_id
+from utility_functions import find_most_recent_file_date_id, AGGREGATE_ECONOMY_MAPPING
 
 def aggregate_economies(SINGLE_ECONOMY_ID):
-    # Dictionary of economy codes
-    economy_codes = {
-        '00_APEC': ['01_AUS', '02_BD', '03_CDA', '04_CHL', '05_PRC', '06_HKC', '07_INA', '08_JPN', '09_ROK', '10_MAS', '11_MEX', '12_NZ', '13_PNG', '14_PE', '15_PHL', '16_RUS', '17_SGP', '18_CT', '19_THA', '20_USA', '21_VN'],
-        '22_SEA': ['02_BD', '07_INA', '10_MAS', '15_PHL', '17_SGP', '19_THA', '21_VN'],
-        '23_NEA': ['05_PRC', '06_HKC', '08_JPN', '09_ROK', '18_CT'],
-        '23b_ONEA': ['01_AUS', '05_PRC', '06_HKC', '08_JPN', '09_ROK', '12_NZ', '13_PNG', '18_CT'],
-        '24_OAM': ['01_AUS', '03_CDA', '04_CHL', '11_MEX', '12_NZ', '13_PNG', '14_PE', '20_USA'],
-        '25_OCE': ['01_AUS', '02_BD', '05_PRC', '06_HKC', '07_INA', '08_JPN', '09_ROK', '10_MAS', '12_NZ', '13_PNG', '15_PHL', '17_SGP', '18_CT', '19_THA', '21_VN']
-    }
+
 
     # Check if the SINGLE_ECONOMY_ID is in the dictionary
-    if SINGLE_ECONOMY_ID not in economy_codes:
-        raise ValueError(f'SINGLE_ECONOMY_ID {SINGLE_ECONOMY_ID} not found in economy_codes dictionary')
+    if SINGLE_ECONOMY_ID not in AGGREGATE_ECONOMY_MAPPING:
+        raise ValueError(f'SINGLE_ECONOMY_ID {SINGLE_ECONOMY_ID} not found in AGGREGATE_ECONOMY_MAPPING dictionary')
 
     # Get the list of economies for the specified economy code
-    economies = economy_codes[SINGLE_ECONOMY_ID]
+    economies = AGGREGATE_ECONOMY_MAPPING[SINGLE_ECONOMY_ID]
 
     # Initialize DataFrames to empty DataFrames
     all_energy_data = pd.DataFrame()
