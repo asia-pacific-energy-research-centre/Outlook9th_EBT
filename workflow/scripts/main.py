@@ -95,21 +95,21 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
 # Run the main function and store the result
 FOUND=False
 if __name__ == "__main__":
-    for economy in ['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC
+    # for economy in utils.AGGREGATE_ECONOMIES:#['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC
         #     if economy == '05_PRC':
         #         FOUND = True
         #     elif not FOUND:
         #         continue
         # '01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC' 
-        try:
-            final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID=economy)#'00_APEC')#economy)
-        except Exception as e:
-            print(f'Error in main for {economy}')
-            print(e)
-            #save error to a txt file
-            with open(f'main_error_{economy}.txt', 'w') as f:
-                f.write(str(e))
-            continue
+    # try:
+    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='18_CT')#economy)#'00_APEC')#economy)
+    # except Exception as e:
+    #     print(f'Error in main for {economy}')
+    #     print(e)
+    #     #save error to a txt file
+    #     with open(f'main_error_{economy}.txt', 'w') as f:
+    #         f.write(str(e))
+    #     continue
         
 #C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th
 # utils.run_main_up_to_mergi ng_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th', MOVE_OLD_FILES_TO_ARCHIVE=True)

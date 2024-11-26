@@ -613,8 +613,6 @@ def minor_supply_components(economy, model_df_clean_wide):
             #     breakpoint()#check for 02_coal_products 
             supply_df = pd.concat([supply_df, subfuels_supply_df]).copy().reset_index(drop = True)
             
-            
-        breakpoint()
         #save to a folder to keep copies of the results
         supply_df.to_csv(save_location + economy + '_biomass_others_supply_' + scenario + '_' + timestamp + '.csv', index = False)                    
         #and save them to modelled_data folder too. but only after removing the latest version of the file

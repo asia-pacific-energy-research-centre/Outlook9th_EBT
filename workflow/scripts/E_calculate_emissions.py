@@ -34,11 +34,15 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
 
     # Check for rows that did not merge correctly
     if len(final_df_copy.loc[final_df_copy['_merge'] == 'left_only']) > 0:
-        breakpoint()
-        a = final_df_copy.loc[final_df_copy['_merge'] == 'left_only']
-        a.to_csv(f'./data/temp/error_checking/emissions_missing_mappings_{SINGLE_ECONOMY_ID}.csv')        
-        final_df_copy = final_df_copy[final_df_copy['_merge'] != 'left_only']
-        raise Exception(f'Some rows {a} did not merge with the emissions factors data. Please create more mappings for the missing values.')
+        #TEST#
+        #first, drop any of these rows which are 0's and tehn check if there are any left: (this make it so we can more easily add in new rows to the ebt data without having to create an emissions mapping for them)
+        final_df_copy = final_df_copy.loc[~((final_df_copy['value'] == 0) & (final_df_copy['_merge'] == 'left_only'))].copy()
+        if len(final_df_copy.loc[final_df_copy['_merge'] == 'left_only']) > 0:
+            breakpoint()
+            a = final_df_copy.loc[final_df_copy['_merge'] == 'left_only']
+            a.to_csv(f'./data/temp/error_checking/emissions_missing_mappings_{SINGLE_ECONOMY_ID}.csv')        
+            final_df_copy = final_df_copy[final_df_copy['_merge'] != 'left_only']
+            raise Exception(f'Some rows {a} did not merge with the emissions factors data. Please create more mappings for the missing values.')
 
     # Remove right_only rows
     final_df_copy = final_df_copy[final_df_copy['_merge'] != 'right_only'].drop(columns=['_merge'])
