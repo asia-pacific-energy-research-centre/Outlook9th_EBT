@@ -355,7 +355,6 @@ def remove_all_zeros(results_df, years_to_keep_in_results):
 def check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file, CHECK_FOR_MISSING_DATA_IN_RESULTS_FILE=False):
     # Check if there are differences between the layout DataFrame and the results DataFrame. 
     differences = []
-    
     # Compare the shared categories between layout and results DataFrame
     layout_shared_categories = layout_df[shared_categories]
     results_shared_categories = filtered_results_df[shared_categories]
@@ -1619,3 +1618,50 @@ def read_excel_with_bounds_check(excel_file, sheet_name, start_row, start_col, e
     data_df = pd.read_excel(excel_file, sheet_name=sheet_name, header=start_row - 1, usecols=column_range)
 
     return data_df
+
+
+def insert_data_centres_into_layout_df(layout_df, results_df, shared_categories, OUTLOOK_BASE_YEAR):
+    # #teams:
+    # Testing removing it from the <=2022 data within merging script. seems like its working fine. 
+    # Leanne i think the best way is that you will need to still do the calculation on your side so the data you give me takes in to account the effect of data centres and ai training on services in all years. 
+    # I think also a good improvement would be to have it so that when you do the calcaltion you also merge the data centres and ai training data into the service sectors data and give me the results in one file. That way sicne the integration script takes in each modellers file iteratively and checks against the data it has for pre-2022, it can check that the reaon why buildings pre-2022 data is different to wat it has is because of the data centres data (which it would be a little more complicated to do if we provided the data centres data in a separate file).        
+    # And then ultimate goal imo would be to have you run data centres model yourself so that there is no passing between modellers which i dont like because it slows thing down and creates extra steps in peoples heads.
+    
+    #before we remove all non results years, if  16_01_03_ai_training or 16_01_04_traditional_data_centres are in the sub2sectors column then take their values away from 16_01_01_commercial_and_public_services (where fuel is 17_electricity) in the layout data and add them in. 
+    if '16_01_03_ai_training' in results_df['sub2sectors'].unique() or '16_01_04_traditional_data_centres' in results_df['sub2sectors'].unique():
+        #so for layout_df, add these row, but only for years <= OUTLOOK_BASE_YEAR (for the otehrs, set value to 0). THen minus these values from 16_01_01_commercial_and_public_services.
+        layout_df_service_sectors = layout_df.loc[(layout_df['sub2sectors'] == '16_01_01_commercial_and_public_services') &(layout_df['fuels'] == '17_electricity')].copy()
+        #drop tehse rows from the layout_df as well as the rows for data centres
+        layout_df = layout_df.loc[~((layout_df['sub2sectors'].isin(['16_01_03_ai_training', '16_01_04_traditional_data_centres','16_01_01_commercial_and_public_services'])) &(layout_df['fuels'] == '17_electricity'))].copy()
+        
+        #melt the years
+        layout_df_service_sectors = layout_df_service_sectors.melt(id_vars=shared_categories+['is_subtotal'], var_name='year', value_name='value')
+        #sum up the data centres values and then join them
+        data_centres_df = results_df.loc[(results_df['sub2sectors'].isin(['16_01_03_ai_training', '16_01_04_traditional_data_centres']) & (results_df['subtotal_layout'] == False) & (results_df['subtotal_results'] == False) & (results_df['fuels'] == '17_electricity'))].copy()
+        #drop subtotals cols
+        data_centres_df.drop(columns=['subtotal_layout', 'subtotal_results'], inplace=True)
+        data_centres_df_melt = data_centres_df.melt(id_vars=shared_categories, var_name='year', value_name='value')
+        #make year as int
+        data_centres_df_melt['year'] = data_centres_df_melt['year'].astype(int)
+        #set non layout years to 0. this will also be what we add as new layout rows
+        data_centres_df_melt.loc[data_centres_df_melt.year > OUTLOOK_BASE_YEAR, 'value'] = 0
+        #sum up the data centres values so we can subtract them from the service sectors values
+        data_centres_df_sum = data_centres_df_melt.groupby(['scenarios', 'year']).sum(numeric_only=True).reset_index()
+        layout_df_service_sectors = layout_df_service_sectors.merge(data_centres_df_sum, on=['scenarios', 'year'], suffixes=('', '_results'), how='left')
+        #now minus the data centres values from the service sectors values
+        layout_df_service_sectors['value'] = layout_df_service_sectors['value'] - layout_df_service_sectors['value_results'].fillna(0)
+        #if any negative vlaues raise an error
+        if (layout_df_service_sectors['value'] < 0).any():
+            breakpoint()
+            raise ValueError('Negative values found when subtracting data centres from service sectors.')
+        #now drop the results cols and add the new rows to the layout_df after cleaning up
+        layout_df_service_sectors.drop(columns=[col for col in layout_df_service_sectors.columns if '_results' in col], inplace=True)
+        #pivot
+        layout_df_service_sectors = layout_df_service_sectors.pivot(index=shared_categories+['is_subtotal'], columns='year', values='value').reset_index()
+        #and clean up the data_centres_df_melt by pivoting and then setting subtotal to False
+        data_centres_df_layout = data_centres_df_melt.pivot(index=shared_categories, columns='year', values='value').reset_index()
+        data_centres_df_layout['is_subtotal'] = False
+        #concatenate all the enw layout rows
+        layout_df = pd.concat([layout_df, layout_df_service_sectors, data_centres_df_layout])
+        #now carry on (:
+    return layout_df

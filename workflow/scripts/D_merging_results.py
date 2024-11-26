@@ -92,7 +92,11 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
 
         # Convert columns to string type
         results_df.columns = results_df.columns.astype(str)
-
+                
+        ###TEST### DATA CENTRES
+        layout_df = merging_functions.insert_data_centres_into_layout_df(layout_df, results_df,shared_categories, OUTLOOK_BASE_YEAR)
+        ###TEST### DATA CENTRES      
+        
         #Keep columns from outlook_base_year to outlook_last_year only
         results_df.drop(columns=[str(col) for col in results_df.columns if any(str(year) in col for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1))], inplace=True)
         
@@ -147,8 +151,13 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
                 breakpoint()
                 raise ValueError(f"Economy in results file {file} is not the same as the single economy id {SINGLE_ECONOMY_ID}.")
             
-        merging_functions.check_bunkers_are_negative(filtered_results_df, file)
-        merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
+        merging_functions.check_bunkers_are_negative(filtered_results_df, file)          
+        try:
+            merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
+        except Exception as e:
+            breakpoint()
+            merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
+            
         #########RUN COMMON CHECKS ON THE RESULTS FILE OVER.#########
         basename = os.path.basename(file)
         filtered_results_df['origin'] = basename.split('.')[0]

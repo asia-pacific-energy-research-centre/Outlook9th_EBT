@@ -10,6 +10,7 @@ from utility_functions import *
 
 
 def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
+    breakpoint()
     # List of columns we want to keep
     columns_to_keep = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']
 
@@ -23,10 +24,12 @@ def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
     ###################
     #UNTIL ALL PREFIXES ARE CHANGED PERMANENTLY WE WILL DO THIS
     done = False
-    pattern = f'data/processed/{SINGLE_ECONOMY_ID}/capacity_data/*'
-    if os.path.exists(pattern):
-        files = glob.glob(pattern)
+    folder = f'data/processed/{SINGLE_ECONOMY_ID}/capacity_data/'
+    if os.path.exists(folder):
+        files = os.listdir(folder)
         for file in files:
+            if os.path.isdir(file):
+                continue
             if 'EBT_capacity_' in file:
                 done = True
                 os.rename(file, file.replace('EBT_capacity_','EBT_generation_capacity_'))
