@@ -66,7 +66,7 @@ esto_ebt_filtered = esto_ebt_filtered[~((esto_ebt_filtered['source'] == 'Electri
 esto_ebt_filtered = esto_ebt_filtered[~((esto_ebt_filtered['source'] == 'Heat generation') & (esto_ebt_filtered['target'] == 'Electricity generation'))]
 
 # Change 'Heat generation' in 'source' to 'Electricity generation'
-esto_ebt_filtered['source'] = esto_ebt_filtered['source'].replace('Heat generation', 'Electricity generation')
+# esto_ebt_filtered['source'] = esto_ebt_filtered['source'].replace('Heat generation', 'Electricity generation')
 
 # Copy rows where 'target' is 'Services' and 'Residential' and sum both values for each 'source' and 'type' and add the result as new rows with 'target' as 'Buildings'and keep 'source' and 'type' the same
 services_residential_sum = esto_ebt_filtered[esto_ebt_filtered['target'].isin(['Services', 'Residential'])].groupby(['source', 'type'], as_index=False, sort=False)['value'].sum()
@@ -116,6 +116,7 @@ subsectors = ['Iron and steel', 'Chemical', 'Machinery', 'Other industry', 'Road
 nodes = {
     'supply': ProcessGroup('type == "fuel"', Partition.Simple('process', fuels), title='Primary energy supply'),
     'electricity': ProcessGroup(['Electricity generation'], title='Electricity generation'),
+    'heat': ProcessGroup(['Heat generation'], title='Heat generation'),
     'sectors': ProcessGroup('type == "sector"', Partition.Simple('process', sectors)),
     'subsectors': ProcessGroup('type == "subsector"', partition=Partition.Simple('process', subsectors)),
     # 'sector': Waypoint(Partition.Simple('target', [('Industry', ['Iron and steel', 'Chemical', 'Machinery', 'Other industry']), ('Transport', ['Road', 'Other transport']), ('Buildings', ['Residential', 'Services']), ('Agriculture', ['Agriculture']), ('Non-specified', ['Non-specified']), ('Non-energy', ['Non-energy']), ('Losses', ['Losses'])])),
@@ -126,7 +127,7 @@ nodes = {
 
 ordering = [
     [['supply']],
-    [['direct_use', 'electricity']],
+    [['direct_use', 'electricity', 'heat']],
     [['sectors']],
     [['subsectors']],
 ]
@@ -134,7 +135,9 @@ ordering = [
 bundles = [
     Bundle('supply', 'sectors', waypoints=['direct_use']),
     Bundle('supply', 'electricity'),
+    Bundle('supply', 'heat'),
     Bundle('electricity', 'sectors'),
+    Bundle('heat', 'sectors'),
     Bundle('sectors', 'subsectors'),
 ]
 
