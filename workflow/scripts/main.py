@@ -65,12 +65,8 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.trans_own_use_addon(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.minor_supply_components(SINGLE_ECONOMY_ID, final_energy_df)
-<<<<<<< HEAD
-            # biofuels_functions.biofuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True)
-=======
             breakpoint()#why is biodiesel 0 in conusmption?
             biofuels_functions.biofuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True)
->>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
             old_final_energy_df = final_energy_df.copy()
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
             # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
@@ -107,14 +103,10 @@ if __name__ == "__main__":
         #         continue
         # '01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC' 
     # try:
-<<<<<<< HEAD
-    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='02_BD')#economy)#'00_APEC')#economy)
-    
-    
-    
-=======
     final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='09_ROK')#economy)#'00_APEC')#economy)
->>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
+    
+    
+    
     # except Exception as e:
     #     print(f'Error in main for {economy}')
     #     print(e)
@@ -125,7 +117,6 @@ if __name__ == "__main__":
         
 #C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th
 # utils.run_main_up_to_mergi ng_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th', MOVE_OLD_FILES_TO_ARCHIVE=True)
-<<<<<<< HEAD
 
 # utils.run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/hyuga.kasai/APERC/Outlook-9th - Modelling', MOVE_OLD_FILES_TO_ARCHIVE=True)
 
@@ -139,8 +130,6 @@ if __name__ == "__main__":
 #%%
 # utils.shift_output_files_to_visualisation_input(economy_ids = ['23_NEA', '23b_ONEA', '24_OAM', '25_OCE' ], results_path = r'C:\Users\finbar.maunsell\github\Outlook9th_EBT\results', visualisation_input_path = r'C:\Users\finbar.maunsell\github\9th_edition_visualisation\input_data',file_date_id = '20241122')
 #['01_AUS',"02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC']
-=======
->>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
 
 # utils.run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/hyuga.kasai/APERC/Outlook-9th - Modelling', MOVE_OLD_FILES_TO_ARCHIVE=True)
 
