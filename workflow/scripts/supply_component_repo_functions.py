@@ -460,7 +460,8 @@ def minor_supply_components(economy, model_df_clean_wide):
     
     ##########################
     #drop biofuels from the list of subfuels to model here, if its being modelled in the biofuel model!
-    subfuels_list = [fuel for fuel in subfuels_list if fuel not in ['16_05_biogasoline','16_06_biodiesel','16_07_bio_jet_kerosene','16_01_biogas','15_01_fuelwood_and_woodwaste','15_02_bagasse','15_03_charcoal','15_04_black_liquor','15_05_other_biomass']]
+    # subfuels_list = [fuel for fuel in subfuels_list if fuel not in ['16_05_biogasoline','16_06_biodiesel','16_07_bio_jet_kerosene','16_01_biogas','15_01_fuelwood_and_woodwaste','15_02_bagasse','15_03_charcoal','15_04_black_liquor','15_05_other_biomass']]
+    subfuels_list = [fuel for fuel in subfuels_list if fuel not in ['16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable', '16_05_biogasoline','16_06_biodiesel','16_07_bio_jet_kerosene','16_01_biogas','15_01_fuelwood_and_woodwaste','15_02_bagasse','15_03_charcoal','15_04_black_liquor','15_05_other_biomass']]
     ##########################
     
     relevant_supply = ['01_production', '02_imports', '03_exports']
