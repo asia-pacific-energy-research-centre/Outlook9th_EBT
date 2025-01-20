@@ -399,8 +399,4 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
         
     return merged_df_clean_wide
 
-<<<<<<< HEAD
-
-=======
->>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
 # %%
