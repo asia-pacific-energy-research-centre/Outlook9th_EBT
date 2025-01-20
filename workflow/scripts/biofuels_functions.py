@@ -227,7 +227,11 @@ def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLO
     capacity_df, detailed_capacity_df, production_df = prepare_capacity_data(economy, model_df_clean_wide, input_data_dict)
 
     consumption_df = prepare_consumption_data(economy, model_df_clean_wide, input_data_dict)
+<<<<<<< HEAD
+
+=======
     
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
     production_df, consumption_df = biofuel_simplified_modelling_methods_handler(production_df, consumption_df, input_data_dict, model_df_clean_wide)
     
     final_df = calculate_exports_imports(model_df_clean_wide, consumption_df, production_df)#NOT 100% URE THATIF THERE IS NO CAP DATA FOR AN ECONOMY THAT simplified_economy_fuels WILL BE USED?
@@ -423,12 +427,19 @@ def biofuel_simplified_modelling_methods_handler(production_df, consumption_df, 
     simplified_economy_fuels = input_data_dict['simplified_economy_fuels']
     economy = production_df['economy'].unique()[0]
     simplified_economy_fuels = simplified_economy_fuels[simplified_economy_fuels['economy'] == economy]
+<<<<<<< HEAD
+    
+=======
     # breakpoint()
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
     if simplified_economy_fuels.shape[0] == 0:
         return production_df, consumption_df
     
     for fuel in simplified_economy_fuels['fuel'].unique():
+<<<<<<< HEAD
+=======
         
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
         fuel_production_df = production_df[production_df['subfuels'] == fuel].copy().reset_index(drop = True)
         fuel_consumption_df = consumption_df[consumption_df['subfuels'] == fuel].copy().reset_index(drop = True)
         method = simplified_economy_fuels[simplified_economy_fuels['fuel'] == fuel]['method'].values[0]
@@ -440,14 +451,21 @@ def biofuel_simplified_modelling_methods_handler(production_df, consumption_df, 
             fuel_production_df, fuel_consumption_df = keep_same_ratio_of_production_to_consumption(economy, model_df_clean_wide,fuel_production_df, fuel_consumption_df,  input_data_dict)
         elif method == 'satisfy_all_demand_with_domestic_production':
             fuel_production_df, fuel_consumption_df = satisfy_all_demand_with_domestic_production(economy, model_df_clean_wide, fuel_production_df, fuel_consumption_df, input_data_dict)
+<<<<<<< HEAD
+=======
         elif method == 'do_nothing':
             pass
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
         elif 'satisfy_all_demand_with_domestic_production_RAMP' in method:
             years_to_ramp_over = re.search(r'\d', method)
             if not years_to_ramp_over:
                 years_to_ramp_over = 10
             fuel_production_df, fuel_consumption_df =satisfy_all_demand_with_domestic_production(economy, model_df_clean_wide, fuel_production_df, fuel_consumption_df, input_data_dict, RAMP=True, years_to_ramp_over = years_to_ramp_over)
+<<<<<<< HEAD
+            
+=======
 
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
         else:
             raise Exception(f'{method} is not a valid method for biofuel simplified modelling')
         
@@ -459,13 +477,19 @@ def biofuel_simplified_modelling_methods_handler(production_df, consumption_df, 
     return production_df, consumption_df
     
 def keep_same_ratio_of_production_to_consumption(economy, model_df_clean_wide,fuel_production_df, fuel_consumption_df,  input_data_dict):
+<<<<<<< HEAD
+    """This is for where we want the economy, for a certain fuel, to continue with the same ratio of production to consumption. That will also lead to the same ratio of imports and exports. This is useful for economies where we dont have capacity data and just want to push it out at the same rate it was."""
+=======
     """This is for where we want the economy, for a certain fuel, to continue with the same ratio of production to consumption. That will also lead to the same ratio of imports and exports. This is useful for economies where we dont have capacity data and just want to push it out at the same rate it was.
     
     If working with a series that has already had capcaity data entered in, it WILL overwrite that data to make the ratio of production to consumption the same for all years. """
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
     proj_years = list(range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1, 1))
     historical_years = list(range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1, 1))
     all_years = historical_years + proj_years
     all_years = [year for year in all_years if year in model_df_clean_wide.columns]
+<<<<<<< HEAD
+=======
     
     #double check that the values for production the same as OUTLOOK_BASE_YEAR for the rest of the years, otherwise it inidcates taht the modeller tried to set the capcity data and this will overwrite that. To be safe we will always throw an error in this case, and ask the mdeller to use the satisfy_all_demand_with_domestic_production method or no method at all instead.
     for scenario in fuel_production_df['scenarios'].unique():
@@ -474,6 +498,7 @@ def keep_same_ratio_of_production_to_consumption(economy, model_df_clean_wide,fu
                 raise Exception(f'Production values for {subfuel} in {scenario} are not the same for all years. This indicates that capacity data has been entered in. Please use the satisfy_all_demand_with_domestic_production method or no method instead, since the keep_same_ratio_of_production_to_consumption will overwrite the capcity data you had entered in.')
             
             
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
     production_fuel_consumption_df = fuel_production_df.merge(fuel_consumption_df, on = ['scenarios', 'economy', 'subfuels', 'year'], how = 'outer', suffixes=('_production', '_consumption'))
     #calculate the ratio
     production_fuel_consumption_df['ratio'] = production_fuel_consumption_df['production'] / production_fuel_consumption_df['consumption']
@@ -497,9 +522,13 @@ def keep_same_ratio_of_production_to_consumption(economy, model_df_clean_wide,fu
 def satisfy_all_demand_with_domestic_production(economy, model_df_clean_wide, fuel_production_df, fuel_consumption_df, input_data_dict, years_to_ramp_over = 0, RAMP = False):
     """This is for where we want the economy, for a certain fuel, to satisfy all demand with domestic production. This is useful for economies where we dont have capacity data and just want them to be self sufficient. This will mean that the imports and exports will be 0. 
     
+<<<<<<< HEAD
+    There is also an option to ramp it up over time to 100% of demand. That is so that we dont see a sudden jump in production in the future."""
+=======
     There is also an option to ramp it up over time to 100% of demand. That is so that we dont see a sudden jump in production in the future.
     
     If working with a series that has already had capcaity data entered in, it will just make sure that production is >= consumption for all years. """
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
     
     proj_years = list(range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1, 1))
     historical_years = list(range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1, 1))
@@ -514,7 +543,11 @@ def satisfy_all_demand_with_domestic_production(economy, model_df_clean_wide, fu
     #set any infs to 1 too
     production_fuel_consumption_df['ratio'] = production_fuel_consumption_df['ratio'].replace([np.inf, -np.inf], 1)
     
+<<<<<<< HEAD
+    #if RAMP then we need to calculate the amount to ramp up by each year until ratio is >=1    (so if its already 1 then we dont need to ramp -  instead just make sure that production is >= consumption)
+=======
     #if RAMP then we need to calculate the amount to ramp up by each year until ratio is >=1    (so if its already >=1 then we dont need to ramp -  instead just make sure that production is >= consumption - 'greater than' is important in case the capacity data we may have had supplied is already cuasing production to be greater than consumption, in which case there would need to be exports, which is ok)
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
     if RAMP: 
         #grab the raTIO between production and consumption for each fuel type iuun the base year
         years_to_exclude = [OUTLOOK_BASE_YEAR]
@@ -533,7 +566,11 @@ def satisfy_all_demand_with_domestic_production(economy, model_df_clean_wide, fu
             #make sure that production is >= consumption for all years except the years_to_exclude
             production_fuel_consumption_df.loc[(production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']) & (~production_fuel_consumption_df['year'].isin(years_to_exclude)) & (production_fuel_consumption_df['scenarios'] == scenario) & (production_fuel_consumption_df['ratio'] < 1), 'production'] = production_fuel_consumption_df.loc[(production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']) & (~production_fuel_consumption_df['year'].isin(years_to_exclude)) & (production_fuel_consumption_df['scenarios'] == scenario) & (production_fuel_consumption_df['ratio'] < 1), 'consumption']
             
+<<<<<<< HEAD
+    #now we need to set any production that is less than consumption to consumption for years after the base year
+=======
     #now we need to set any production that is less than consumption to consumption for years after the base year (- 'less than' is important in case the capacity data we may have had supplied is already cuasing production to be greater than consumption, in which case there would need to be exports, which is ok)
+>>>>>>> d17335e41b94593dde28c4249295c1c398b475b6
     production_fuel_consumption_df.loc[(production_fuel_consumption_df['year'] > OUTLOOK_BASE_YEAR) & (production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']), 'production'] = production_fuel_consumption_df.loc[(production_fuel_consumption_df['year'] > OUTLOOK_BASE_YEAR) & (production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']), 'consumption']
         
     fuel_production_df = production_fuel_consumption_df[['scenarios', 'economy', 'subfuels', 'year', 'production']].copy().reset_index(drop = True)
