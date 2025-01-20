@@ -10,7 +10,7 @@ from utility_functions import *
 
 
 def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
-    breakpoint()
+    # breakpoint()
     # List of columns we want to keep
     columns_to_keep = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']
 

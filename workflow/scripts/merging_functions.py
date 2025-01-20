@@ -405,6 +405,7 @@ def filter_out_solar_with_zeros_in_buildings_file(results_df):
     results_df = results_df[~((results_df['subfuels']=='12_x_other_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['fuels']=='12_solar')&(results_df[years].isna().all(axis=1)))].copy()
     results_df = results_df[~((results_df['fuels']=='12_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['subfuels']=='x')&(results_df[years].isna().all(axis=1)))].copy()
     return results_df   
+
 def filter_for_only_buildings_data_in_buildings_file(results_df):
     #this is only because the buildings file is being given to us with all the other data in it. so we need to filter it to only have the buildings data in it so that nothing unexpected happens.
     #check for data in the end year where sub1sectors is 16_01_buildings
@@ -1621,11 +1622,6 @@ def read_excel_with_bounds_check(excel_file, sheet_name, start_row, start_col, e
 
 
 def insert_data_centres_into_layout_df(layout_df, results_df, shared_categories, OUTLOOK_BASE_YEAR):
-    # #teams:
-    # Testing removing it from the <=2022 data within merging script. seems like its working fine. 
-    # Leanne i think the best way is that you will need to still do the calculation on your side so the data you give me takes in to account the effect of data centres and ai training on services in all years. 
-    # I think also a good improvement would be to have it so that when you do the calcaltion you also merge the data centres and ai training data into the service sectors data and give me the results in one file. That way sicne the integration script takes in each modellers file iteratively and checks against the data it has for pre-2022, it can check that the reaon why buildings pre-2022 data is different to wat it has is because of the data centres data (which it would be a little more complicated to do if we provided the data centres data in a separate file).        
-    # And then ultimate goal imo would be to have you run data centres model yourself so that there is no passing between modellers which i dont like because it slows thing down and creates extra steps in peoples heads.
     
     #before we remove all non results years, if  16_01_03_ai_training or 16_01_04_traditional_data_centres are in the sub2sectors column then take their values away from 16_01_01_commercial_and_public_services (where fuel is 17_electricity) in the layout data and add them in. 
     if '16_01_03_ai_training' in results_df['sub2sectors'].unique() or '16_01_04_traditional_data_centres' in results_df['sub2sectors'].unique():
@@ -1637,9 +1633,16 @@ def insert_data_centres_into_layout_df(layout_df, results_df, shared_categories,
         #melt the years
         layout_df_service_sectors = layout_df_service_sectors.melt(id_vars=shared_categories+['is_subtotal'], var_name='year', value_name='value')
         #sum up the data centres values and then join them
-        data_centres_df = results_df.loc[(results_df['sub2sectors'].isin(['16_01_03_ai_training', '16_01_04_traditional_data_centres']) & (results_df['subtotal_layout'] == False) & (results_df['subtotal_results'] == False) & (results_df['fuels'] == '17_electricity'))].copy()
-        #drop subtotals cols
-        data_centres_df.drop(columns=['subtotal_layout', 'subtotal_results'], inplace=True)
+        data_centres_df = results_df.loc[(results_df['sub2sectors'].isin(['16_01_03_ai_training', '16_01_04_traditional_data_centres'])  & (results_df['fuels'] == '17_electricity'))].copy()
+        #and if & (results_df['subtotal_layout'] == False) & (results_df['subtotal_results'] == False) are in the df, then filter for the too:
+        if 'subtotal_layout' in data_centres_df.columns:
+            data_centres_df = data_centres_df.loc[(data_centres_df['subtotal_layout'] == False)].copy()
+            #drop subtotals cols
+            data_centres_df.drop(columns=['subtotal_layout'], inplace=True)
+        if 'subtotal_results' in data_centres_df.columns:
+            data_centres_df = data_centres_df.loc[(data_centres_df['subtotal_results'] == False)].copy()
+            #drop subtotals cols
+            data_centres_df.drop(columns=['subtotal_results'], inplace=True)
         data_centres_df_melt = data_centres_df.melt(id_vars=shared_categories, var_name='year', value_name='value')
         #make year as int
         data_centres_df_melt['year'] = data_centres_df_melt['year'].astype(int)

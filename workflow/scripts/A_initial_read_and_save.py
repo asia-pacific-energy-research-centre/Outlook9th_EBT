@@ -16,7 +16,7 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
     # read raw data
     # na_values: defines values that should be viewed as nan
 
-    xlsx_raw = f'./data/{ESTO_DATA_FILENAME}.xlsx' #directory of raw data file
+    xlsx_raw = f'./data/raw_data/{ESTO_DATA_FILENAME}.xlsx' #directory of raw data file
 
     sheet_names = pd.ExcelFile(xlsx_raw).sheet_names[:21] #making a list with the first 21 economies' worksheets 
 

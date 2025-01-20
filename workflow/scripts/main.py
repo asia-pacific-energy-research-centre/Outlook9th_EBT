@@ -65,6 +65,7 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.trans_own_use_addon(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.minor_supply_components(SINGLE_ECONOMY_ID, final_energy_df)
+            breakpoint()#why is biodiesel 0 in conusmption?
             biofuels_functions.biofuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True)
             old_final_energy_df = final_energy_df.copy()
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
@@ -102,7 +103,7 @@ if __name__ == "__main__":
         #         continue
         # '01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC' 
     # try:
-    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='18_CT')#economy)#'00_APEC')#economy)
+    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='09_ROK')#economy)#'00_APEC')#economy)
     # except Exception as e:
     #     print(f'Error in main for {economy}')
     #     print(e)
