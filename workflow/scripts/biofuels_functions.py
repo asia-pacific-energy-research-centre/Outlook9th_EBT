@@ -123,8 +123,8 @@ def read_biofuels_input(biofuel_capacity_parameters_file_path):
         elif sheet_name == 'simplified_economy_fuels':
             input_data_dict['simplified_economy_fuels'] = pd.concat([input_data_dict['simplified_economy_fuels'], df[input_data_dict['simplified_economy_fuels'].columns]], ignore_index=True)
         elif sheet_name == 'utilisation_rate':
-            economy = sheet_name.replace('_utilisation_rate', '')
-            df['economy'] = economy
+            # economy = sheet_name.replace('_utilisation_rate', '')
+            # df['economy'] = economy
             input_data_dict['utilisation_rate_df'] = pd.concat([input_data_dict['utilisation_rate_df'], df[input_data_dict['utilisation_rate_df'].columns]], ignore_index=True)
                     
                     
