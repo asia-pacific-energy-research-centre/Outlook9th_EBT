@@ -18,6 +18,72 @@ timestamp = datetime.now().strftime('%Y_%m_%d')
 CAPACITY_DF_COLUMNS = ['economy', 'EBT_fuel', 'year', 'additional_capacity_pj', 'scenario', 'specific_fuel']
 UTILISATION_RATE_DF_COLUMNS = ['economy', 'fuel', 'year', 'utilisation_rate', 'scenario']
 SIMPLIFIED_ECONOMY_FUELS_DF_COLUMNS = ['economy', 'fuel', 'method']
+
+
+
+def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLOT = True, biofuel_capacity_parameters_file_path = 'config/biofuel_capacity_parameters.xlsx', CREATE_MARS_EXAMPLE = False):
+
+    """to save workload we are just going to do biofuels production and all biofuels supply within this model. it will take in demand for biofuels and then depending on a few paramerters, it will output production, imports and exports of biofuels. 
+    
+    There is also the option to include expected production capacity. and also an option to set an economy to just continue with the same ratio of exports/imports/production and satisfy all demand with domestic production. 
+     
+    The parameters will be: 
+    capacity additions (of each biofuel)
+    
+    
+    This will also have the capcity to output the total amount of feedstock required and detailed information on the type of capacity (which will have to be detailed within the input params)
+    
+    It will also need to calcualte capacity based on current production. 
+    
+    The parameter format will be:
+    
+    ```yml
+    biofuels:
+        - economy: 01_AUS
+            capacity_additions:
+            - year: 2030
+                additional_energy_pj: 0
+                specific_fuel: 'ethanol'
+                EBT_fuel: '16_05_biogasoline'
+    ```
+    Also there will be this in the yaml for biorefinery utilisation rates:
+    ```yml
+    utilisation_rate:
+        - economy: 01_AUS
+            initial_avg_utilisation_rate: 1
+            utilisation_rate_changes:
+            - year: 2030
+                new_avg_utilisation_rate: 1
+    ```                
+    So yeah. 
+    """
+        
+    input_data_dict = read_biofuels_input(biofuel_capacity_parameters_file_path)
+       
+    if CREATE_MARS_EXAMPLE:
+        breakpoint()
+        economy = '00_MARS'
+        model_df_clean_wide_copy = model_df_clean_wide.copy()
+        model_df_clean_wide = adjust_model_df_for_MARS_EXAMPLE(model_df_clean_wide)
+        
+    capacity_df, detailed_capacity_df, production_df = prepare_capacity_data(economy, model_df_clean_wide, input_data_dict)
+
+    consumption_df = prepare_consumption_data(economy, model_df_clean_wide, input_data_dict)
+    
+    production_df, consumption_df = biofuel_simplified_modelling_methods_handler(production_df, consumption_df, input_data_dict, model_df_clean_wide)
+    
+    final_df = calculate_exports_imports(model_df_clean_wide, consumption_df, production_df)
+    if PLOT and final_df.shape[0] > 0:
+        print('Plotting biofuels data')
+        plot_biofuels_data(final_df, economy)
+        
+    save_results(final_df, detailed_capacity_df, capacity_df, economy)
+    if CREATE_MARS_EXAMPLE:
+        #throw an error to stop the code
+        raise Exception('Finished biofuels_supply_and_transformation_handler with CREATE_MARS_EXAMPLE set to True')
+    ###########################################################
+    ###########################################################
+
 def read_biofuels_input(biofuel_capacity_parameters_file_path):
     
     if not os.path.exists(biofuel_capacity_parameters_file_path):
@@ -219,75 +285,6 @@ def adjust_model_df_for_MARS_EXAMPLE(model_df_clean_wide):
     grouped_df = model_df_clean_wide.groupby(['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'subtotal_layout', 'subtotal_results'])[year_cols].sum().reset_index()
     model_df_clean_wide = model_df_clean_wide.drop(columns=year_cols).merge(grouped_df, on=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'subtotal_layout', 'subtotal_results'], how='left')
     return model_df_clean_wide
-
-# def adjust_input_data_for_MARS_EXAMPLE(input_data_dict):
-#     input_data_dict['capacity_df']['economy'] = '00_MARS'
-#     input_data_dict['utilisation_rate_df']['economy'] = '00_MARS'
-#     input_data_dict['simplified_economy_fuels']['economy'] = '00_MARS'
-#     return input_data_dict
-
-def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLOT = True, biofuel_capacity_parameters_file_path = 'config/biofuel_capacity_parameters.xlsx', CREATE_MARS_EXAMPLE = False):
-
-    """to save workload we are just going to do biofuels production and all biofuels supply within this model. it will take in demand for biofuels and then depending on a few paramerters, it will output production, imports and exports of biofuels. 
-    
-    There is also the option to include expected production capacity. and also an option to set an economy to just continue with the same ratio of exports/imports/production and satisfy all demand with domestic production. 
-     
-    The parameters will be: 
-    capacity additions (of each biofuel)
-    
-    
-    This will also have the capcity to output the total amount of feedstock required and detailed information on the type of capacity (which will have to be detailed within the input params)
-    
-    It will also need to calcualte capacity based on current production. 
-    
-    The parameter format will be:
-    
-    ```yml
-    biofuels:
-        - economy: 01_AUS
-            capacity_additions:
-            - year: 2030
-                additional_energy_pj: 0
-                specific_fuel: 'ethanol'
-                EBT_fuel: '16_05_biogasoline'
-    ```
-    Also there will be this in the yaml for biorefinery utilisation rates:
-    ```yml
-    utilisation_rate:
-        - economy: 01_AUS
-            initial_avg_utilisation_rate: 1
-            utilisation_rate_changes:
-            - year: 2030
-                new_avg_utilisation_rate: 1
-    ```                
-    So yeah. 
-    """
-        
-    input_data_dict = read_biofuels_input(biofuel_capacity_parameters_file_path)
-       
-    if CREATE_MARS_EXAMPLE:
-        breakpoint()
-        economy = '00_MARS'
-        model_df_clean_wide_copy = model_df_clean_wide.copy()
-        model_df_clean_wide = adjust_model_df_for_MARS_EXAMPLE(model_df_clean_wide)
-        
-    capacity_df, detailed_capacity_df, production_df = prepare_capacity_data(economy, model_df_clean_wide, input_data_dict)
-
-    consumption_df = prepare_consumption_data(economy, model_df_clean_wide, input_data_dict)
-    
-    production_df, consumption_df = biofuel_simplified_modelling_methods_handler(production_df, consumption_df, input_data_dict, model_df_clean_wide)
-    
-    final_df = calculate_exports_imports(model_df_clean_wide, consumption_df, production_df)
-    if PLOT and final_df.shape[0] > 0:
-        print('Plotting biofuels data')
-        plot_biofuels_data(final_df, economy)
-        
-    save_results(final_df, detailed_capacity_df, capacity_df, economy)
-    if CREATE_MARS_EXAMPLE:
-        #throw an error to stop the code
-        raise Exception('Finished biofuels_supply_and_transformation_handler with CREATE_MARS_EXAMPLE set to True')
-    ###########################################################
-    ###########################################################
 
 def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict):   
     #find the economy in the input_data_dict
@@ -569,32 +566,34 @@ def satisfy_all_demand_with_domestic_production(economy, model_df_clean_wide, fu
     #set any infs to 1 too
     production_fuel_consumption_df['ratio'] = production_fuel_consumption_df['ratio'].replace([np.inf, -np.inf], 1)
     
+    
+    years_to_exclude = historical_years
+    
     #if RAMP then we need to calculate the amount to ramp up by each year until ratio is >=1    (so if its already >=1 then we dont need to ramp -  instead just make sure that production is >= consumption - 'greater than' is important in case the capacity data we may have had supplied is already cuasing production to be greater than consumption, in which case there would need to be exports, which is ok)
     if RAMP: 
+        
         #grab the raTIO between production and consumption for each fuel type iuun the base year
-        years_to_exclude = [OUTLOOK_BASE_YEAR]
         ratio_base_year = production_fuel_consumption_df[production_fuel_consumption_df['year'] == OUTLOOK_BASE_YEAR]
         for scenario in production_fuel_consumption_df['scenarios'].unique():
             ratio = production_fuel_consumption_df[(production_fuel_consumption_df['scenarios'] == scenario)]['ratio'].values[0]
             if ratio < 1:
                 #calculate the amount to ramp up by each year until ratio is >=1
-                annual_ramp_up_amount = ratio / years_to_ramp_over
+                annual_ramp_up_amount = (1-ratio) / years_to_ramp_over
                 for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_BASE_YEAR+years_to_ramp_over+1, 1):
                     years_to_exclude.append(year)
                     ratio += annual_ramp_up_amount
-                    if ratio > 1:
-                        breakpoint()
+
                     production_fuel_consumption_df.loc[(production_fuel_consumption_df['year'] == year), 'production'] = production_fuel_consumption_df.loc[(production_fuel_consumption_df['year'] == year), 'consumption'] * ratio
             #make sure that production is >= consumption for all years except the years_to_exclude
             production_fuel_consumption_df.loc[(production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']) & (~production_fuel_consumption_df['year'].isin(years_to_exclude)) & (production_fuel_consumption_df['scenarios'] == scenario) & (production_fuel_consumption_df['ratio'] < 1), 'production'] = production_fuel_consumption_df.loc[(production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']) & (~production_fuel_consumption_df['year'].isin(years_to_exclude)) & (production_fuel_consumption_df['scenarios'] == scenario) & (production_fuel_consumption_df['ratio'] < 1), 'consumption']
             
     if not EXACT:
         #now we need to set any production that is less than consumption to consumption for years after the base year (- 'less than' is important in case the capacity data we may have had supplied is already cuasing production to be greater than consumption, in which case there would need to be exports, which is ok)
-        production_fuel_consumption_df.loc[(production_fuel_consumption_df['year'] > OUTLOOK_BASE_YEAR) & (production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']), 'production'] = production_fuel_consumption_df.loc[(production_fuel_consumption_df['year'] > OUTLOOK_BASE_YEAR) & (production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']), 'consumption']
+        production_fuel_consumption_df.loc[(~production_fuel_consumption_df['year'].isin(years_to_exclude)) & (production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']), 'production'] = production_fuel_consumption_df.loc[(~production_fuel_consumption_df['year'].isin(years_to_exclude)) & (production_fuel_consumption_df['production'] < production_fuel_consumption_df['consumption']), 'consumption']
     else:
         #     satisfy_all_demand_with_domestic_production_EXACT:
         # The economy satisfies all demand for a fuel with domestic production. This eliminates imports and exports, making the economy self-sufficient. It will also make it so production EXACTLY matches consumotion, so that even if production from previous years was more than consumption now, the production will decrease to match consumption (which would not happen in the other versions of this method).  If working with a series that has already had capcaity data entered in (through ##_ECONOMY_capacity sheet), the code will adjust this if it needs to make production match consumption.
-        production_fuel_consumption_df.loc[(production_fuel_consumption_df['year'] > OUTLOOK_BASE_YEAR), 'production'] = production_fuel_consumption_df.loc[(production_fuel_consumption_df['year'] > OUTLOOK_BASE_YEAR), 'consumption']
+        production_fuel_consumption_df.loc[(~production_fuel_consumption_df['year'].isin(years_to_exclude)), 'production'] = production_fuel_consumption_df.loc[(~production_fuel_consumption_df['year'].isin(years_to_exclude)), 'consumption']
     fuel_production_df = production_fuel_consumption_df[['scenarios', 'economy', 'subfuels', 'year', 'production']].copy().reset_index(drop = True)
     return fuel_production_df, fuel_consumption_df
 

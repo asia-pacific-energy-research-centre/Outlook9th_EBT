@@ -65,7 +65,7 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.trans_own_use_addon(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.minor_supply_components(SINGLE_ECONOMY_ID, final_energy_df)
-            biofuels_functions.biofuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True)
+            biofuels_functions.biofuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True, CREATE_MARS_EXAMPLE=False)
             old_final_energy_df = final_energy_df.copy()
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
             # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
