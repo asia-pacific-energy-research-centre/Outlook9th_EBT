@@ -19,11 +19,12 @@ ECONOMYS_WITH_INITIAL_NAS_AND_THEIR_COLS = {
 SINGLE_ECONOMY_ID_VAR = '15_PHL' #'19_THA'# '19_THA' #20_USA 03_CDA
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
-# If merging supply results, set this to True and calculate TPES top down instead of bottom up
+# If merging supply results (i.e. the final stage of merging results from the modellers), set this to True and calculate TPES top down instead of bottom up
 MERGE_SUPPLY_RESULTS = False
 
 EBT_EARLIEST_YEAR = 1980
 OUTLOOK_BASE_YEAR = 2022
+OUTLOOK_BASE_YEAR_RUSSIA = 2021
 OUTLOOK_LAST_YEAR = 2070
 
 SECTOR_LAYOUT_SHEET = 'sector_layout_20230719'
@@ -31,7 +32,7 @@ FUEL_LAYOUT_SHEET = 'fuel_layout_20230329'
 
 # ESTO_DATA_FILENAME = '00APEC_May2023'
 
-ESTO_DATA_FILENAME = '00APEC_2024'#January
+ESTO_DATA_FILENAME = '00APEC_2024_new_russia_data'
 NEW_YEARS_IN_INPUT = True#ONLY SET ME IF YOU ARE USING NEW DATA FROM ESTO WHICH SHOULD ONLY HAPPEN ONCE A YEAR
 SCENARIOS_list = ['reference', 'target']
 

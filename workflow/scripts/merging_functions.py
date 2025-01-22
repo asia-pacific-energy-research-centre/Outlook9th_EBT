@@ -1627,7 +1627,7 @@ def read_excel_with_bounds_check(excel_file, sheet_name, start_row, start_col, e
     return data_df
 
 
-def insert_data_centres_into_layout_df(layout_df, results_df, shared_categories, OUTLOOK_BASE_YEAR):
+def insert_data_centres_into_layout_df(layout_df, results_df, shared_categories):
     # #teams:
     # Testing removing it from the <=2022 data within merging script. seems like its working fine. 
     # Leanne i think the best way is that you will need to still do the calculation on your side so the data you give me takes in to account the effect of data centres and ai training on services in all years. 
