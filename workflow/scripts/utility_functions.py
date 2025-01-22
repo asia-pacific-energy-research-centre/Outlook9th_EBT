@@ -23,9 +23,10 @@ SINGLE_ECONOMY_ID_VAR = '15_PHL' #'19_THA'# '19_THA' #20_USA 03_CDA
 MERGE_SUPPLY_RESULTS = False
 
 EBT_EARLIEST_YEAR = 1980
+OUTLOOK_LAST_YEAR = 2070
 OUTLOOK_BASE_YEAR = 2022
 OUTLOOK_BASE_YEAR_RUSSIA = 2021
-OUTLOOK_LAST_YEAR = 2070
+#to incorporate russia as a single economy with a different base year to the others, we ran the main.py script with SINGLE_ECONOMY_ID = False, then in the output, ie. results/model_df_wide_20250122.csv we set values to 0 in 2022 for russia only. then we also ran the main.py script with SINGLE_ECONOMY_ID = '16_RUS' and OUTLOOK_BASE_YEAR set to what OUTLOOK_BASE_YEAR_RUSSIA is. This is what it will need to be set to when ever merging results for russia too.
 
 SECTOR_LAYOUT_SHEET = 'sector_layout_20230719'
 FUEL_LAYOUT_SHEET = 'fuel_layout_20230329'
