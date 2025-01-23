@@ -1341,6 +1341,12 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             ################TEMP FOR NEW ESTO DATA
             
             missing_rows_exceptions_dict['08_transfers'] = {'_merge':'new_layout_df', 'economy':'14_PE', 'sectors':'08_transfers', 'fuels':'07_petroleum_products', 'subfuels':'07_x_other_petroleum_products', 'sub1sectors':'x', 'sub2sectors':'x', 'sub3sectors':'x', 'sub4sectors':'x'}
+            #also this in NEew ESTO data:
+            #             09_ROK	09_total_transformation_sector	09_01_electricity_plants	09_01_11_otherfuel	x	x	16_others	16_09_other_sources
+            # 09_ROK	09_total_transformation_sector	09_02_chp_plants	09_02_04_biomass	x	x	16_others	16_09_other_sources
+            # 09_ROK	09_total_transformation_sector	09_02_chp_plants	x	x	x	16_others	16_09_other_sources
+            missing_rows_exceptions_dict['16_09_other_sources'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'fuels':'16_others', 'subfuels':'16_09_other_sources'}
+            missing_rows_exceptions_dict['16_09_other_sources2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub2sectors':'09_01_11_otherfuel', 'fuels':'16_others', 'subfuels':'16_09_other_sources'}
 
             ############################
             #use the keys as column names to remove the rows in the dict:
@@ -1621,7 +1627,7 @@ def read_excel_with_bounds_check(excel_file, sheet_name, start_row, start_col, e
     return data_df
 
 
-def insert_data_centres_into_layout_df(layout_df, results_df, shared_categories, OUTLOOK_BASE_YEAR):
+def insert_data_centres_into_layout_df(layout_df, results_df, shared_categories):
     # #teams:
     # Testing removing it from the <=2022 data within merging script. seems like its working fine. 
     # Leanne i think the best way is that you will need to still do the calculation on your side so the data you give me takes in to account the effect of data centres and ai training on services in all years. 

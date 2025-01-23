@@ -35,7 +35,15 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
     """
     # Set the working directory
     utils.set_working_directory()
-    
+    if SINGLE_ECONOMY_ID == '16_RUS':
+        #check that the OUTLOOK_BASE_YEAR in utils is == to OUTLOOK_BASE_YEAR_russia in utils, else raise an error
+        #and if SINGLE_ECONOMY_ID != '16_RUS' then check that OUTLOOK_BASE_YEAR in utils != OUTLOOK_BASE_YEAR_russia in utils, else raise an error
+        if utils.OUTLOOK_BASE_YEAR != utils.OUTLOOK_BASE_YEAR_RUSSIA:
+            raise ValueError('OUTLOOK_BASE_YEAR in utils is not equal to OUTLOOK_BASE_YEAR_RUSSIA in utils')
+    elif SINGLE_ECONOMY_ID != '16_RUS':
+        if utils.OUTLOOK_BASE_YEAR == utils.OUTLOOK_BASE_YEAR_RUSSIA:
+            raise ValueError('OUTLOOK_BASE_YEAR in utils is equal to OUTLOOK_BASE_YEAR_RUSSIA in utils')
+        
     # Check if SINGLE_ECONOMY_ID is in utils.AGGREGATE_ECONOMIES
     if SINGLE_ECONOMY_ID in utils.AGGREGATE_ECONOMIES:
         # Run the aggregation function
@@ -65,8 +73,7 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             supply_component_repo_functions.pipeline_transport(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.trans_own_use_addon(SINGLE_ECONOMY_ID, final_energy_df)
             supply_component_repo_functions.minor_supply_components(SINGLE_ECONOMY_ID, final_energy_df)
-            breakpoint()#why is biodiesel 0 in conusmption?
-            biofuels_functions.biofuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True)
+            biofuels_functions.biofuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True, CREATE_MARS_EXAMPLE=False)
             old_final_energy_df = final_energy_df.copy()
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
             # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
@@ -103,45 +110,6 @@ if __name__ == "__main__":
         #         continue
         # '01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC' 
     # try:
-    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='09_ROK')#economy)#'00_APEC')#economy)
+    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='16_RUS')#'16_RUS')#economy)#'00_APEC')#economy)
     
     
-    
-    # except Exception as e:
-    #     print(f'Error in main for {economy}')
-    #     print(e)
-    #     #save error to a txt file
-    #     with open(f'main_error_{economy}.txt', 'w') as f:
-    #         f.write(str(e))
-    #     continue
-        
-#C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th
-# utils.run_main_up_to_mergi ng_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th', MOVE_OLD_FILES_TO_ARCHIVE=True)
-
-# utils.run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/hyuga.kasai/APERC/Outlook-9th - Modelling', MOVE_OLD_FILES_TO_ARCHIVE=True)
-
-#%%
-
-# import biofuels_functions_new as biofuels_functions
-# utils.set_working_directory()
-# biofuels_functions.create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capacity_additions', 'utilisation_rate', 'simplified_economy_fuels'],original_file_path = 'config/biofuel_capacity_parameters.xlsx', new_file_path = 'config/biofuel_capacity_parameters.xlsx', LOAD_AND_USE_ORIGINAL_FILE=False)
-    
-
-#%%
-# utils.shift_output_files_to_visualisation_input(economy_ids = ['23_NEA', '23b_ONEA', '24_OAM', '25_OCE' ], results_path = r'C:\Users\finbar.maunsell\github\Outlook9th_EBT\results', visualisation_input_path = r'C:\Users\finbar.maunsell\github\9th_edition_visualisation\input_data',file_date_id = '20241122')
-#['01_AUS',"02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC']
-
-# utils.run_main_up_to_merging_for_every_economy(LOCAL_FILE_PATH= r'C:/Users/hyuga.kasai/APERC/Outlook-9th - Modelling', MOVE_OLD_FILES_TO_ARCHIVE=True)
-
-#%%
-
-# import biofuels_functions_new as biofuels_functions
-# utils.set_working_directory()
-# biofuels_functions.create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capacity_additions', 'utilisation_rate', 'simplified_economy_fuels'],original_file_path = 'config/biofuel_capacity_parameters.xlsx', new_file_path = 'config/biofuel_capacity_parameters.xlsx', LOAD_AND_USE_ORIGINAL_FILE=False)
-    
-
-#%%
-# utils.shift_output_files_to_visualisation_input(economy_ids = ['23_NEA', '23b_ONEA', '24_OAM', '25_OCE' ], results_path = r'C:\Users\finbar.maunsell\github\Outlook9th_EBT\results', visualisation_input_path = r'C:\Users\finbar.maunsell\github\9th_edition_visualisation\input_data',file_date_id = '20241122')
-#['01_AUS',"02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC']
-
-#%%

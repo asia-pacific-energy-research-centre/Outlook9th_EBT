@@ -94,7 +94,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         results_df.columns = results_df.columns.astype(str)
                 
         ###TEST### DATA CENTRES
-        layout_df = merging_functions.insert_data_centres_into_layout_df(layout_df, results_df,shared_categories, OUTLOOK_BASE_YEAR)
+        layout_df = merging_functions.insert_data_centres_into_layout_df(layout_df, results_df,shared_categories)
         ###TEST### DATA CENTRES      
         
         #Keep columns from outlook_base_year to outlook_last_year only
