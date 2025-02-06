@@ -21,7 +21,7 @@ SIMPLIFIED_ECONOMY_FUELS_DF_COLUMNS = ['economy', 'fuel', 'method']
 
 
 
-def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLOT = True, biofuel_capacity_parameters_file_path = 'config/biofuel_capacity_parameters.xlsx', CREATE_MARS_EXAMPLE = False):
+def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLOT = True, biofuel_capacity_parameters_file_path = 'config/biofuel_capacity_parameters.xlsx', CREATE_MARS_EXAMPLE = False,USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X=False):
 
     """to save workload we are just going to do biofuels production and all biofuels supply within this model. it will take in demand for biofuels and then depending on a few paramerters, it will output production, imports and exports of biofuels. 
     
@@ -67,11 +67,15 @@ def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLO
         model_df_clean_wide = adjust_model_df_for_MARS_EXAMPLE(model_df_clean_wide)
     
     #quickly rename teh subfuel for '16_others_x', '15_solid_biomass_x' since they are x in the model_df_clean_wide where fuel is 16_others and 15_solid_biomass
-    # breakpoint()#maybe its best if we allocate any demand of these to the other type subfuels
-    model_df_clean_wide.loc[(model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'] == '16_others'), 'subfuels'] = '16_others_x'
-    model_df_clean_wide.loc[(model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'] == '15_solid_biomass'), 'subfuels'] = '15_solid_biomass_x'
+    if model_df_clean_wide.loc[(model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'].isin(['15_solid_biomass', '16_others'])) &(model_df_clean_wide['subtotal_results'] == False)][range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)].sum().sum() > 0.001:
+        breakpoint()
+        print('Found some 16_others where subfuels is x and tehre are no subtotals')
+        raise Exception('Found some 16_others where subfuels is x and tehre are no subtotals. May need to implement the USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X method to allocate this demand to a subfuels like 16_others_x so we can properly model supply')
+    if USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X:
+        model_df_clean_wide.loc[(model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'] == '16_others'), 'subfuels'] = '16_others_x'
+        model_df_clean_wide.loc[(model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'] == '15_solid_biomass'), 'subfuels'] = '15_solid_biomass_x'
     # breakpoint()
-    capacity_df, detailed_capacity_df, production_df = prepare_capacity_data(economy, model_df_clean_wide, input_data_dict)
+    capacity_df, detailed_capacity_df, production_df = prepare_capacity_data(economy, model_df_clean_wide, input_data_dict, USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X=USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X)
 
     consumption_df = prepare_consumption_data(economy, model_df_clean_wide, input_data_dict)
     
@@ -81,10 +85,12 @@ def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLO
     if PLOT and final_df.shape[0] > 0:
         print('Plotting biofuels data')
         plot_biofuels_data(final_df, economy)
-    # breakpoint()
+    
+    
     #quickly rename teh subfuel back from for '16_others_x', '15_solid_biomass_x' since they are x in the model_df_clean_wide where fuel is 16_others and 15_solid_biomass
-    final_df.loc[(final_df['subfuels'] == '16_others_x') & (final_df['fuels'] == '16_others'), 'subfuels'] = 'x'
-    final_df.loc[(final_df['subfuels'] == '15_solid_biomass_x') & (final_df['fuels'] == '15_solid_biomass'), 'subfuels'] = 'x'
+    if USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X: 
+        final_df.loc[(final_df['subfuels'] == '16_others_x') & (final_df['fuels'] == '16_others'), 'subfuels'] = 'x'
+        final_df.loc[(final_df['subfuels'] == '15_solid_biomass_x') & (final_df['fuels'] == '15_solid_biomass'), 'subfuels'] = 'x'
     
     save_results(final_df, detailed_capacity_df, capacity_df, economy)
     if CREATE_MARS_EXAMPLE:
@@ -137,7 +143,7 @@ def read_biofuels_input(biofuel_capacity_parameters_file_path):
                     
     return input_data_dict
     
-def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capacity_additions', 'utilisation_rate', 'simplified_economy_fuels'], original_file_path = 'config/biofuel_capacity_parameters.xlsx', new_file_path = 'config/biofuel_capacity_parameters.xlsx', LOAD_AND_USE_ORIGINAL_FILE = True):
+def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capacity_additions', 'utilisation_rate', 'simplified_economy_fuels'], original_file_path = 'config/biofuel_capacity_parameters.xlsx', new_file_path = 'config/biofuel_capacity_parameters.xlsx', LOAD_AND_USE_ORIGINAL_FILE = True,USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X=False):
     """ONLY FOR PREPARATION OF THE BIOFUELS INPUT WORKBOOK. THIS WILL CREATE A NEW FILE WITH THE SAME SHEETS AS THE ORIGINAL BUT WITH THE DATA FILLED IN.
     RUN ME WITH 
         import biofuels_functions_new as biofuels_functions
@@ -168,6 +174,9 @@ def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capac
                 df.to_excel(writer, sheet_name, index=False)
     #create a list of expected sheet names so that if any are missing we can add them:
     expected_sheets = ['config', 'utilisation_rate', 'simplified_economy_fuels'] + [f'{economy}_capacity' for economy in ALL_ECONOMY_IDS + ['00_MARS']]
+    subfuels_list = ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', '15_05_other_biomass', '16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable', '16_08_other_liquid_biofuels', '16_09_other_sources']
+    if USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X:
+        subfuels_list += ['16_others_x', '15_solid_biomass_x']
     completed_sheets = []
     for sheet_name in workbook_sheet_names + expected_sheets:
         if sheet_name in completed_sheets:
@@ -179,7 +188,7 @@ def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capac
             df = pd.DataFrame(columns=['EBT_fuel', 'additional_capacity_pj', 'economy', 'scenario', 'specific_fuel', 'year'])
             economy = sheet_name.replace('_capacity', '')
             for scenario in SCENARIOS_list:
-                for fuel in ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', '15_05_other_biomass', '16_others_x', '15_solid_biomass_x']:
+                for fuel in subfuels_list:
                     #remove all numbers from fuel name then strip off the _'s at the start
                     specific_fuel = re.sub(r'\d', '', fuel).lstrip('_')
                     df = pd.concat([df, pd.DataFrame([{'EBT_fuel': fuel, 'additional_capacity_pj': 0, 'economy': economy, 'scenario': scenario, 'specific_fuel': specific_fuel, 'year': OUTLOOK_BASE_YEAR}])], ignore_index=True)
@@ -190,20 +199,14 @@ def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capac
             #create a row for each scenario in SCENARIOS_list, a fuel for each one in 16_05_biogasoline 16_06_biodiesel 16_07_bio_jet_kerosene 16_01_biogas 15_01_fuelwood_and_woodwaste 15_02_bagasse 15_03_charcoal 15_04_black_liquor 15_05_other_biomass, and set the year to OUTLOOK_BASE_YEAR
             df = pd.DataFrame(columns=['economy', 'utilisation_rate', 'scenario', 'year', 'fuel'])
             for scenario in SCENARIOS_list:
-                for fuel in ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', '15_05_other_biomass', '16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', 
-                '16_04_municipal_solid_waste_nonrenewable', '16_08_other_liquid_biofuels', '16_09_other_sources', '16_others_x', '15_solid_biomass_x']:
+                for fuel in subfuels_list:
                     df = pd.concat([df, pd.DataFrame([{'economy': '01_AUS', 'utilisation_rate': 1, 'scenario': scenario, 'year': OUTLOOK_BASE_YEAR, 'fuel': fuel}])], ignore_index=True)
                     
             df.to_excel(writer, sheet_name, index=False)
         elif ('config' in sheets_to_change or sheet_name not in workbook_sheet_names) and sheet_name == 'config':
             #create data for EBT_biofuels_list 
             df = pd.DataFrame(columns=['EBT_biofuels_list'])
-            for fuel in [
-                '16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', 
-                '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', 
-                '15_05_other_biomass', '16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', 
-                '16_04_municipal_solid_waste_nonrenewable', '16_08_other_liquid_biofuels', '16_09_other_sources', '16_others_x', '15_solid_biomass_x'
-            ]:
+            for fuel in subfuels_list:
                 df = pd.concat([df, pd.DataFrame([{'EBT_biofuels_list': fuel}])], ignore_index=True)
             df.to_excel(writer, sheet_name, index=False)
                 
@@ -215,10 +218,7 @@ def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capac
             methods=['satisfy_all_demand_with_domestic_production', 
                                'satisfy_all_demand_with_domestic_production_RAMP', 'do_nothing', 'satisfy_all_demand_with_domestic_production_EXACT',                        'keep_same_ratio_of_production_to_consumption']
             methods_index = 0
-            for fuel in ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', 
-                         '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', 
-                         '15_05_other_biomass', '16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', 
-                '16_04_municipal_solid_waste_nonrenewable', '16_08_other_liquid_biofuels', '16_09_other_sources', '16_others_x', '15_solid_biomass_x']:
+            for fuel in subfuels_list:
                 method = methods[methods_index]
                 df = pd.concat([df, pd.DataFrame([{'economy': '00_MARS', 'fuel': fuel, 'method': method}])], ignore_index=True)
                 if method == 'satisfy_all_demand_with_domestic_production_RAMP':
@@ -299,7 +299,7 @@ def adjust_model_df_for_MARS_EXAMPLE(model_df_clean_wide):
     model_df_clean_wide = model_df_clean_wide.drop(columns=year_cols).merge(grouped_df, on=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'subtotal_layout', 'subtotal_results'], how='left')
     return model_df_clean_wide
 
-def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict):   
+def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict, USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X=False):   
     #find the economy in the input_data_dict
     economy_capacity_df = input_data_dict['capacity_df']
     economy_capacity_df = economy_capacity_df[economy_capacity_df.economy == economy]
@@ -403,7 +403,7 @@ def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict):
     for fuel in EBT_biofuels_list:
         if fuel not in biofuel_production_historical.columns:
             #if its one of the 16_others_x or 15_solid_biomass_x then we can just add in new rows for them with 0s
-            if fuel in ['16_others_x', '15_solid_biomass_x']:
+            if fuel in ['16_others_x', '15_solid_biomass_x'] and USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X:
                 biofuel_production_historical[fuel] = 0
             else:
                 breakpoint()

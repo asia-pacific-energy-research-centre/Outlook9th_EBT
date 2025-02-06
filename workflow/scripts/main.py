@@ -103,13 +103,13 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
 # Run the main function and store the result
 FOUND=False
 if __name__ == "__main__":
-    # for economy in utils.AGGREGATE_ECONOMIES:#['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC
+    for economy in ['09_ROK']:#['01_AUS', "02_BD", "15_PHL", "18_CT","21_VN"]:# utils.AGGREGATE_ECONOMIES:#['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC
         #     if economy == '05_PRC':
         #         FOUND = True
         #     elif not FOUND:
         #         continue
         # '01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC' 
-    # try:
-    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='09_ROK')#02_BD')#'16_RUS')#economy)#'00_APEC')#economy)
+        # try:
+        final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID=economy)#'09_ROK')#02_BD')#'16_RUS')#economy)#'00_APEC')#economy)
      
 #%%

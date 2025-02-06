@@ -271,7 +271,8 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     if DATAFRAME_ORIGIN == 'results':
         if subtotals_with_different_values.loc[((subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '16_others') | (subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '15_solid_biomass')) & (subtotals_with_different_values['sectors'] == '01_production')].shape[0] > 0:
             breakpoint()
-            merged_data, subtotals_with_different_values = manually_remove_subtotals_for_15_16_production_in_results(merged_data, subtotals_with_different_values)
+            raise Exception('We are potentially going to need manually_remove_subtotals_for_15_16_production_in_results however this would bring unexpected side effects for the visualisation code. try to avoid using this if possible.')
+            # merged_data, subtotals_with_different_values = manually_remove_subtotals_for_15_16_production_in_results(merged_data, subtotals_with_different_values)
     #if we still have subtotals with different values then we will throw an error.          
     ###
     if subtotals_with_different_values.shape[0] > 0 and DATAFRAME_ORIGIN == 'results':
