@@ -110,6 +110,9 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         results_df = merging_functions.filter_for_only_buildings_data_in_buildings_file(results_df)
         results_df = merging_functions.filter_out_solar_with_zeros_in_buildings_file(results_df)
         results_df = merging_functions.power_move_x_in_chp_and_hp_to_biomass(results_df)
+        # breakpoint()
+        results_df = merging_functions.attempt_to_split_16_others_x_and_15_solid_biomass_x_into_subfuels_in_power_based_on_historical_data(results_df, layout_df)
+        
         #TEMP#
         
         # find sectors where there are null values for all the years base_year->end_year. This will help to identify where perhaps the results file is missing data or has been incorrectly formatted.

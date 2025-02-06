@@ -70,7 +70,6 @@ def label_subtotals(results_layout_df, shared_categories):
         
         df_definitely_not_subtotals = df[non_subtotal_mask2 | non_subtotal_mask].copy()
         df_maybe_subtotals = df[~(non_subtotal_mask2 | non_subtotal_mask)].copy()
-        df_maybe_subtotals[df_maybe_subtotals['sub1sectors'] == '15_01_domestic_air_transport']
         conditions = {
             'sub_col_is_x': df_maybe_subtotals[sub_col] == 'x'
         }
@@ -267,7 +266,13 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         subtotals_with_different_values = subtotals_with_different_values[subtotals_with_different_values['sectors'] != '14_industry_sector'].copy() 
     #drop buildings electricity in fuels if the DATAFRAME_ORIGIN is results:
     if DATAFRAME_ORIGIN == 'results':
-        subtotals_with_different_values = subtotals_with_different_values[(subtotals_with_different_values['sub1sectors'] != '16_01_buildings') & (subtotals_with_different_values['fuels'] != '17_electricity')].copy()
+        subtotals_with_different_values = subtotals_with_different_values[(subtotals_with_different_values['sub1sectors'] != '16_01_buildings') & (subtotals_with_different_values['fuels'] != '17_electricity')].copy()  
+        
+    if DATAFRAME_ORIGIN == 'results':
+        if subtotals_with_different_values.loc[((subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '16_others') | (subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '15_solid_biomass')) & (subtotals_with_different_values['sectors'] == '01_production')].shape[0] > 0:
+            breakpoint()
+            merged_data, subtotals_with_different_values = manually_remove_subtotals_for_15_16_production_in_results(merged_data, subtotals_with_different_values)
+    #if we still have subtotals with different values then we will throw an error.          
     ###
     if subtotals_with_different_values.shape[0] > 0 and DATAFRAME_ORIGIN == 'results':
         breakpoint()
@@ -286,16 +291,18 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     values_only_in_original = merged_data[(merged_data['_merge'] == 'left_only')].copy()
     new_subtotalled_values = merged_data[(merged_data['_merge'] == 'right_only')].copy()
     subtotal_values_in_both= merged_data[(merged_data['_merge'] == 'both') & (merged_data['is_subtotal'] == True)].copy()
+    manual_subtotal_values = merged_data[(merged_data['_merge'] == 'manual_subtotal')].copy()
     
     values_to_keep_in_original['value'] = values_to_keep_in_original['value']
     values_only_in_original['value'] = values_only_in_original['value']
     new_subtotalled_values['value'] = new_subtotalled_values['value_new_subtotal']
     subtotal_values_in_both['value'] = subtotal_values_in_both['value']
+    manual_subtotal_values ['value'] = manual_subtotal_values['value']
     
     new_subtotalled_values['is_subtotal'] = True
     
     #concat all together
-    final_df = pd.concat([values_to_keep_in_original, values_only_in_original, new_subtotalled_values, subtotal_values_in_both], ignore_index=True)
+    final_df = pd.concat([values_to_keep_in_original, values_only_in_original, new_subtotalled_values, subtotal_values_in_both, manual_subtotal_values], ignore_index=True)
     #drop merge and value_original and value_subtotalled
     final_df.drop(columns=['_merge', 'value_new_subtotal', 'value_diff_pct'], inplace=True)
     
@@ -347,6 +354,28 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         raise Exception("There are duplicates in the subtotaled DataFrame.") 
     return final_df_wide
 
+def manually_remove_subtotals_for_15_16_production_in_results(merged_data, subtotals_with_different_values):
+    #this is a bit of a hack. IF THERE ARE clashes between subtotals for production of these fuel types we will manually remove the subtotals for 15_solid_biomass and 16_others in production. This is because we know that we have a mix of results where subfuels is x and subfuels is an actrual subfuel. Note that we previously had the ability to calcualte subtotals here but rteaise it wouldnt work since it would create duplicates when ignoring the subtotal column. i.e. where fuel = 15_solid_biomass and subfuel = x, and subtotal is both true and false.
+    subtotals_with_different_values = subtotals_with_different_values[~((subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '16_others') | (subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '15_solid_biomass')) & (subtotals_with_different_values['sectors'] == '01_production')].copy()
+    
+    new_prod_subtotals = merged_data[(merged_data['sectors'] == '01_production') & (merged_data['fuels'].isin(['16_others', '15_solid_biomass']))].copy()
+    #drop nas in value
+    new_prod_subtotals = new_prod_subtotals.dropna(subset=['value']).copy()
+    # #sum up data by everything excepot subfuel to find the subtotal, and then set subtotal to False for everything else.
+    # shared_categories_minus_subfuel = [col for col in shared_categories if col != 'subfuels']
+    # subtotals = new_prod_subtotals.groupby(shared_categories_minus_subfuel+['year'], as_index=False)['value'].sum().reset_index().copy()
+    #set subfuel to x and is_subtotal to True
+    # subtotals['subfuels'] = 'x'
+    # subtotals['is_subtotal'] = True
+    #thewn in new_prod_subtotals setsubtotal to fasle
+    new_prod_subtotals['is_subtotal'] = False
+    #then set merge to 'manual_subtotal' so we can identify these rows later
+    new_prod_subtotals['_merge'] = 'manual_subtotal'
+    # subtotals['_merge'] = 'manual_subtotal'
+    #then drop the old rows from merged_data and add the new ones
+    merged_data = merged_data[~((merged_data['sectors'] == '01_production') & (merged_data['fuels'].isin(['16_others', '15_solid_biomass'])))].copy()
+    merged_data = pd.concat([merged_data, new_prod_subtotals], ignore_index=True)
+    return merged_data, subtotals_with_different_values  
 def remove_all_zeros(results_df, years_to_keep_in_results):
     #since the layout file contains all possible rows (once we run calculate_subtotals on it), we can remove all rows where the values for a row are all zero in the results file, since when we merge we will still be able to keep those rows from the layout file in the final df. This wil help to significantly reduce the size of resutls files as well as ignore any issues that arent issues because they are all zeros. For example we had an issue where a subfuel was being sued for a subtotal where the sectors it was subtotaling didnt have that subfuel. But since the values were all zeros, it didnt matter.
     results_df = results_df.loc[~(results_df[years_to_keep_in_results] == 0).all(axis=1)].copy()
@@ -405,6 +434,78 @@ def filter_out_solar_with_zeros_in_buildings_file(results_df):
     results_df = results_df[~((results_df['subfuels']=='12_x_other_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['fuels']=='12_solar')&(results_df[years].isna().all(axis=1)))].copy()
     results_df = results_df[~((results_df['fuels']=='12_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['subfuels']=='x')&(results_df[years].isna().all(axis=1)))].copy()
     return results_df   
+
+def attempt_to_split_16_others_x_and_15_solid_biomass_x_into_subfuels_in_power_based_on_historical_data(results_df, layout_df):
+    results_df_copy = results_df.copy()
+    #NOTE THIS IS QUITE A COMPLICATED FUNCITON AND PROBABLY TOO COMPLICATED. IT MIGHT BE SMART TO JUST DROP THIS METHOD AND INSTEAD HAVE SUPPLY JUST TREAT 16_OTHERS_X AND 15_SOLID_BIOMASS_X AS THEIR OWN KINDS OF FUELS AND ACCEPT THE SIMPLIFCIATION AS A COMPROMISE.
+    
+    #we dont get these two fuel type split into its subfuels in the results file from power modeller (becasue its probably too omcplicated for them to bother with), so we need to do it here, otherwise our outputs will show values for these disaggregatied subfuels pre base year and then an aggregation to x in modelled results. We can take the proportions to split the modelled results into from the layout file then split them, if there is available disaggregations - otherwise jsut keep them in x. Make sure to ignore the amounts of 16_x_ammonia, 16_x_hydrogen 16_x_efuel and any other of these (normally new) subfuels that alex does specifcy data for in the output.
+    subfuels_to_remove = ['16_x_efuel', '16_x_ammonia', '16_x_hydrogen']
+    #split 16_others_x into subfuels in power sector
+    if '16_others' in results_df['fuels'].unique() and 'x' in layout_df['subfuels'].unique() and '09_01_electricity_plants' in results_df['sub1sectors'].unique():	
+        #get the proportions of the subfuels in the layout file
+        layout_df_16_15 = layout_df[(layout_df['fuels'] == '16_others') | (layout_df['fuels'] == '15_solid_biomass')].copy()
+        ########
+        #find subufles to remove as any that are in the results file where fuels are 16_others or 15_solid_biomass for the power sector
+        other_subfuels_to_remove = results_df.loc[(results_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (results_df['subfuels'] != 'x'), 'subfuels'].unique().tolist()
+        #check if there are any new subfuhels to remove:
+        other_subfuels_to_remove = [subfuel for subfuel in other_subfuels_to_remove if subfuel not in subfuels_to_remove]
+        if other_subfuels_to_remove:
+            subfuels_to_remove += other_subfuels_to_remove
+            # this means that the power modeller has decided to m,ode a specific subfuel weithin 15 and 16 so we dont need to split the x subfuel into it, like with the hydrgen based fuels -HOWVER, SOMETIMES THE MODELLER MAY PUT DATA INTO 16_09_OTHER_SOURCES AS A 'GENERAL' FUEL. dONT REALLY KNOW HGOW TO DEAL WITH THIS, SO JUST IGNORE IT FOR NOW. 
+            
+        #also check if there is only one scenario of target and reference and if so remove the other
+        if results_df['scenarios'].nunique() == 1:
+            unique_scenario = results_df['scenarios'].unique()[0]
+            layout_df_16_15 = layout_df_16_15.loc[layout_df_16_15['scenarios'] == unique_scenario].copy()
+        ########
+        ##PREPARING PROPORTIONS TO SPLIT THE 16_OTHERS_X AND 15_SOLID_BIOMASS_X INTO THEIR SUBFUELS:#NOTE I DROPPED SUB2_SUB3 AND SUB4 SECTORS FROM THIS BECAUSE OFTEN THE ESTO DATA WOULDNT HAVE THE DATA DISAGGREGATED THIS MUCH sub2_sub3_sub4_
+        sub1_sectors_to_keep = results_df.loc[(results_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (results_df['subfuels'] == 'x'), 'sub1sectors'].unique().tolist()
+        #filter for those combinations within the layout file using a merge
+        layout_df_16_15 = layout_df_16_15.loc[layout_df_16_15['sub1sectors'].isin(sub1_sectors_to_keep)].copy()
+        #remove the subfuels that are in the results file                
+        layout_df_16_15 = layout_df_16_15[~layout_df_16_15['subfuels'].isin(subfuels_to_remove)].copy()
+        #group by the sectors and calculate the proportions
+        layout_df_16_15_grouped = layout_df_16_15.copy()
+        
+        layout_df_16_15_grouped['total'] = layout_df_16_15_grouped.groupby(['scenarios', 'economy','fuels','sectors', 'sub1sectors','sub2sectors','sub3sectors','sub4sectors'])[OUTLOOK_BASE_YEAR].transform('sum')
+        layout_df_16_15_grouped['proportion'] = layout_df_16_15_grouped[OUTLOOK_BASE_YEAR] / layout_df_16_15_grouped['total']
+        #set nas to 0
+        layout_df_16_15_grouped['proportion'] = layout_df_16_15_grouped['proportion'].fillna(0)
+        #if proportion is all 0's then we can only assume that the data will go into subfuels == 'x'., so set the proportion to 1 for these rows
+        for fuel in ['16_others', '15_solid_biomass']:
+            if layout_df_16_15_grouped.loc[layout_df_16_15_grouped['fuels'] == fuel, 'proportion'].sum() == 0:
+                RAISE_ERROR = True
+                if RAISE_ERROR:
+                    breakpoint()
+                    raise ValueError(f"Proportions for {fuel} are all 0. This is likely because the data is only in the x subfuel in the layout file, so we cant split it into its subfuels. The code here has been written to handle this as well as by using merging_functions.manually_remove_subtotals_for_15_16_production_in_results() and subfuel options for 16_others_x and 15_solid_biomass_x in the biofuels functions. However, it is now assumed these aren't needed so we should do our best to not need them! (but they are still there JUST in case)")
+                else:
+                    breakpoint() #this should probably be noted as its a source of possible confusion when visulaising the data
+                    layout_df_16_15_grouped.loc[(layout_df_16_15_grouped['fuels'] == fuel) & (layout_df_16_15_grouped['subfuels'] == 'x'), 'proportion'] = 1
+        ########
+        #now we need to split the 16_others_x and 15_solid_biomass_x into their subfuels in the results file
+        
+        #merge and where missing create the rows and values for 16_others, x and 15_solid_biomass,x and merge the proportions onto it.
+        
+        #so first extract rows we need to split out and drio the subfuels column so we can merge the new rows in and extend the df to have all the subfuels to disaggregate into.
+        results_df_merged = results_df.loc[results_df['fuels'].isin(['16_others', '15_solid_biomass']) & results_df['subfuels'].isin(['x'])].drop(columns=['subfuels']).copy()
+        results_df_merged = results_df_merged.merge(layout_df_16_15_grouped[['scenarios','economy','fuels','subfuels','sectors', 'sub1sectors','sub2sectors','sub3sectors','sub4sectors','proportion']], on=['scenarios','economy','fuels','sectors', 'sub1sectors','sub2sectors','sub3sectors','sub4sectors'], how='outer')
+        #now times the proprotion by the values to get the new values. then we will ad them as new rows in the results file while rmeoveing the x rows.
+        year_columns = [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
+        
+        results_df_merged[year_columns] = results_df_merged[year_columns].multiply(results_df_merged['proportion'], axis=0)
+        
+        results_df_merged.drop(columns=['proportion'], inplace=True)
+        #set nas to 0
+        results_df_merged[year_columns] = results_df_merged[year_columns].fillna(0)
+        
+        results_df = results_df.loc[~((results_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (results_df['subfuels'] == 'x'))].copy()
+        results_df = pd.concat([results_df, results_df_merged])
+        # #check for one of the subfuels_to_remove fuels so we cna determine its working properly
+        # for fuel in subfuels_to_remove:
+        #     if fuel in results_df['subfuels'].unique():
+        #         breakpoint()                
+    return results_df
 
 def filter_for_only_buildings_data_in_buildings_file(results_df):
     #this is only because the buildings file is being given to us with all the other data in it. so we need to filter it to only have the buildings data in it so that nothing unexpected happens.

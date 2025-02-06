@@ -461,7 +461,7 @@ def minor_supply_components(economy, model_df_clean_wide):
     ##########################
     #drop biofuels from the list of subfuels to model here, if its being modelled in the biofuel model!
     # subfuels_list = [fuel for fuel in subfuels_list if fuel not in ['16_05_biogasoline','16_06_biodiesel','16_07_bio_jet_kerosene','16_01_biogas','15_01_fuelwood_and_woodwaste','15_02_bagasse','15_03_charcoal','15_04_black_liquor','15_05_other_biomass']]
-    subfuels_list = [fuel for fuel in subfuels_list if fuel not in ['16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable', '16_05_biogasoline','16_06_biodiesel','16_07_bio_jet_kerosene','16_01_biogas','15_01_fuelwood_and_woodwaste','15_02_bagasse','15_03_charcoal','15_04_black_liquor','15_05_other_biomass']]
+    subfuels_list = [fuel for fuel in subfuels_list if fuel not in ['16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable', '16_05_biogasoline','16_06_biodiesel','16_07_bio_jet_kerosene','16_01_biogas','15_01_fuelwood_and_woodwaste','15_02_bagasse','15_03_charcoal','15_04_black_liquor','15_05_other_biomass', '16_09_other_sources']]
     ##########################
     
     relevant_supply = ['01_production', '02_imports', '03_exports']
@@ -613,7 +613,11 @@ def minor_supply_components(economy, model_df_clean_wide):
             # if subfuels_supply_df.fuels.unique()[0] == '02_coal_products':
             #     breakpoint()#check for 02_coal_products 
             supply_df = pd.concat([supply_df, subfuels_supply_df]).copy().reset_index(drop = True)
-            
+        #double check we arenbt gettin model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'] == '16_others') or model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'] == '15_solid_biomass' in the supply_df:
+        if supply_df.loc[(supply_df['subfuels'] == 'x') & (supply_df['fuels'] == '16_others') | (supply_df['subfuels'] == 'x') & (supply_df['fuels'] == '15_solid_biomass')].shape[0] > 0:
+            breakpoint()
+            raise Exception('There are subfuels that Im pretty sure shouldnt be here')
+        # ['subfuels'] == 'x') & (supply_df['fuels'] == '16_others') or supply_df['subfuels'] == 'x') & (supply_df['fuels'] == '15_solid_biomass' in supply_df:
         #save to a folder to keep copies of the results
         supply_df.to_csv(save_location + economy + '_biomass_others_supply_' + scenario + '_' + timestamp + '.csv', index = False)                    
         #and save them to modelled_data folder too. but only after removing the latest version of the file
