@@ -25,8 +25,8 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
     #     df_no_year_econ_index = pd.read_csv(interim_path + 'EBT_long.csv')
 
     # Import
-    fuel_mapping = pd.read_excel('./config/reference_table_fuel.xlsx', usecols = [0, 1])
-    sector_mapping = pd.read_excel('./config/reference_table_sector.xlsx', usecols = [0, 1])
+    fuel_mapping = pd.read_excel('./config/reference_table_fuel.xlsx', usecols = [0, 1], sheet_name='fuels')
+    sector_mapping = pd.read_excel('./config/reference_table_sector.xlsx', usecols = [0, 1], sheet_name='sectors')
 
     #TODO. THIS NEEDS TO BE CLEANED UP. PREFERABLY WE ARCHIVE OLD LAYOUTS RATHER THAN DATEMARKING THEM
     fuel_layout = pd.read_excel('./config/EBT_column_fuels.xlsx', 

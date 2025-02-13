@@ -111,7 +111,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         results_df = merging_functions.filter_out_solar_with_zeros_in_buildings_file(results_df)
         results_df = merging_functions.power_move_x_in_chp_and_hp_to_biomass(results_df)
         # breakpoint()
-        results_df = merging_functions.attempt_to_split_16_others_x_and_15_solid_biomass_x_into_subfuels_in_power_based_on_historical_data(results_df, layout_df)
+        # results_df, layout_df = merging_functions.allocate_16_15_subfuel_x_rows_to_unallocated(results_df, layout_df)
         
         #TEMP#
         
@@ -175,11 +175,11 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # Filter out columns beyond OUTLOOK_LAST_YEAR
     # Convert column names to strings for comparison, as some might be integers
     concatted_results_df = concatted_results_df[[col for col in concatted_results_df.columns if str(col).isdigit() and int(col) in years_to_keep or not str(col).isdigit()]]
-    # breakpoint()#check for 16_thers_xin 01_prod
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
-    # breakpoint()#check for 16_thers_xin 01_prod
-    # concatted_results_df.to_csv('data/temp/error_checking/concatted_results_df.csv')
+    
+    concatted_results_df, layout_df = merging_functions.set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df)
+    
     ##############################
 
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
@@ -264,7 +264,6 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # Ensure the index is consistent after concatenation if needed
     sector_aggregates_df.reset_index(drop=True, inplace=True)
     fuel_aggregates_df = merging_functions.calculate_fuel_aggregates(sector_aggregates_df, results_layout_df, shared_categories)
-    
     final_df = merging_functions.create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,results_layout_df, shared_categories)
     
     #now check for issues with the new aggregates and subtotals by using the layout file as the reference    

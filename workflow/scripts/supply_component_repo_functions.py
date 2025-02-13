@@ -132,30 +132,28 @@ def pipeline_transport(economy, model_df_clean_wide):
                 raise Exception(f'{economy} {scenario} has no projected pipeline transport data but has historical data. This is not expected. Note that it could be because an economy had pipeline demand in the past but no longer has it. If this is the case then add an exception to the code to skip this economy.')
         # Calculate initial ratios for the most recent historical year and projection years
         for year in [latest_hist] + proj_years:
-            for fuel in relevant_fuels[:-1]:  # Exclude '19_total' from relevant fuels
-                filtered_pipe_df = pipe_df.loc[pipe_df['fuels'] == '19_total', latest_hist]
-                
+            for fuel in relevant_fuels[:-1]:  # Exclude '19_total' from relevant fuels then sum them up to find total consumption
+                # filtered_pipe_df = pipe_df.loc[pipe_df['fuels'] == '19_total', latest_hist]
+                total_consumption_latest_hist = pipe_df.loc[pipe_df['fuels'] != '19_total', latest_hist].sum()
                 # Skip processing if the filtered DataFrame is empty
-                if filtered_pipe_df.empty:
-                    print(f"Skipping year {latest_hist} for '19_total' as there is no data.")
-                    continue
+                # if filtered_pipe_df.empty:
+                #     breakpoint()#whatas causing this?
+                #     print(f"Skipping year {latest_hist} for '19_total' as there is no data.")
+                #     continue
 
-                if filtered_pipe_df.values[0] == 0:
+                if total_consumption_latest_hist == 0:
                     # If the total consumption for the latest historical year is zero, set ratio to zero
                     ratio_df.loc[ratio_df['fuels'] == fuel, year] = 0
                 else:
                     # Calculate the ratio of fuel consumption to total consumption for the latest historical year
                     ratio_df.loc[ratio_df['fuels'] == fuel, year] = (
                         pipe_df.loc[pipe_df['fuels'] == fuel, latest_hist].values[0] / 
-                        filtered_pipe_df.values[0]
+                        total_consumption_latest_hist
                     )
 
         # Drop the '19_total' row as it's not needed for further calculations
         # Check if index 3 exists in the DataFrame
-        if 3 in pipe_df.index:
-            pipe_df = pipe_df.drop([3]).reset_index(drop=True)
-        else:
-            print("Index 3 not found in pipe_df. Skipping drop operation.")
+        pipe_df = pipe_df.drop([3], errors='ignore').reset_index(drop=True)
 
         # Fuel switching parameters
         fs_full = scenario_dict[scenario][2]  # Full fuel switching ratio for electricity

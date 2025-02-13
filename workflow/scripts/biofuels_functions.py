@@ -19,9 +19,7 @@ CAPACITY_DF_COLUMNS = ['economy', 'EBT_fuel', 'year', 'additional_capacity_pj', 
 UTILISATION_RATE_DF_COLUMNS = ['economy', 'fuel', 'year', 'utilisation_rate', 'scenario']
 SIMPLIFIED_ECONOMY_FUELS_DF_COLUMNS = ['economy', 'fuel', 'method']
 
-
-
-def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLOT = True, biofuel_capacity_parameters_file_path = 'config/biofuel_capacity_parameters.xlsx', CREATE_MARS_EXAMPLE = False,USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X=False):
+def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLOT = True, biofuel_capacity_parameters_file_path = 'config/biofuel_capacity_parameters.xlsx', CREATE_MARS_EXAMPLE = False,USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED=True):
 
     """to save workload we are just going to do biofuels production and all biofuels supply within this model. it will take in demand for biofuels and then depending on a few paramerters, it will output production, imports and exports of biofuels. 
     
@@ -66,16 +64,7 @@ def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLO
         model_df_clean_wide_copy = model_df_clean_wide.copy()
         model_df_clean_wide = adjust_model_df_for_MARS_EXAMPLE(model_df_clean_wide)
     
-    #quickly rename teh subfuel for '16_others_x', '15_solid_biomass_x' since they are x in the model_df_clean_wide where fuel is 16_others and 15_solid_biomass
-    if model_df_clean_wide.loc[(model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'].isin(['15_solid_biomass', '16_others'])) &(model_df_clean_wide['subtotal_results'] == False)][range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)].sum().sum() > 0.001:
-        breakpoint()
-        print('Found some 16_others where subfuels is x and tehre are no subtotals')
-        raise Exception('Found some 16_others where subfuels is x and tehre are no subtotals. May need to implement the USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X method to allocate this demand to a subfuels like 16_others_x so we can properly model supply')
-    if USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X:
-        model_df_clean_wide.loc[(model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'] == '16_others'), 'subfuels'] = '16_others_x'
-        model_df_clean_wide.loc[(model_df_clean_wide['subfuels'] == 'x') & (model_df_clean_wide['fuels'] == '15_solid_biomass'), 'subfuels'] = '15_solid_biomass_x'
-    # breakpoint()
-    capacity_df, detailed_capacity_df, production_df = prepare_capacity_data(economy, model_df_clean_wide, input_data_dict, USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X=USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X)
+    capacity_df, detailed_capacity_df, production_df = prepare_capacity_data(economy, model_df_clean_wide, input_data_dict, USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED=USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED)
 
     consumption_df = prepare_consumption_data(economy, model_df_clean_wide, input_data_dict)
     
@@ -85,12 +74,6 @@ def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLO
     if PLOT and final_df.shape[0] > 0:
         print('Plotting biofuels data')
         plot_biofuels_data(final_df, economy)
-    
-    
-    #quickly rename teh subfuel back from for '16_others_x', '15_solid_biomass_x' since they are x in the model_df_clean_wide where fuel is 16_others and 15_solid_biomass
-    if USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X: 
-        final_df.loc[(final_df['subfuels'] == '16_others_x') & (final_df['fuels'] == '16_others'), 'subfuels'] = 'x'
-        final_df.loc[(final_df['subfuels'] == '15_solid_biomass_x') & (final_df['fuels'] == '15_solid_biomass'), 'subfuels'] = 'x'
     
     save_results(final_df, detailed_capacity_df, capacity_df, economy)
     if CREATE_MARS_EXAMPLE:
@@ -143,7 +126,7 @@ def read_biofuels_input(biofuel_capacity_parameters_file_path):
                     
     return input_data_dict
     
-def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capacity_additions', 'utilisation_rate', 'simplified_economy_fuels'], original_file_path = 'config/biofuel_capacity_parameters.xlsx', new_file_path = 'config/biofuel_capacity_parameters.xlsx', LOAD_AND_USE_ORIGINAL_FILE = True,USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X=False):
+def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capacity_additions', 'utilisation_rate', 'simplified_economy_fuels'], original_file_path = 'config/biofuel_capacity_parameters.xlsx', new_file_path = 'config/biofuel_capacity_parameters.xlsx', LOAD_AND_USE_ORIGINAL_FILE = True,USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED=True):
     """ONLY FOR PREPARATION OF THE BIOFUELS INPUT WORKBOOK. THIS WILL CREATE A NEW FILE WITH THE SAME SHEETS AS THE ORIGINAL BUT WITH THE DATA FILLED IN.
     RUN ME WITH 
         import biofuels_functions_new as biofuels_functions
@@ -175,8 +158,8 @@ def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capac
     #create a list of expected sheet names so that if any are missing we can add them:
     expected_sheets = ['config', 'utilisation_rate', 'simplified_economy_fuels'] + [f'{economy}_capacity' for economy in ALL_ECONOMY_IDS + ['00_MARS']]
     subfuels_list = ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', '15_05_other_biomass', '16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable', '16_08_other_liquid_biofuels', '16_09_other_sources']
-    if USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X:
-        subfuels_list += ['16_others_x', '15_solid_biomass_x']
+    if USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED:
+        subfuels_list += ['16_others_unallocated', '15_solid_biomass_unallocated']
     completed_sheets = []
     for sheet_name in workbook_sheet_names + expected_sheets:
         if sheet_name in completed_sheets:
@@ -299,7 +282,7 @@ def adjust_model_df_for_MARS_EXAMPLE(model_df_clean_wide):
     model_df_clean_wide = model_df_clean_wide.drop(columns=year_cols).merge(grouped_df, on=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'subtotal_layout', 'subtotal_results'], how='left')
     return model_df_clean_wide
 
-def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict, USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X=False):   
+def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict, USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED=True):   
     #find the economy in the input_data_dict
     economy_capacity_df = input_data_dict['capacity_df']
     economy_capacity_df = economy_capacity_df[economy_capacity_df.economy == economy]
@@ -402,8 +385,8 @@ def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict, USING_1
     #double check all the values in EBT_biofuels_list are in the columns
     for fuel in EBT_biofuels_list:
         if fuel not in biofuel_production_historical.columns:
-            #if its one of the 16_others_x or 15_solid_biomass_x then we can just add in new rows for them with 0s
-            if fuel in ['16_others_x', '15_solid_biomass_x'] and USING_16_OTHERS_X_AND_15_SOLID_BIOMASS_X:
+            #if its one of the 16_others_unallocated or 15_solid_biomass_unallocated then we can just add in new rows for them with 0s since they wouldnt have historical data
+            if fuel in ['16_others_unallocated', '15_solid_biomass_unallocated'] and USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED:
                 biofuel_production_historical[fuel] = 0
             else:
                 breakpoint()

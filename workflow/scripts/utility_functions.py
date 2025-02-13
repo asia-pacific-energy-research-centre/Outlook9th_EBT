@@ -20,7 +20,7 @@ SINGLE_ECONOMY_ID_VAR = '15_PHL' #'19_THA'# '19_THA' #20_USA 03_CDA
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
 # If merging supply results (i.e. the final stage of merging results from the modellers), set this to True and calculate TPES top down instead of bottom up
-MERGE_SUPPLY_RESULTS = False
+MERGE_SUPPLY_RESULTS = True
 
 EBT_EARLIEST_YEAR = 1980
 OUTLOOK_LAST_YEAR = 2070
@@ -29,7 +29,7 @@ OUTLOOK_BASE_YEAR_RUSSIA = 2021
 #to incorporate russia as a single economy with a different base year to the others, we ran the main.py script with SINGLE_ECONOMY_ID = False, then in the output, ie. results/model_df_wide_20250122.csv we set values to 0 in 2022 for russia only. then we also ran the main.py script with SINGLE_ECONOMY_ID = '16_RUS' and OUTLOOK_BASE_YEAR set to what OUTLOOK_BASE_YEAR_RUSSIA is. This is what it will need to be set to when ever merging results for russia too.
 
 SECTOR_LAYOUT_SHEET = 'sector_layout_20230719'
-FUEL_LAYOUT_SHEET = 'fuel_layout_20230329'
+FUEL_LAYOUT_SHEET = 'fuel_layout_20250212'#these are the fuels that we expectto be used in the output. it has kind of been forgotten what they are useful for but we keep them updated anyway
 
 # ESTO_DATA_FILENAME = '00APEC_May2023'
 
