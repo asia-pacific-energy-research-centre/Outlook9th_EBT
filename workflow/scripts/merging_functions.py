@@ -1263,6 +1263,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['CHL_11_statistical_discrepancy'] = {'economy':'04_CHL', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'subfuels':'x'}
         bad_values_rows_exceptions_dict['CHL_12_solar'] = {'economy':'04_CHL', 'sub1sectors':'x', 'fuels':'12_solar', 'subfuels':'x'}
         
+        # CT file has some issues with the following rows
+        bad_values_rows_exceptions_dict['CT_01_production'] = {'economy':'18_CT', 'sectors':'01_production', 'sub1sectors':'x', 'fuels':'01_coal', 'subfuels':'x'}
+        
         #######TEMP FOR NEW ESTO DATA
         #PROBALBY TEMP FOR THE PERIOD WHILE ESTO IS CLEANINGN THEIR 2022 DATA:
         # 10_MAS	10_losses_and_own_use	x	x	x	x	08_gas	x	1984-TO-2021
