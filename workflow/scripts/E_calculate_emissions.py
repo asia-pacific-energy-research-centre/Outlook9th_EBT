@@ -4,11 +4,54 @@ import os
 import glob
 from datetime import datetime
 from utility_functions import *
+ZERO_EMISSION_FUELS = [
+    '09_nuclear',
+    '10_hydro',
+    '11_geothermal',
+    '12_solar',
+    '13_tide_wave_ocean',
+    '14_wind',
+    '16_09_other_sources',
+    '16_x_ammonia',
+    '16_x_efuel',
+    '16_x_hydrogen',
+    '17_electricity',
+    '18_heat',
+    '19_total',
+    '20_total_renewables',
+    '21_modern_renewables',
+    '17_x_green_electricity',
+]
+ZERO_NET_EMISSION_FUELS = [
+    '15_solid_biomass',
+    '15_01_fuelwood_and_woodwaste',
+    '15_02_bagasse',
+    '16_09_other_sources',
+    '15_03_charcoal',
+    '15_04_black_liquor',
+    '15_05_other_biomass',
+    '16_others',
+    '16_01_biogas',
+    '16_02_industrial_waste',
+    '16_03_municipal_solid_waste_renewable',
+    '16_04_municipal_solid_waste_nonrenewable',
+    '16_05_biogasoline',
+    '16_06_biodiesel',
+    '16_07_bio_jet_kerosene',
+    '16_08_other_liquid_biofuels'
+]
 
 def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_FUELS = False):
     # Make a copy of the final_df to avoid unintended modifications on the original
     final_df_copy = final_df.copy()
 
+    if final_df.isnull().any().any():
+        #identify what columns the nans are in
+        cols_with_nans = final_df.columns[final_df.isnull().any()].tolist()
+        breakpoint()
+        #if they are from 
+        raise Exception('There are some NaNs in the dataframe before calculating emissions. The cols are {}'.format(cols_with_nans))
+    
     # Read in emissions factors
     emissions_factors = pd.read_csv('config/9th_edition_emissions_factors_all_gases_simplified.csv')
 
@@ -25,6 +68,7 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
     emissions_factors = emissions_factors.loc[(emissions_factors['GWP_type'] == 'GWP_100')].copy()
     emissions_factors.drop(columns=['GWP_type', 'GWP'], inplace=True)
     # Merge emissions factors based on fuels and sectors cols
+    
     final_df_copy = pd.merge(final_df_copy, emissions_factors, how='outer', on=['fuels', 'subfuels', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors'], indicator=True)
     
     # Handle duplicate rows after merging
@@ -38,11 +82,56 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
         #first, drop any of these rows which are 0's and tehn check if there are any left: (this make it so we can more easily add in new rows to the ebt data without having to create an emissions mapping for them)
         final_df_copy = final_df_copy.loc[~((final_df_copy['value'] == 0) & (final_df_copy['_merge'] == 'left_only'))].copy()
         if len(final_df_copy.loc[final_df_copy['_merge'] == 'left_only']) > 0:
-            breakpoint()
-            a = final_df_copy.loc[final_df_copy['_merge'] == 'left_only']
-            a.to_csv(f'./data/temp/error_checking/emissions_missing_mappings_{SINGLE_ECONOMY_ID}.csv')        
-            final_df_copy = final_df_copy[final_df_copy['_merge'] != 'left_only']
-            raise Exception(f'Some rows {a} did not merge with the emissions factors data. Please create more mappings for the missing values.')
+            #chekc if the missing values are where subfuels contians 'unallocated'. that is where we recently made upadtes which may be creating new rows which dont have emisisons factors. we will jsut add these to a csv for now and do them all at once later. then we will just replace the emisisons factors with the average of the other rows with the same fuel . this is pretty inexact because there are different emissions factors for different sectors and especially different subfuels but for now it will do
+            unallocated_rows = final_df_copy.loc[(final_df_copy['_merge'] == 'left_only') & (final_df_copy['subfuels'].str.contains('unallocated', na=False))].copy()
+            # breakpoint()
+            if len(unallocated_rows) == len(final_df_copy.loc[final_df_copy['_merge'] == 'left_only']):
+                unallocated_rows.to_csv(f'./data/temp/error_checking/emissions_missing_mappings_{SINGLE_ECONOMY_ID}_unallocated.csv')#wee can gather these up and do them all at once later
+                
+                #rejoin some emissions factors but just use the fuel/subfuel type so as to not create too much extra work:
+                emissions_factors_no_na = emissions_factors.copy()
+                emissions_factors_no_na = emissions_factors_no_na.dropna(subset=['CO2e emissions factor']).copy()
+                emissions_factors_by_fuels = emissions_factors_no_na.groupby(['Unit', 'Gas', 'fuels'])[['CO2e emissions factor']].mean().reset_index()
+                #drop the remanants from the merge and do it again:
+                unallocated_rows = unallocated_rows.drop(columns=['Unit', 'Gas', 'CO2e emissions factor', 'Sector not applicable', 'Fuel not applicable', 'No expected energy use', '_merge']).copy()
+                #do the merge again
+                unallocated_rows = pd.merge(unallocated_rows, emissions_factors_by_fuels, how='outer', on=['fuels'], indicator=True)
+                #drop right only rows as they are where we dont need the new emissions factors
+                unallocated_rows = unallocated_rows[unallocated_rows['_merge'] != 'right_only'].copy()
+                
+                # Convert '_merge' column to string to avoid category issues
+                unallocated_rows['_merge'] = unallocated_rows['_merge'].astype(str)
+                
+                #wherer teh merge is left only and the fuels or subfuels is in ZERO_NET_EMISSION_FUELS, set merge to ZERO_NET_EMISSION_FUELS so we doont have to worry about them (their emissions will be nan)
+                # unallocated_rows.loc[(unallocated_rows['_merge'] == 'left_only') & (unallocated_rows['fuels'].isin(ZERO_EMISSION_FUELS)), 'CO2e emissions factor'] = np.nan
+                unallocated_rows.loc[(unallocated_rows['_merge'] == 'left_only') & (unallocated_rows['fuels'].isin(ZERO_EMISSION_FUELS)), '_merge'] = 'ZERO_EMISSION_FUELS'
+                
+                # unallocated_rows.loc[(unallocated_rows['_merge'] == 'left_only') & (unallocated_rows['subfuels'].isin(ZERO_EMISSION_FUELS)), 'CO2e emissions factor'] =  np.nan
+                unallocated_rows.loc[(unallocated_rows['_merge'] == 'left_only') & (unallocated_rows['subfuels'].isin(ZERO_EMISSION_FUELS)), '_merge'] = 'ZERO_EMISSION_FUELS'
+                #now where the merge is ZERO_EMISSION_FUELS, set the emissions factor to 0 and set the gas to CARBON DIOXIDE', 'METHANE', 'NITROUS OXIDE', 'CO2e'],
+                ZERO_EMISSION_FUELS_rows = unallocated_rows.loc[unallocated_rows['_merge'] == 'ZERO_EMISSION_FUELS']
+                unallocated_rows = unallocated_rows[unallocated_rows['_merge'] != 'ZERO_EMISSION_FUELS'].copy()
+                for gas in ['CARBON DIOXIDE', 'METHANE', 'NITROUS OXIDE']:
+                    ZERO_EMISSION_FUELS_rows['Gas'] = gas
+                    ZERO_EMISSION_FUELS_rows['CO2e emissions factor'] = 0
+                    unallocated_rows = pd.concat([unallocated_rows, ZERO_EMISSION_FUELS_rows.copy()], ignore_index=True)
+                # Identify any left_only and cause error if so
+                if len(unallocated_rows.loc[unallocated_rows['_merge'] == 'left_only']) > 0:
+                    breakpoint()
+                    raise Exception(f'Some rows {unallocated_rows.loc[unallocated_rows["_merge"] == "left_only"]} did not merge with the emissions factors data. Please create more mappings for the missing values.')
+                #otherwise, concat the two dfs back together
+                final_df_copy = final_df_copy[final_df_copy['_merge'] != 'left_only']
+                #add the cols: Sector not applicable	Fuel not applicable	No expected energy use with FALSE	FALSE	FALSE #these dont matter for the ZERO_EMISSION_FUELS and for the others,  well its only temporary.
+                unallocated_rows['Sector not applicable'] = False
+                unallocated_rows['Fuel not applicable'] = False
+                unallocated_rows['No expected energy use'] = False
+                final_df_copy = pd.concat([final_df_copy, unallocated_rows], ignore_index=True)      
+            else:
+                breakpoint()
+                a = final_df_copy.loc[final_df_copy['_merge'] == 'left_only']
+                a.to_csv(f'./data/temp/error_checking/emissions_missing_mappings_{SINGLE_ECONOMY_ID}.csv')        
+                final_df_copy = final_df_copy[final_df_copy['_merge'] != 'left_only']
+                raise Exception(f'Some rows {a} did not merge with the emissions factors data. Please create more mappings for the missing values.')
 
     # Remove right_only rows
     final_df_copy = final_df_copy[final_df_copy['_merge'] != 'right_only'].drop(columns=['_merge'])
@@ -92,7 +181,7 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
         df_final = pd.concat([df, df_copy], ignore_index=True)
 
         return df_final
-
+    
     # Apply the emissions factor adjustments for CCS
     final_df_copy = split_ccs_rows(final_df_copy)
 
@@ -107,24 +196,6 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
     
     #set any ZERO_NET_EMISSION_FUELS to 0 - it is useful to have their emisisons available but not for this output:
     if INCLUDE_ZERO_NET_EMISSION_FUELS == False:
-        ZERO_NET_EMISSION_FUELS = [
-            '15_solid_biomass',
-            '15_01_fuelwood_and_woodwaste',
-            '15_02_bagasse',
-            '16_09_other_sources',
-            '15_03_charcoal',
-            '15_04_black_liquor',
-            '15_05_other_biomass',
-            '16_others',
-            '16_01_biogas',
-            '16_02_industrial_waste',
-            '16_03_municipal_solid_waste_renewable',
-            '16_04_municipal_solid_waste_nonrenewable',
-            '16_05_biogasoline',
-            '16_06_biodiesel',
-            '16_07_bio_jet_kerosene',
-            '16_08_other_liquid_biofuels'
-        ]
         final_df_copy.loc[final_df_copy['fuels'].isin(ZERO_NET_EMISSION_FUELS), 'CO2e emissions factor'] = 0
     
     # Calculate emissions
@@ -145,6 +216,8 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
         breakpoint()
         raise Exception('There are some duplicate rows in the final emissions dataframe.')
     if final_df_copy.isnull().any().any():
+        #identify what columns the nans are in
+        cols_with_nans = final_df_copy.columns[final_df_copy.isnull().any()].tolist()
         breakpoint()
         raise Exception('There are some NaNs in the final emissions dataframe.')
 

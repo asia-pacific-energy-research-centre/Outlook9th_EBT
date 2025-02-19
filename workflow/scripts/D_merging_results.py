@@ -110,6 +110,9 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         results_df = merging_functions.filter_for_only_buildings_data_in_buildings_file(results_df)
         results_df = merging_functions.filter_out_solar_with_zeros_in_buildings_file(results_df)
         results_df = merging_functions.power_move_x_in_chp_and_hp_to_biomass(results_df)
+        # breakpoint()
+        # results_df, layout_df = merging_functions.allocate_16_15_subfuel_x_rows_to_unallocated(results_df, layout_df)
+        
         #TEMP#
         
         # find sectors where there are null values for all the years base_year->end_year. This will help to identify where perhaps the results file is missing data or has been incorrectly formatted.
@@ -172,10 +175,11 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # Filter out columns beyond OUTLOOK_LAST_YEAR
     # Convert column names to strings for comparison, as some might be integers
     concatted_results_df = concatted_results_df[[col for col in concatted_results_df.columns if str(col).isdigit() and int(col) in years_to_keep or not str(col).isdigit()]]
-
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
-    # concatted_results_df.to_csv('data/temp/error_checking/concatted_results_df.csv')
+    
+    concatted_results_df, layout_df = merging_functions.set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df)
+    
     ##############################
 
     ###NOW WE HAVE THE concatted RESULTS DF, WITH SUBTOTALS CALCAULTED. WE NEED TO MERGE IT WITH THE LAYOUT FILE TO IDENTIFY ANY STRUCTURAL ISSUES####
@@ -260,7 +264,6 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # Ensure the index is consistent after concatenation if needed
     sector_aggregates_df.reset_index(drop=True, inplace=True)
     fuel_aggregates_df = merging_functions.calculate_fuel_aggregates(sector_aggregates_df, results_layout_df, shared_categories)
-    
     final_df = merging_functions.create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,results_layout_df, shared_categories)
     
     #now check for issues with the new aggregates and subtotals by using the layout file as the reference    
@@ -274,11 +277,18 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # final_df with rows ordered in the same sequence as layout_df based on the columns in shared_categories
     final_df = layout_df[shared_categories].merge(final_df, on=shared_categories, sort=False)
     
-    #############################
-    # Temp fix for 01_production 15_solid_biomass and 16_others subtotal label
-    # Change TRUE to FALSE under 'subtotal_results' column if it's '01_production' in 'sectors' and '15_solid_biomass' or '16_others' in 'fuels'
-    final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['15_solid_biomass', '16_others'])), 'subtotal_results'] = False
-    #############################
+    #######################################
+    # # Temp fix for 01_production 15_solid_biomass and 16_others subtotal label
+    # # Change TRUE to FALSE under 'subtotal_results' column if it's '01_production' in 'sectors' and '15_solid_biomass' or '16_others' in 'fuels'
+    # final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['15_solid_biomass', '16_others'])), 'subtotal_results'] = False
+    #belive the above isnt needed anymore so we will just test to make sure that the production where suvfuels is x matches the sum of the subfuels: (if it is identified as still being an issue then jsut uncomment the above code - the visualisaton system will just automatically allocated the 16_otehrs , x to have the subfuel 16_others_unallocated)
+    sum_of_subfuels = final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (final_df['subtotal_results'] == False)][range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)].sum().sum()
+    subtotal = final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (final_df['subtotal_results'] == True)][range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)].sum().sum()
+    if abs(sum_of_subfuels - subtotal) > 0.001*sum_of_subfuels:
+        breakpoint()
+        raise ValueError(f"Subtotals for 01_production 15_solid_biomass and 16_others are not equal. Sum of subfuels: {sum_of_subfuels}, subtotal: {subtotal}. Probably need to uncomment the code that sets the subtotals to false for these rows.")
+    
+    #######################################
     
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY_ID}/merged'

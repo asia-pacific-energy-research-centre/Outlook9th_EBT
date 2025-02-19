@@ -259,7 +259,7 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
     # - align the name of fuels and sector, and mark the differences in other cols.
 
     # Check if there are still differences in the fuel name (ignore the item number)
-    fuel_reference_table = pd.read_excel('./config/reference_table_fuel.xlsx')
+    fuel_reference_table = pd.read_excel('./config/reference_table_fuel.xlsx', sheet_name='fuels')
 
     # drop the item number 
     for i in range(0, 2, 1):

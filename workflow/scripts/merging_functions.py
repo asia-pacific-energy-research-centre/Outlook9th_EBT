@@ -70,7 +70,6 @@ def label_subtotals(results_layout_df, shared_categories):
         
         df_definitely_not_subtotals = df[non_subtotal_mask2 | non_subtotal_mask].copy()
         df_maybe_subtotals = df[~(non_subtotal_mask2 | non_subtotal_mask)].copy()
-        df_maybe_subtotals[df_maybe_subtotals['sub1sectors'] == '15_01_domestic_air_transport']
         conditions = {
             'sub_col_is_x': df_maybe_subtotals[sub_col] == 'x'
         }
@@ -267,7 +266,14 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         subtotals_with_different_values = subtotals_with_different_values[subtotals_with_different_values['sectors'] != '14_industry_sector'].copy() 
     #drop buildings electricity in fuels if the DATAFRAME_ORIGIN is results:
     if DATAFRAME_ORIGIN == 'results':
-        subtotals_with_different_values = subtotals_with_different_values[(subtotals_with_different_values['sub1sectors'] != '16_01_buildings') & (subtotals_with_different_values['fuels'] != '17_electricity')].copy()
+        subtotals_with_different_values = subtotals_with_different_values[(subtotals_with_different_values['sub1sectors'] != '16_01_buildings') & (subtotals_with_different_values['fuels'] != '17_electricity')].copy()  
+        
+    if DATAFRAME_ORIGIN == 'results':
+        if subtotals_with_different_values.loc[((subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '16_others') | (subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '15_solid_biomass')) & (subtotals_with_different_values['sectors'] == '01_production')].shape[0] > 0:
+            breakpoint()
+            raise Exception('We are potentially going to need manually_remove_subtotals_for_15_16_production_in_results however this would bring unexpected side effects for the visualisation code. try to avoid using this if possible. - note i think this is outdated after changing things to be based off 16_others_unallocated and so on')
+            # merged_data, subtotals_with_different_values = manually_remove_subtotals_for_15_16_production_in_results(merged_data, subtotals_with_different_values)
+    #if we still have subtotals with different values then we will throw an error.          
     ###
     if subtotals_with_different_values.shape[0] > 0 and DATAFRAME_ORIGIN == 'results':
         breakpoint()
@@ -286,16 +292,18 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     values_only_in_original = merged_data[(merged_data['_merge'] == 'left_only')].copy()
     new_subtotalled_values = merged_data[(merged_data['_merge'] == 'right_only')].copy()
     subtotal_values_in_both= merged_data[(merged_data['_merge'] == 'both') & (merged_data['is_subtotal'] == True)].copy()
+    manual_subtotal_values = merged_data[(merged_data['_merge'] == 'manual_subtotal')].copy()
     
     values_to_keep_in_original['value'] = values_to_keep_in_original['value']
     values_only_in_original['value'] = values_only_in_original['value']
     new_subtotalled_values['value'] = new_subtotalled_values['value_new_subtotal']
     subtotal_values_in_both['value'] = subtotal_values_in_both['value']
+    manual_subtotal_values ['value'] = manual_subtotal_values['value']
     
     new_subtotalled_values['is_subtotal'] = True
     
     #concat all together
-    final_df = pd.concat([values_to_keep_in_original, values_only_in_original, new_subtotalled_values, subtotal_values_in_both], ignore_index=True)
+    final_df = pd.concat([values_to_keep_in_original, values_only_in_original, new_subtotalled_values, subtotal_values_in_both, manual_subtotal_values], ignore_index=True)
     #drop merge and value_original and value_subtotalled
     final_df.drop(columns=['_merge', 'value_new_subtotal', 'value_diff_pct'], inplace=True)
     
@@ -347,6 +355,29 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         raise Exception("There are duplicates in the subtotaled DataFrame.") 
     return final_df_wide
 
+def manually_remove_subtotals_for_15_16_production_in_results(merged_data, subtotals_with_different_values):
+    # - note i think this is outdated after changing things to be based off 16_others_unallocated and so on
+    #this is a bit of a hack. IF THERE ARE clashes between subtotals for production of these fuel types we will manually remove the subtotals for 15_solid_biomass and 16_others in production. This is because we know that we have a mix of results where subfuels is x and subfuels is an actrual subfuel. Note that we previously had the ability to calcualte subtotals here but rteaise it wouldnt work since it would create duplicates when ignoring the subtotal column. i.e. where fuel = 15_solid_biomass and subfuel = x, and subtotal is both true and false.
+    subtotals_with_different_values = subtotals_with_different_values[~((subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '16_others') | (subtotals_with_different_values['subfuels'] == 'x') & (subtotals_with_different_values['fuels'] == '15_solid_biomass')) & (subtotals_with_different_values['sectors'] == '01_production')].copy()
+    
+    new_prod_subtotals = merged_data[(merged_data['sectors'] == '01_production') & (merged_data['fuels'].isin(['16_others', '15_solid_biomass']))].copy()
+    #drop nas in value
+    new_prod_subtotals = new_prod_subtotals.dropna(subset=['value']).copy()
+    # #sum up data by everything excepot subfuel to find the subtotal, and then set subtotal to False for everything else.
+    # shared_categories_minus_subfuel = [col for col in shared_categories if col != 'subfuels']
+    # subtotals = new_prod_subtotals.groupby(shared_categories_minus_subfuel+['year'], as_index=False)['value'].sum().reset_index().copy()
+    #set subfuel to x and is_subtotal to True
+    # subtotals['subfuels'] = 'x'
+    # subtotals['is_subtotal'] = True
+    #thewn in new_prod_subtotals setsubtotal to fasle
+    new_prod_subtotals['is_subtotal'] = False
+    #then set merge to 'manual_subtotal' so we can identify these rows later
+    new_prod_subtotals['_merge'] = 'manual_subtotal'
+    # subtotals['_merge'] = 'manual_subtotal'
+    #then drop the old rows from merged_data and add the new ones
+    merged_data = merged_data[~((merged_data['sectors'] == '01_production') & (merged_data['fuels'].isin(['16_others', '15_solid_biomass'])))].copy()
+    merged_data = pd.concat([merged_data, new_prod_subtotals], ignore_index=True)
+    return merged_data, subtotals_with_different_values  
 def remove_all_zeros(results_df, years_to_keep_in_results):
     #since the layout file contains all possible rows (once we run calculate_subtotals on it), we can remove all rows where the values for a row are all zero in the results file, since when we merge we will still be able to keep those rows from the layout file in the final df. This wil help to significantly reduce the size of resutls files as well as ignore any issues that arent issues because they are all zeros. For example we had an issue where a subfuel was being sued for a subtotal where the sectors it was subtotaling didnt have that subfuel. But since the values were all zeros, it didnt matter.
     results_df = results_df.loc[~(results_df[years_to_keep_in_results] == 0).all(axis=1)].copy()
@@ -405,6 +436,70 @@ def filter_out_solar_with_zeros_in_buildings_file(results_df):
     results_df = results_df[~((results_df['subfuels']=='12_x_other_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['fuels']=='12_solar')&(results_df[years].isna().all(axis=1)))].copy()
     results_df = results_df[~((results_df['fuels']=='12_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['subfuels']=='x')&(results_df[years].isna().all(axis=1)))].copy()
     return results_df   
+
+def set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df):
+    #take in results df with subtotals labelled and then where there is an x in the subfuels that isnt expected to be there (ie.e. x is not the most disaggregated that fuel can be) then we will rename the subfuel to 'FUEL_unallocated' so that we can use it instead of conufsing it as a subtotal later on.
+    #renmae any 16_others x and 15_solid_biomass x to 16_others_unallocated and 15_solid_biomass_unallocated. this is a simple way to avoid the issues we were having. 
+    known_fuels_to_make_unallocated = ['16_others', '15_solid_biomass', '01_coal', '06_crude_oil_and_ngl', '07_petroleum_products', '08_gas', '12_solar']
+    fuels_with_x_as_most_disaggregated = [
+        '02_coal_products',
+        '03_peat',
+        '04_peat_products',
+        '05_oil_shale_and_oil_sands',
+        '09_nuclear',
+        '10_hydro',
+        '11_geothermal',
+        '13_tide_wave_ocean',
+        '14_wind',
+        '17_electricity',
+        '17_x_green_electricity',
+        '18_heat',
+        '19_total',
+        '20_total_renewables',
+        '21_modern_renewables'
+    ]
+    new_rows_df = pd.DataFrame()
+    if len(concatted_results_df.loc[(concatted_results_df['fuels'].isin(known_fuels_to_make_unallocated)) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False)]) > 0:
+        for fuel in known_fuels_to_make_unallocated:
+            new_rows = concatted_results_df.loc[(concatted_results_df['fuels']==fuel) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False)].copy()
+            new_rows['subfuels'] = fuel+'_unallocated'
+            new_rows_df = pd.concat([new_rows_df, new_rows], ignore_index=True)
+            
+            concatted_results_df.loc[(concatted_results_df['fuels']==fuel) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False), 'subfuels'] = fuel+'_unallocated'
+    if len(concatted_results_df.loc[(~concatted_results_df['fuels'].isin(fuels_with_x_as_most_disaggregated)) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False)]) > 0:
+        fuels = concatted_results_df.loc[(~concatted_results_df['fuels'].isin(fuels_with_x_as_most_disaggregated)) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False), 'fuels'].unique().tolist()
+        breakpoint()
+        raise Exception("There are still subfuels with x in them that are not subtotals. This is unexpected. the fuels are {}".format(fuels))
+    if new_rows_df.shape[0] == 0:
+        return concatted_results_df, layout_df
+    #add tehse new unallocated rows to the layout_df as 0s
+    layout_df_years =[year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]
+    similar_cols = [col for col in layout_df.columns if col in concatted_results_df.columns]
+    similar_cols_non_years = [col for col in similar_cols if col not in layout_df_years]
+    missing_cols = [col for col in layout_df.columns if col not in concatted_results_df.columns]
+    
+    # if any of missing cols are not in layout_df_years then throw an error else, fill all year cols with 0s
+    if len([col for col in missing_cols if col not in layout_df_years]) > 0:
+        breakpoint()
+        raise Exception("There are missing columns in the layout_df that are not in the results_df. This is unexpected.")
+    
+    new_rows_df[layout_df_years] = 0
+    #identify rows that are not already in the layout_df
+    new_rows_df = new_rows_df[layout_df.columns].copy()
+    merged_df = new_rows_df.merge(layout_df[similar_cols_non_years], on=similar_cols_non_years, how='left', indicator=True, suffixes=('', '_layout'))
+    
+    #drop rows that are already in the layout_df and cols with _layout in them
+    merged_df = merged_df[merged_df['_merge'] == 'left_only'].copy()
+    merged_df.drop(columns=['_merge'], inplace=True)
+    #if tehre are any cols with _layout, throw an error
+    if len([col for col in merged_df.columns if '_layout' in str(col)]) > 0:
+        breakpoint()
+        raise Exception("There are columns with '_layout' in them. This is unexpected.")
+    #concat these new rows to the layout_df
+    new_layout_df = pd.concat([layout_df, merged_df[layout_df.columns]], ignore_index=True)  
+
+    return concatted_results_df, new_layout_df
+             
 
 def filter_for_only_buildings_data_in_buildings_file(results_df):
     #this is only because the buildings file is being given to us with all the other data in it. so we need to filter it to only have the buildings data in it so that nothing unexpected happens.
@@ -731,7 +826,7 @@ def create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,results_layo
     final_df = pd.concat([sector_aggregates_df, fuel_aggregates_df, results_layout_df], ignore_index=True)
 
     #replace any nas in years cols with 0
-    final_df.loc[:,[year for year in range(EBT_EARLIEST_YEAR+1, OUTLOOK_LAST_YEAR+1)]] = final_df.loc[:,[year for year in range(EBT_EARLIEST_YEAR+1, OUTLOOK_LAST_YEAR+1)]].fillna(0)
+    final_df.loc[:,[year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]] = final_df.loc[:,[year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]].fillna(0)
     #ceck for duplicates
     final_df_dupes = final_df[final_df.duplicated(subset=shared_categories, keep=False)]
     if final_df_dupes.shape[0] > 0:
@@ -1279,7 +1374,6 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['NZ_11_statistical_discrepancy_others'] = {'economy':'12_NZ', 'sectors':'11_statistical_discrepancy', 'fuels':'16_others', 'subfuels':'x'}
         # 19_THA	11_statistical_discrepancy	x	x	x	x	06_crude_oil_and_ngl	x
         bad_values_rows_exceptions_dict['THA_11_statistical_discrepancy'] = {'economy':'19_THA', 'sectors':'11_statistical_discrepancy', 'fuels':'06_crude_oil_and_ngl', 'subfuels':'x'}
-        
         # breakpoint()#consider by december 2024 whether thes are still necessary or we shoiuld fix the data. or undeerlying issue.
         #######TEMP FOR NEW ESTO DATA
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
@@ -1350,7 +1444,23 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             # 09_ROK	09_total_transformation_sector	09_02_chp_plants	x	x	x	16_others	16_09_other_sources
             missing_rows_exceptions_dict['16_09_other_sources'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'fuels':'16_others', 'subfuels':'16_09_other_sources'}
             missing_rows_exceptions_dict['16_09_other_sources2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub2sectors':'09_01_11_otherfuel', 'fuels':'16_others', 'subfuels':'16_09_other_sources'}
-
+            missing_rows_exceptions_dict['15_05_other_biomass_1'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_01_electricity_plants', 'sub2sectors':'09_01_06_biomass', 'fuels':'15_solid_biomass', 'subfuels':'15_05_other_biomass'}
+            missing_rows_exceptions_dict['16_02_industrial_waste_1'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_01_electricity_plants', 'sub2sectors':'09_01_11_otherfuel', 'fuels':'16_others', 'subfuels':'16_02_industrial_waste'}
+            missing_rows_exceptions_dict['15_05_other_biomass_2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'sub2sectors':'09_02_04_biomass', 'fuels':'15_solid_biomass', 'subfuels':'15_05_other_biomass'}
+            missing_rows_exceptions_dict['16_02_industrial_waste_2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'sub2sectors':'09_02_04_biomass', 'fuels':'16_others', 'subfuels':'16_02_industrial_waste'}
+            #these rows:
+            # economy	sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels
+            # 18_CT	09_total_transformation_sector	09_06_gas_processing_plants	09_06_02_liquefaction_regasification_plants	x	x	08_gas	x
+            # 18_CT	09_total_transformation_sector	09_06_gas_processing_plants	09_06_02_liquefaction_regasification_plants	x	x	19_total	x
+            # 18_CT	09_total_transformation_sector	09_06_gas_processing_plants	x	x	x	08_gas	x
+            # 18_CT	09_total_transformation_sector	09_06_gas_processing_plants	x	x	x	19_total	x
+            missing_rows_exceptions_dict['gas_processing_ct_gas'] = {'_merge':'new_layout_df', 'economy':'18_CT', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'08_gas'}
+            missing_rows_exceptions_dict['gas_processing_ct_total'] = {'_merge':'new_layout_df', 'economy':'18_CT', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'19_total'}
+            #21_VN	09_total_transformation_sector	09_01_electricity_plants	09_01_06_biomass	x	x	15_solid_biomass	15_01_fuelwood_and_woodwaste
+            # 21_VN	09_total_transformation_sector	09_01_electricity_plants	09_01_06_biomass	x	x	15_solid_biomass	15_02_bagasse
+            #these two are linked to creating new rows within the layout df to handle newly created, more disaggregated rows in the power reslts.
+            # missing_rows_exceptions_dict['VN_09_total_transformation_sector_fuelwood'] = {'economy':'21_VN', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_01_electricity_plants', 'sub2sectors':'09_01_06_biomass', 'fuels':'15_solid_biomass', 'subfuels':'15_01_fuelwood_and_woodwaste'}
+            # missing_rows_exceptions_dict['VN_09_total_transformation_sector_bagasse'] = {'economy':'21_VN', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_01_electricity_plants', 'sub2sectors':'09_01_06_biomass', 'fuels':'15_solid_biomass', 'subfuels':'15_02_bagasse'}
             ############################
             #use the keys as column names to remove the rows in the dict:
             # for ignored_issue in missing_rows_exceptions_dict.keys():
@@ -1374,13 +1484,19 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
                 economy=missing_rows['economy'].unique()[0]
                 missing_rows.to_csv(f'data/temp/error_checking/missing_rows_{economy}.csv', index=False)
                 print("There are {} rows where the results file is missing rows from the layout file. These rows have been saved to data/temp/error_checking/missing_rows.csv".format(missing_rows.shape[0]))
-                breakpoint()
+                # breakpoint()
         if (merged_df_bad_values.shape[0] > 0 or missing_rows.shape[0] > 0) and not NEW_YEARS_IN_INPUT:
-            #save the results_layout_df for user to check
-            breakpoint()
-            economy = results_layout_df['economy'].unique()[0]
-            results_layout_df.to_csv(f'data/temp/error_checking/results_layout_df_{economy}.csv', index=False)
-            raise Exception("The layout df and the newly processed layout df do not match for the years in the layout file. This should not happen.")
+            
+            if missing_rows[(missing_rows['subfuels'].str.contains('unallocated'))].shape[0] == missing_rows.shape[0]:
+                #skip tehse rows since they are part of the solution in allocate_16_15_subfuel_x_rows_to_unallocated() and of course there wont be corresponding rows in the layout df. that is ok!
+                pass
+            else:
+                #save the results_layout_df for user to check
+                breakpoint()
+                economy = results_layout_df['economy'].unique()[0]
+                results_layout_df.to_csv(f'data/temp/error_checking/results_layout_df_{economy}.csv', index=False)
+                missing_rows.to_csv(f'data/temp/error_checking/missing_rows_{economy}.csv', index=False)
+                raise Exception("The layout df and the newly processed layout df do not match for the years in the layout file. This should not happen.")
         
 
 def power_move_x_in_chp_and_hp_to_biomass(results_df):

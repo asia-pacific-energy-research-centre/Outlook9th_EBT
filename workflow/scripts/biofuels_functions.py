@@ -19,9 +19,7 @@ CAPACITY_DF_COLUMNS = ['economy', 'EBT_fuel', 'year', 'additional_capacity_pj', 
 UTILISATION_RATE_DF_COLUMNS = ['economy', 'fuel', 'year', 'utilisation_rate', 'scenario']
 SIMPLIFIED_ECONOMY_FUELS_DF_COLUMNS = ['economy', 'fuel', 'method']
 
-
-
-def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLOT = True, biofuel_capacity_parameters_file_path = 'config/biofuel_capacity_parameters.xlsx', CREATE_MARS_EXAMPLE = False):
+def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLOT = True, biofuel_capacity_parameters_file_path = 'config/biofuel_capacity_parameters.xlsx', CREATE_MARS_EXAMPLE = False,USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED=True):
 
     """to save workload we are just going to do biofuels production and all biofuels supply within this model. it will take in demand for biofuels and then depending on a few paramerters, it will output production, imports and exports of biofuels. 
     
@@ -65,8 +63,8 @@ def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLO
         economy = '00_MARS'
         model_df_clean_wide_copy = model_df_clean_wide.copy()
         model_df_clean_wide = adjust_model_df_for_MARS_EXAMPLE(model_df_clean_wide)
-        
-    capacity_df, detailed_capacity_df, production_df = prepare_capacity_data(economy, model_df_clean_wide, input_data_dict)
+    
+    capacity_df, detailed_capacity_df, production_df = prepare_capacity_data(economy, model_df_clean_wide, input_data_dict, USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED=USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED)
 
     consumption_df = prepare_consumption_data(economy, model_df_clean_wide, input_data_dict)
     
@@ -76,7 +74,7 @@ def biofuels_supply_and_transformation_handler(economy, model_df_clean_wide, PLO
     if PLOT and final_df.shape[0] > 0:
         print('Plotting biofuels data')
         plot_biofuels_data(final_df, economy)
-        
+    
     save_results(final_df, detailed_capacity_df, capacity_df, economy)
     if CREATE_MARS_EXAMPLE:
         #throw an error to stop the code
@@ -117,7 +115,6 @@ def read_biofuels_input(biofuel_capacity_parameters_file_path):
             economy = sheet_name.replace('_capacity', '')
             df['economy'] = economy
             input_data_dict['capacity_df'] = pd.concat([input_data_dict['capacity_df'], df[input_data_dict['capacity_df'].columns]], ignore_index=True)
-            
         elif sheet_name == 'config':
             continue
         elif sheet_name == 'simplified_economy_fuels':
@@ -127,13 +124,11 @@ def read_biofuels_input(biofuel_capacity_parameters_file_path):
             # df['economy'] = economy
             input_data_dict['utilisation_rate_df'] = pd.concat([input_data_dict['utilisation_rate_df'], df[input_data_dict['utilisation_rate_df'].columns]], ignore_index=True)
                     
-                    
     return input_data_dict
     
-def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capacity_additions', 'utilisation_rate', 'simplified_economy_fuels'], original_file_path = 'config/biofuel_capacity_parameters.xlsx', new_file_path = 'config/biofuel_capacity_parameters.xlsx', LOAD_AND_USE_ORIGINAL_FILE = True):
+def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capacity_additions', 'utilisation_rate', 'simplified_economy_fuels'], original_file_path = 'config/biofuel_capacity_parameters.xlsx', new_file_path = 'config/biofuel_capacity_parameters.xlsx', LOAD_AND_USE_ORIGINAL_FILE = True,USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED=True):
     """ONLY FOR PREPARATION OF THE BIOFUELS INPUT WORKBOOK. THIS WILL CREATE A NEW FILE WITH THE SAME SHEETS AS THE ORIGINAL BUT WITH THE DATA FILLED IN.
     RUN ME WITH 
-
         import biofuels_functions_new as biofuels_functions
         utils.set_working_directory()
         biofuels_functions.create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capacity_additions', 'utilisation_rate', 'simplified_economy_fuels'],original_file_path = 'config/biofuel_capacity_parameters_new.xlsx')
@@ -162,6 +157,9 @@ def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capac
                 df.to_excel(writer, sheet_name, index=False)
     #create a list of expected sheet names so that if any are missing we can add them:
     expected_sheets = ['config', 'utilisation_rate', 'simplified_economy_fuels'] + [f'{economy}_capacity' for economy in ALL_ECONOMY_IDS + ['00_MARS']]
+    subfuels_list = ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', '15_05_other_biomass', '16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable', '16_08_other_liquid_biofuels', '16_09_other_sources']
+    if USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED:
+        subfuels_list += ['16_others_unallocated', '15_solid_biomass_unallocated']
     completed_sheets = []
     for sheet_name in workbook_sheet_names + expected_sheets:
         if sheet_name in completed_sheets:
@@ -173,7 +171,7 @@ def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capac
             df = pd.DataFrame(columns=['EBT_fuel', 'additional_capacity_pj', 'economy', 'scenario', 'specific_fuel', 'year'])
             economy = sheet_name.replace('_capacity', '')
             for scenario in SCENARIOS_list:
-                for fuel in ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', '15_05_other_biomass']:
+                for fuel in subfuels_list:
                     #remove all numbers from fuel name then strip off the _'s at the start
                     specific_fuel = re.sub(r'\d', '', fuel).lstrip('_')
                     df = pd.concat([df, pd.DataFrame([{'EBT_fuel': fuel, 'additional_capacity_pj': 0, 'economy': economy, 'scenario': scenario, 'specific_fuel': specific_fuel, 'year': OUTLOOK_BASE_YEAR}])], ignore_index=True)
@@ -184,14 +182,14 @@ def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capac
             #create a row for each scenario in SCENARIOS_list, a fuel for each one in 16_05_biogasoline 16_06_biodiesel 16_07_bio_jet_kerosene 16_01_biogas 15_01_fuelwood_and_woodwaste 15_02_bagasse 15_03_charcoal 15_04_black_liquor 15_05_other_biomass, and set the year to OUTLOOK_BASE_YEAR
             df = pd.DataFrame(columns=['economy', 'utilisation_rate', 'scenario', 'year', 'fuel'])
             for scenario in SCENARIOS_list:
-                for fuel in ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', '15_05_other_biomass']:
+                for fuel in subfuels_list:
                     df = pd.concat([df, pd.DataFrame([{'economy': '01_AUS', 'utilisation_rate': 1, 'scenario': scenario, 'year': OUTLOOK_BASE_YEAR, 'fuel': fuel}])], ignore_index=True)
                     
             df.to_excel(writer, sheet_name, index=False)
         elif ('config' in sheets_to_change or sheet_name not in workbook_sheet_names) and sheet_name == 'config':
             #create data for EBT_biofuels_list 
             df = pd.DataFrame(columns=['EBT_biofuels_list'])
-            for fuel in ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', '15_05_other_biomass']:
+            for fuel in subfuels_list:
                 df = pd.concat([df, pd.DataFrame([{'EBT_biofuels_list': fuel}])], ignore_index=True)
             df.to_excel(writer, sheet_name, index=False)
                 
@@ -203,9 +201,7 @@ def create_biofuels_input_workbook(sheets_to_change = ['config', 'biofuels_capac
             methods=['satisfy_all_demand_with_domestic_production', 
                                'satisfy_all_demand_with_domestic_production_RAMP', 'do_nothing', 'satisfy_all_demand_with_domestic_production_EXACT',                        'keep_same_ratio_of_production_to_consumption']
             methods_index = 0
-            for fuel in ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', 
-                         '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', 
-                         '15_05_other_biomass']:
+            for fuel in subfuels_list:
                 method = methods[methods_index]
                 df = pd.concat([df, pd.DataFrame([{'economy': '00_MARS', 'fuel': fuel, 'method': method}])], ignore_index=True)
                 if method == 'satisfy_all_demand_with_domestic_production_RAMP':
@@ -286,7 +282,7 @@ def adjust_model_df_for_MARS_EXAMPLE(model_df_clean_wide):
     model_df_clean_wide = model_df_clean_wide.drop(columns=year_cols).merge(grouped_df, on=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'subtotal_layout', 'subtotal_results'], how='left')
     return model_df_clean_wide
 
-def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict):   
+def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict, USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED=True):   
     #find the economy in the input_data_dict
     economy_capacity_df = input_data_dict['capacity_df']
     economy_capacity_df = economy_capacity_df[economy_capacity_df.economy == economy]
@@ -389,7 +385,12 @@ def prepare_capacity_data(economy, model_df_clean_wide, input_data_dict):
     #double check all the values in EBT_biofuels_list are in the columns
     for fuel in EBT_biofuels_list:
         if fuel not in biofuel_production_historical.columns:
-            raise Exception(f'{fuel} not in biofuel_production_historical columns')
+            #if its one of the 16_others_unallocated or 15_solid_biomass_unallocated then we can just add in new rows for them with 0s since they wouldnt have historical data
+            if fuel in ['16_others_unallocated', '15_solid_biomass_unallocated'] and USING_16_OTHERS_UNALLOCATED_AND_15_SOLID_BIOMASS_UNALLOCATED:
+                biofuel_production_historical[fuel] = 0
+            else:
+                breakpoint()
+                raise Exception(f'{fuel} not in biofuel_production_historical columns')
         
     #now we need to calculate the capacity for each year by adding the cumulative total for each fuel type and thwn later dividing by the utilisation rate
     
@@ -650,71 +651,73 @@ def plot_biofuels_data(final_refining_df, economy):
     # Filter data for the specific economy and melt for visualization.
     df = final_refining_df[final_refining_df['economy'] == economy].copy()
     df_melted = df.melt(id_vars=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels'], var_name='year', value_name='energy_pj')
+    for fuel in ['16', '15']:
+        fuel_name = 'Solid_bio' if fuel == '15' else 'Other'
+        fuel_plot = df_melted[df_melted['subfuels'].str.contains(fuel)]
+        # Line chart to show the production, imports, and exports over the years by fuel type.
+        fig_production = px.line(
+            fuel_plot,
+            x='year',
+            y='energy_pj',
+            color='sectors',
+            line_dash='sectors',
+            facet_row='scenarios',
+            facet_col='subfuels',
+            title=f'Biofuels Production, Imports, and Exports Over Time for {economy} - {fuel_name}',
+            labels={'year': 'Year', 'energy_pj': 'Energy (PJ)', 'sectors': 'Supply Components', 'subfuels': ''}#set 'subfuels': '' so it doesnt take up space in the chart
+        )
 
-    # Line chart to show the production, imports, and exports over the years by fuel type.
-    fig_production = px.line(
-        df_melted,
-        x='year',
-        y='energy_pj',
-        color='sectors',
-        line_dash='sectors',
-        facet_row='scenarios',
-        facet_col='subfuels',
-        title=f'Biofuels Production, Imports, and Exports Over Time for {economy}',
-        labels={'year': 'Year', 'energy_pj': 'Energy (PJ)', 'sectors': 'Supply Components', 'subfuels': 'Fuel Type'}
-    )
+        # Make the y-axes independent
+        fig_production.update_yaxes(matches=None, showticklabels=True)
+        
+        #make sure the folders exist
+        if not os.path.isdir('./plotting_output/biofuels/'):
+            os.makedirs('./plotting_output/biofuels/')
+        #write html
+        fig_production.write_html(f'./plotting_output/biofuels/{fuel_name}_{economy}_biofuels_line.html')
+            
+        # Bar chart to compare the production, imports, and exports by sector and year
+        fig_bar = px.bar(
+            fuel_plot.loc[fuel_plot['sectors'] != 'consumption'],
+            x='year',
+            y='energy_pj',
+            color='sectors',
+            barmode='relative',
+            facet_row='subfuels',
+            facet_col='scenarios',
+            title=f'Biofuels Production, Imports, and Exports Comparison for {economy} - {fuel_name} - move your mouse over graph to see the fuel type',
+            labels={'year': 'Year', 'energy_pj': 'Energy (PJ)', 'sectors': 'Supply Components', 'subfuels': 'subfuels'}
+        )
 
-    # Make the y-axes independent
-    fig_production.update_yaxes(matches=None, showticklabels=True)
-    
-    #make sure the folders exist
-    if not os.path.isdir('./plotting_output/biofuels/'):
-        os.makedirs('./plotting_output/biofuels/')
-    #write html
-    fig_production.write_html(f'./plotting_output/biofuels/{economy}_biofuels_line.html')
-    
-    # Bar chart to compare the production, imports, and exports by sector and year
-    fig_bar = px.bar(
-        df_melted.loc[df_melted['sectors'] != 'consumption'],
-        x='year',
-        y='energy_pj',
-        color='sectors',
-        barmode='relative',
-        facet_col='scenarios',
-        facet_row='subfuels',
-        title=f'Biofuels Production, Imports, and Exports Comparison for {economy}',
-        labels={'year': 'Year', 'energy_pj': 'Energy (PJ)', 'sectors': 'Supply Components'}
-    )
+        # Make the y-axes independent
+        fig_bar.update_yaxes(matches=None, showticklabels=True)
+        #write html
+        fig_bar.write_html(f'./plotting_output/biofuels/{fuel_name}_{economy}_biofuels_stacked_bars.html')
+        
+        #and now create one which has net imports as a line, with prodcuton and conshunption in the chart too
+        df_net_imports = fuel_plot.copy()
+        #pivot the sectors so they are in columns
+        df_net_imports = df_net_imports[['scenarios', 'economy', 'subfuels', 'year', 'sectors', 'energy_pj']].pivot(index = ['scenarios', 'economy', 'subfuels', 'year'], columns = 'sectors', values = 'energy_pj').reset_index()
+        
+        df_net_imports['net_imports'] = df_net_imports['02_imports'] + df_net_imports['03_exports']
+        df_net_imports.drop(columns = ['02_imports', '03_exports'], inplace = True)
+        df_net_imports = df_net_imports.melt(id_vars=['scenarios', 'economy', 'subfuels', 'year'], var_name='sectors', value_name='energy_pj')
+        fig_net_imports = px.line(
+            df_net_imports,
+            x='year',
+            y='energy_pj',
+            color='sectors',
+            line_dash='sectors',
+            facet_row='scenarios',
+            facet_col='subfuels',
+            title=f'Biofuels Production, Consumption and Net Imports Over Time for {economy} - {fuel_name} - negative imports are exports',
+            labels={'year': 'Year', 'energy_pj': 'Energy (PJ)', 'sectors': 'Supply Components', 'subfuels': ''}
+        )
 
-    # Make the y-axes independent
-    fig_bar.update_yaxes(matches=None, showticklabels=True)
-    #write html
-    fig_bar.write_html(f'./plotting_output/biofuels/{economy}_biofuels_stacked_bars.html')
-    
-    #and now create one which has net imports as a line, with prodcuton and conshunption in the chart too
-    df_net_imports = df_melted.copy()
-    #pivot the sectors so they are in columns
-    df_net_imports = df_net_imports[['scenarios', 'economy', 'subfuels', 'year', 'sectors', 'energy_pj']].pivot(index = ['scenarios', 'economy', 'subfuels', 'year'], columns = 'sectors', values = 'energy_pj').reset_index()
-    
-    df_net_imports['net_imports'] = df_net_imports['02_imports'] + df_net_imports['03_exports']
-    df_net_imports.drop(columns = ['02_imports', '03_exports'], inplace = True)
-    df_net_imports = df_net_imports.melt(id_vars=['scenarios', 'economy', 'subfuels', 'year'], var_name='sectors', value_name='energy_pj')
-    fig_net_imports = px.line(
-        df_net_imports,
-        x='year',
-        y='energy_pj',
-        color='sectors',
-        line_dash='sectors',
-        facet_row='scenarios',
-        facet_col='subfuels',
-        title=f'Biofuels Production, Consumption and Net Imports Over Time for {economy} - negative imports are exports',
-        labels={'year': 'Year', 'energy_pj': 'Energy (PJ)', 'sectors': 'Supply Components', 'subfuels': 'Fuel Type'}
-    )
-
-    # Make the y-axes independent
-    fig_net_imports.update_yaxes(matches=None, showticklabels=True)
-    #write html
-    fig_net_imports.write_html(f'./plotting_output/biofuels/{economy}_biofuels_net_imports_line.html')
+        # Make the y-axes independent
+        fig_net_imports.update_yaxes(matches=None, showticklabels=True)
+        #write html
+        fig_net_imports.write_html(f'./plotting_output/biofuels/{fuel_name}_{economy}_biofuels_net_imports_line.html')
     
 
 def save_results(final_df, detailed_capacity_df, capacity_df, economy):
