@@ -19,6 +19,10 @@ env/
 !config/*
 **/archive/
 
+#except the emissions factors which are too large
+!config/9th_edition_co2_emissions_factors_by_fuel_energy_weighted.csv
+!config/9th_edition_emissions_factors_all_gases_simplified.csv
+!config/9th_edition_emissions_factors_all_gases_IPCC_details.csv
 # User-specific files
 *.rsuser
 *.suo

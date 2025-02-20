@@ -51,16 +51,7 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
         return None, None, None, None
     else:
         # Perform initial read and save
-        try:
-            df_no_year_econ_index = A.initial_read_and_save(SINGLE_ECONOMY_ID)
-        except Exception as e:
-            print(f'Error in initial_read_and_save for {SINGLE_ECONOMY_ID}')
-            print(e)
-            breakpoint()
-            #save error to a txt file
-            with open(f'error_{SINGLE_ECONOMY_ID}.txt', 'w') as f:
-                f.write(str(e))
-            return None, None, None, None    
+        df_no_year_econ_index = A.initial_read_and_save(SINGLE_ECONOMY_ID) 
         
         # Create energy DataFrame
         model_df_clean_wide = B.create_energy_df(df_no_year_econ_index, SINGLE_ECONOMY_ID)
@@ -82,19 +73,7 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             print('Done running supply component repo functions and merging_results \n################################################\n')
             
             #calc emissions:
-            # breakpoint()
-            # final_energy_df.to_csv('final_energy_df.csv', index=False)#TEST
-            try:
-                emissions_df = E.calculate_emissions(final_energy_df,SINGLE_ECONOMY_ID)
-            except Exception as e:
-                print(f'Error in calculate_emissions for {SINGLE_ECONOMY_ID}')
-                print(e)
-                breakpoint()
-                #save error to a txt file
-                with open(f'emissions_error_{SINGLE_ECONOMY_ID}.txt', 'w') as f:
-                    f.write(str(e))
-                return None, None, None, model_df_clean_wide
-            
+            emissions_df = E.calculate_emissions(final_energy_df,SINGLE_ECONOMY_ID)
             #calc capacity
             capacity_df = F.incorporate_capacity_data(final_energy_df,SINGLE_ECONOMY_ID)
         else:
