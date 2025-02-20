@@ -2,7 +2,7 @@ CHL_bunkers:
 - KEEP_CHANGES_IN_FINAL_OUTPUT: true
   Year: 2022
   change_id: '1237'
-  economy: 04_CHL
+  economy: 04_CHLaa
   fuels: 07_petroleum_products
   new_value: -4
   old_values:
@@ -16,7 +16,7 @@ CHL_bunkers:
 - KEEP_CHANGES_IN_FINAL_OUTPUT: true
   Year: 2022
   change_id: '1236'
-  economy: 04_CHL
+  economy: 04_CHLaa
   fuels: 07_petroleum_products
   new_value: -32
   old_values:
@@ -30,7 +30,7 @@ CHL_bunkers:
 - KEEP_CHANGES_IN_FINAL_OUTPUT: true
   Year: 2022
   change_id: '1235'
-  economy: 04_CHL
+  economy: 04_CHLaa
   fuels: 07_petroleum_products
   new_value: 25
   old_values:
@@ -44,7 +44,7 @@ CHL_bunkers:
 - KEEP_CHANGES_IN_FINAL_OUTPUT: true
   Year: 2022
   change_id: '1234'
-  economy: 04_CHL
+  economy: 04_CHLaa
   fuels: 07_petroleum_products
   new_value: 5.103430214
   old_values:
