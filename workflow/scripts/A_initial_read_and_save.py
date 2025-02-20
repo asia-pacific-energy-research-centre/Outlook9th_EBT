@@ -19,7 +19,7 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
     xlsx_raw = f'./data/raw_data/{ESTO_DATA_FILENAME}.xlsx' #directory of raw data file
 
     sheet_names = pd.ExcelFile(xlsx_raw).sheet_names[:21] #making a list with the first 21 economies' worksheets 
-
+    
     if isinstance(SINGLE_ECONOMY_ID, str):
         #drop any sheets that arent the single economy. but remove any _'s form single economy name first
         s = SINGLE_ECONOMY_ID.replace('_', '')
@@ -97,7 +97,7 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
     # - Then we concat all df in the list into a large one.
 
     df_list = []
-
+    
     for i in economies:
         temp_ebt_df_economy_wide = RawEGEDA[i]
 

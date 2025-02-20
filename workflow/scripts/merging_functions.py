@@ -1453,6 +1453,13 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             # 18_CT	09_total_transformation_sector	09_06_gas_processing_plants	x	x	x	19_total	x
             missing_rows_exceptions_dict['gas_processing_ct_gas'] = {'_merge':'new_layout_df', 'economy':'18_CT', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'08_gas'}
             missing_rows_exceptions_dict['gas_processing_ct_total'] = {'_merge':'new_layout_df', 'economy':'18_CT', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'19_total'}
+            
+            missing_rows_exceptions_dict['russia_nonspecified_transformation'] = {'_merge':'new_layout_df', 'economy':'16_RUS', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_12_nonspecified_transformation'}
+            #             09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	08_01_natural_gas
+            # 09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	x
+            # 09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	08_01_natural_gas
+            # 09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	x
+
             #21_VN	09_total_transformation_sector	09_01_electricity_plants	09_01_06_biomass	x	x	15_solid_biomass	15_01_fuelwood_and_woodwaste
             # 21_VN	09_total_transformation_sector	09_01_electricity_plants	09_01_06_biomass	x	x	15_solid_biomass	15_02_bagasse
             #these two are linked to creating new rows within the layout df to handle newly created, more disaggregated rows in the power reslts.

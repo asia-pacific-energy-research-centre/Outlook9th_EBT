@@ -66,6 +66,7 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
         model_df_clean_wide = B.create_energy_df(df_no_year_econ_index, SINGLE_ECONOMY_ID)
         # Subset the data
         model_df_clean_wide = C.subset_data(model_df_clean_wide, SINGLE_ECONOMY_ID)
+        
         if (isinstance(SINGLE_ECONOMY_ID, str)) and not (ONLY_RUN_UP_TO_MERGING):#if we arent using a single economy we dont need to merge
             # Merge the results
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
@@ -76,6 +77,7 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             biofuels_functions.biofuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True, CREATE_MARS_EXAMPLE=False)
             old_final_energy_df = final_energy_df.copy()
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
+            
             # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
             print('Done running supply component repo functions and merging_results \n################################################\n')
             
@@ -103,14 +105,14 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
 # Run the main function and store the result
 FOUND=False
 if __name__ == "__main__":
-    for economy in [ "18_CT", "19_THA", "20_USA", "21_VN"]:#'01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN"]:#['01_AUS', "02_BD", "15_PHL", "18_CT","21_VN"]:# utils.AGGREGATE_ECONOMIES:#['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC '09_ROK', '02_BD',  '15_PHL'
+    for economy in [ "04_CHL"]:#'01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN"]:#['01_AUS', "02_BD", "15_PHL", "18_CT","21_VN"]:# utils.AGGREGATE_ECONOMIES:#['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC '09_ROK', '02_BD',  '15_PHL'
         #     if economy == '05_PRC':
         #         FOUND = True
         #     elif not FOUND:
         #         continue
         # '01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC' 
         # try:
-        final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID=economy)#'09_ROK')#02_BD')#'16_RUS')#economy)#'00_APEC')#economy)
+        final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='04_CHL')#'09_ROK')#02_BD')#'16_RUS')#economy)#'00_APEC')#economy)
      
 #%%
 #"06_HKC",'04_CHL' - seemed it could be because we need to just base iput data for moelling offnew data. 
