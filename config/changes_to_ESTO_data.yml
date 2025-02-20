@@ -1,0 +1,57 @@
+CHL_bunkers:
+- KEEP_CHANGES_IN_FINAL_OUTPUT: true
+  Year: 2022
+  change_id: '1237'
+  economy: 04_CHL
+  fuels: 07_petroleum_products
+  new_value: -4
+  old_values:
+    00APEC_2024_20250219: 0.0
+  sectors: 04_international_marine_bunkers
+  sub1sectors: x
+  sub2sectors: x
+  sub3sectors: x
+  sub4sectors: x
+  subfuels: 07_08_fuel_oil
+- KEEP_CHANGES_IN_FINAL_OUTPUT: true
+  Year: 2022
+  change_id: '1236'
+  economy: 04_CHL
+  fuels: 07_petroleum_products
+  new_value: -32
+  old_values:
+    00APEC_2024_20250219: 0.0
+  sectors: 05_international_aviation_bunkers
+  sub1sectors: x
+  sub2sectors: x
+  sub3sectors: x
+  sub4sectors: x
+  subfuels: 07_x_jet_fuel
+- KEEP_CHANGES_IN_FINAL_OUTPUT: true
+  Year: 2022
+  change_id: '1235'
+  economy: 04_CHL
+  fuels: 07_petroleum_products
+  new_value: 25
+  old_values:
+    00APEC_2024_20250219: 47.06057662275324
+  sectors: 15_transport_sector
+  sub1sectors: 15_01_domestic_air_transport
+  sub2sectors: x
+  sub3sectors: x
+  sub4sectors: x
+  subfuels: 07_x_jet_fuel
+- KEEP_CHANGES_IN_FINAL_OUTPUT: true
+  Year: 2022
+  change_id: '1234'
+  economy: 04_CHL
+  fuels: 07_petroleum_products
+  new_value: 5.103430214
+  old_values:
+    00APEC_2024_20250219: 5.10343021378514
+  sectors: 15_transport_sector
+  sub1sectors: 15_04_domestic_navigation
+  sub2sectors: x
+  sub3sectors: x
+  sub4sectors: x
+  subfuels: 07_08_fuel_oil
