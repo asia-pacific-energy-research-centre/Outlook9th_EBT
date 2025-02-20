@@ -8,7 +8,9 @@ from datetime import datetime
 from utility_functions import *
 import merging_functions
 import warnings
-    
+
+from adjust_data_with_post_hoc_changes import revert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False
+
 def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_filename=None, PRINT=False):
     """Takes the layout file and the results files, and merges them together.  The results files are generated from the model runs in the demand model, and the layout file is generated from the historical data file and the layout file template. 
     The process is messy and in some places doesnt seem to take the simplest way forwards. Most of the time this is because of compromises that are made because of the different level of detail between inputs, and the layout file. So the code here is complex, but relatively flexible.
@@ -16,6 +18,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     - subtotals are not consistently calcaulted in any of the layout or results data so we label them, remove them and then recalcautle them always. 
     - layout file contains less specific data than the categories are for, so for example, even if there is a possible category for passenger air transprot, the layout file will only have data for air transport. So this is partly why calculate subtotals in results and layout data separately, and also why the merge is an outer join.
 
+    #note that revert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False is used at the end o this file
     """
     # layout_df = pd.read_csv(layout_file)
     layout_df = original_layout_df.copy()
@@ -324,6 +327,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         
         os.rename(old_file_path, new_old_file_path)
 
+    final_df = revert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False(SINGLE_ECONOMY_ID,final_df)
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
     date_today = datetime.now().strftime('%Y%m%d')

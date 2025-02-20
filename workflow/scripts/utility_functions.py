@@ -20,7 +20,7 @@ SINGLE_ECONOMY_ID_VAR = '15_PHL' #'19_THA'# '19_THA' #20_USA 03_CDA
 # SINGLE_ECONOMY_ID = '19_THA' # '19_THA' #20_USA 03_CDA
 
 # If merging supply results (i.e. the final stage of merging results from the modellers), set this to True and calculate TPES top down instead of bottom up
-MERGE_SUPPLY_RESULTS = True
+MERGE_SUPPLY_RESULTS = False    
 
 EBT_EARLIEST_YEAR = 1980
 OUTLOOK_LAST_YEAR = 2070
@@ -33,8 +33,10 @@ FUEL_LAYOUT_SHEET = 'fuel_layout_20250212'#these are the fuels that we expectto 
 
 # ESTO_DATA_FILENAME = '00APEC_May2023'
 
-ESTO_DATA_FILENAME = '00APEC_2024_20250219.xlsx'
-NEW_YEARS_IN_INPUT = True#ONLY SET ME IF YOU ARE USING NEW DATA FROM ESTO WHICH SHOULD ONLY HAPPEN ONCE A YEAR
+ESTO_DATA_FILENAME = '00APEC_2024_20250219'
+NEW_YEARS_IN_INPUT = False#ONLY SET ME IF YOU ARE USING NEW DATA FROM ESTO WHICH SHOULD ONLY HAPPEN ONCE A YEAR. If you do this then you will wantto set Single_ECONOMY_ID_VAR to False and run the whole pipeline to get the results/model_df_wide_' + date_today +'.csv for modellers to use as an input
+
+CHANGES_FILE = 'changes_to_ESTO_data.yml'
 SCENARIOS_list = ['reference', 'target']
 
 ALL_ECONOMY_IDS = ["01_AUS", "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN"]

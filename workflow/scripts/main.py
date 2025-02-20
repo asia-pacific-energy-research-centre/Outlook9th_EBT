@@ -51,21 +51,13 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
         return None, None, None, None
     else:
         # Perform initial read and save
-        try:
-            df_no_year_econ_index = A.initial_read_and_save(SINGLE_ECONOMY_ID)
-        except Exception as e:
-            print(f'Error in initial_read_and_save for {SINGLE_ECONOMY_ID}')
-            print(e)
-            breakpoint()
-            #save error to a txt file
-            with open(f'error_{SINGLE_ECONOMY_ID}.txt', 'w') as f:
-                f.write(str(e))
-            return None, None, None, None    
+        df_no_year_econ_index = A.initial_read_and_save(SINGLE_ECONOMY_ID) 
         
         # Create energy DataFrame
         model_df_clean_wide = B.create_energy_df(df_no_year_econ_index, SINGLE_ECONOMY_ID)
         # Subset the data
         model_df_clean_wide = C.subset_data(model_df_clean_wide, SINGLE_ECONOMY_ID)
+        
         if (isinstance(SINGLE_ECONOMY_ID, str)) and not (ONLY_RUN_UP_TO_MERGING):#if we arent using a single economy we dont need to merge
             # Merge the results
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
@@ -76,23 +68,12 @@ def main(ONLY_RUN_UP_TO_MERGING=False, SINGLE_ECONOMY_ID = utils.SINGLE_ECONOMY_
             biofuels_functions.biofuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, final_energy_df, PLOT = True, CREATE_MARS_EXAMPLE=False)
             old_final_energy_df = final_energy_df.copy()
             final_energy_df = D.merging_results(model_df_clean_wide, SINGLE_ECONOMY_ID)
+            
             # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
             print('Done running supply component repo functions and merging_results \n################################################\n')
             
             #calc emissions:
-            # breakpoint()
-            # final_energy_df.to_csv('final_energy_df.csv', index=False)#TEST
-            try:
-                emissions_df = E.calculate_emissions(final_energy_df,SINGLE_ECONOMY_ID)
-            except Exception as e:
-                print(f'Error in calculate_emissions for {SINGLE_ECONOMY_ID}')
-                print(e)
-                breakpoint()
-                #save error to a txt file
-                with open(f'emissions_error_{SINGLE_ECONOMY_ID}.txt', 'w') as f:
-                    f.write(str(e))
-                return None, None, None, model_df_clean_wide
-            
+            emissions_df = E.calculate_emissions(final_energy_df,SINGLE_ECONOMY_ID)
             #calc capacity
             capacity_df = F.incorporate_capacity_data(final_energy_df,SINGLE_ECONOMY_ID)
         else:
@@ -110,7 +91,7 @@ if __name__ == "__main__":
         #         continue
         # '01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC' 
     # try:
-    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='02_BD')#'16_RUS')#economy)#'00_APEC')#economy)
+    final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID='07_INA')#'16_RUS')#economy)#'00_APEC')#economy)
     
 #%%
 #"06_HKC",'04_CHL' - seemed it could be because we need to just base iput data for moelling offnew data. 

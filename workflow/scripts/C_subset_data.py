@@ -8,12 +8,14 @@ import os
 from datetime import datetime
 from utility_functions import *
 import merging_functions
+from adjust_data_with_post_hoc_changes import adjust_layout_file_with_post_hoc_changes
 set_working_directory()#from utility_functions.py
 
 def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     """WHAT DOES THIS DO?
 
     Note, at the end of this function,  merging_functions.label_subtotals(merged_df_clean_wide, shared_categories) will be run. So any changes to that will affect the output of this function.
+    #please note that this includes the function C1.adjust_layout_file_with_post_hoc_changes funciton which is used to adjust the input data according to post-hoc changes to the data witihn config/CHANGES_FILE
     Args:
         merged_df_clean_wide (_type_): _description_
 
@@ -367,6 +369,11 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     merged_df_clean_wide = merging_functions.label_subtotals(merged_df_clean_wide, shared_categories)
     ###########################
     
+    for economy in merged_df_clean_wide['economy'].unique():
+        merged_df_clean_wide = adjust_layout_file_with_post_hoc_changes(economy, merged_df_clean_wide)
+    
+    ###########################
+    
     reference_df = merged_df_clean_wide[merged_df_clean_wide['scenarios'] == 'reference'].copy().reset_index(drop = True)
     target_df = merged_df_clean_wide[merged_df_clean_wide['scenarios'] == 'target'].copy().reset_index(drop = True)
     
@@ -375,8 +382,7 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
 
     folder_path = './results'
     os.makedirs(folder_path, exist_ok=True)
-
-
+    
     if (isinstance(SINGLE_ECONOMY_ID, str)):
         
         os.makedirs(folder_path + '/' + SINGLE_ECONOMY_ID + '/layout', exist_ok=True)
