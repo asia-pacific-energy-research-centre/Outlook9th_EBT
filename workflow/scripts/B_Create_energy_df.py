@@ -13,7 +13,7 @@ from utility_functions import *
 set_working_directory()#from utility_functions.py
 
 def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
-
+    
     # interim save
     interim_path = './data/interim/'
     os.makedirs(interim_path, exist_ok = True)
@@ -145,7 +145,6 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
 
     # sub4sectors is the lowest level
     # We create a new col base on it
-
     sector_layout['sector_key_col'] = sector_layout['sub4sectors']
 
     for i in range(len(sector_layout)):
@@ -160,7 +159,7 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
                 else:
                     if (sector_layout.loc[i, 'sub1sectors'] == 'x') & (sector_layout.loc[i, 'sectors'] != 'x'):
                         sector_layout.loc[i, 'sector_key_col'] = sector_layout.loc[i, 'sectors']
-
+    
     # Aggregation, Disaggregation, New rows (相加相減作業)
     # - Notice that we deal with fuel, concating and excluding the targeted rows. 
     # - Based on the result, we deal with sectors, concating and excluding the trageted rows.
@@ -406,5 +405,5 @@ def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
     #     merged_df_clean_wide.to_csv(interim_path + f'interim_{SINGLE_ECONOMY_ID}.csv', index = False)
     # else:
     #     merged_df_clean_wide.to_csv(interim_path + 'interim.csv', index = False)
-
+    
     return merged_df_clean_wide

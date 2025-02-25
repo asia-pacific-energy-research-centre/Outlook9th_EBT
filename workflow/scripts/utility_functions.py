@@ -1,4 +1,4 @@
-
+#%%
 
 import pandas as pd 
 import re
@@ -33,7 +33,7 @@ FUEL_LAYOUT_SHEET = 'fuel_layout_20250212'#these are the fuels that we expectto 
 
 # ESTO_DATA_FILENAME = '00APEC_May2023'
 
-ESTO_DATA_FILENAME = '00APEC_2024_20250219'
+ESTO_DATA_FILENAME = '00APEC_2024_20250221'
 NEW_YEARS_IN_INPUT = False#ONLY SET ME IF YOU ARE USING NEW DATA FROM ESTO WHICH SHOULD ONLY HAPPEN ONCE A YEAR. If you do this then you will wantto set Single_ECONOMY_ID_VAR to False and run the whole pipeline to get the results/model_df_wide_' + date_today +'.csv for modellers to use as an input
 
 CHANGES_FILE = 'changes_to_ESTO_data.yml'
@@ -213,3 +213,53 @@ def shift_output_files_to_visualisation_input(economy_ids = ["01_AUS", "02_BD", 
                         if not os.path.exists(os.path.join(visualisation_input_path, economy_id)):
                             os.makedirs(os.path.join(visualisation_input_path, economy_id))
                         shutil.copy(file_path, new_file_path)
+#%%
+def compare_layout_files_for_latest_year(path1, path2, economy_ids,  latest_year):
+    """
+    This function is used to compare the layout files for the latest year. Can be done using an economy id or on all economies. It will join on the non year columns and copare the year columns. It will then output a csv with the differences as well as where indicator for join is not both
+        
+    path1 = 'results/model_df_wide_tgt_20250221.csv'
+    path2 = 'results/model_df_wide_tgt_20250204.csv'
+    economy_ids= None
+    utils.compare_layout_files_for_latest_year(path1, path2, economy_ids,  latest_year=2022)
+    """
+    file1 = pd.read_csv(path1)
+    file2 = pd.read_csv(path2)
+    if economy_ids is not None:
+        file1 = file1[file1['economy'].isin(economy_ids)]
+        file2 = file2[file2['economy'].isin(economy_ids)]
+    
+    if file1.columns.tolist() != file2.columns.tolist():
+        raise Exception('The columns in the two files are not the same')
+    #make key cols those that arent 4 digit years
+    key_cols = [col for col in file1.columns if not re.match(r'\d{4}', col)]
+    year_cols = [col for col in file1.columns if re.match(r'\d{4}', col)]
+    #make sure that the type of the year cols (the names themselves) is int
+    if type(year_cols[0]) == str:
+        year_cols = [int(col) for col in year_cols]
+        file1.columns = key_cols + year_cols
+        file2.columns = key_cols + year_cols
+    #keep only latest year
+    file1 = file1[key_cols + [latest_year]]
+    file2 = file2[key_cols + [latest_year]]
+    
+    #join the dfs on the index cols and then compare rows
+    joined_df = file1.merge(file2, on=key_cols, suffixes=('_PATH1', '_PATH2'), how='outer', indicator=True)
+    
+    #compare the values in the rows as well as looking at the indicator column
+    joined_df['diff'] = joined_df[str(latest_year) + '_PATH1'].astype(float) - joined_df[str(latest_year) + '_PATH2'].astype(float)
+    #drop where the diff is 0 or where the indicator is both
+    joined_df  = joined_df[(joined_df['diff'] != 0) | (joined_df['_merge'] != 'both')]
+    
+    #save and print stats
+    joined_df.to_csv(f'layout_diff_{economy_ids}.csv')
+    print(joined_df['_merge'].value_counts())
+    print(joined_df['diff'].describe())
+    return joined_df
+    
+#%%
+# path1 = '../../results/model_df_wide_tgt_20250221.csv'
+# path2 = '../../results/model_df_wide_tgt_20250221_old.csv'
+# economy_ids= ['19_THA', '16_RUS', '04_CHL', '5_PRC', '07_INA']
+# compare_layout_files_for_latest_year(path1, path2, economy_ids,  latest_year=2022)
+#%%

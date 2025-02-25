@@ -16,7 +16,6 @@
 #     'CHL_bunkers': [
 #         {
 #             'economy':'04_CHL',
-#             'scenarios':'reference',
 #             'fuels':'07_petroleum_products',
 #             'subfuels':'07_08_fuel_oil',
 #             'sectors':'04_international_marine_bunkers',
@@ -35,7 +34,6 @@
 #         },
 #         {
 #             'economy':'04_CHL',
-#             'scenarios':'reference',
 #             'fuels':'07_petroleum_products',
 #             'subfuels':'07_x_jet_fuel',
 #             'sectors':'05_international_aviation_bunkers',
@@ -54,7 +52,6 @@
 #         },
 #         {
 #             'economy':'04_CHL',
-#             'scenarios':'reference',
 #             'fuels':'07_petroleum_products',
 #             'subfuels':'07_x_jet_fuel',
 #             'sectors':'15_transport_sector',
@@ -73,7 +70,6 @@
 #         },
 #         {
 #             'economy':'04_CHL',
-#             'scenarios':'reference',
 #             'fuels':'07_petroleum_products',
 #             'subfuels':'07_08_fuel_oil',
 #             'sectors':'15_transport_sector',
@@ -130,47 +126,52 @@ def adjust_layout_file_with_post_hoc_changes(SINGLE_ECONOMY_ID, layout_df):
     layout_df_copy = layout_df.copy()
     changes_dictionary = load_changes_dictionary(CHANGES_FILE)
     changes_dictionary_copy = copy.deepcopy(changes_dictionary)
-    for scenario in layout_df_copy['scenarios'].unique():
-        # Iterate through the changes dictionary
-        for key, changes_list in changes_dictionary.items():
-            # Double check the economy is the same as SINGLE_ECONOMY_ID
-            if changes_list[0]['economy'] != SINGLE_ECONOMY_ID:
-                continue
-            
-            # Iterate through the changes list
-            for change in changes_list:
-                
-                # Get the row to change
-                row = layout_df[layout_df['scenarios'] == scenario].copy()
-                
-                for column, filter_value in change.items():
-                    if column not in {'new_value', 'KEEP_CHANGES_IN_FINAL_OUTPUT', 'Year', 'change_id', 'old_values'}:
-                        row = row[row[column] == filter_value]
-                
-                # Get the old value
-                if len(row) != 1:
-                    breakpoint()
-                    raise ValueError(f'Error in adjust_layout_file: row not found for {key} in model_df_clean_wide')
-                
-                #get the original value and set as float
-                original_value = float(row[change['Year']].values[0].copy())
-                # Change the value in the layout file
-                layout_df.loc[row.index, change['Year']] = change['new_value']
-                
-                # Append the change back into the YAML
-                if 'old_values' not in change:
-                    changes_dictionary_copy[key][changes_list.index(change)]['old_values'] = {}
-                if ESTO_DATA_FILENAME not in changes_dictionary_copy[key][changes_list.index(change)]['old_values'].keys():
-                    changes_dictionary_copy[key][changes_list.index(change)]['old_values'][ESTO_DATA_FILENAME] = original_value
-                elif changes_dictionary_copy[key][changes_list.index(change)]['old_values'][ESTO_DATA_FILENAME] != original_value:
-                    breakpoint()
-                    raise ValueError(f'Error in adjust_layout_file: old value in changes dictionary does not match value in layout file for {key}')
+    if changes_dictionary is None:
+        return layout_df
+    
+    for key, changes_list in changes_dictionary.items():
+        # Double check the economy is the same as SINGLE_ECONOMY_ID
+        if changes_list[0]['economy'] != SINGLE_ECONOMY_ID:
+            continue
         
+        # Iterate through the changes list
+        for change in changes_list:
+            
+            if SINGLE_ECONOMY_ID != change['economy']:
+                breakpoint()
+                raise ValueError(f'Error in adjust_layout_file: economy in changes dictionary does not match SINGLE_ECONOMY_ID. it is probably a typo in the changes dictionary')
+            # Get the row to change
+            row = layout_df.copy()
+            
+            for column, filter_value in change.items():
+                if column == 'fuels' or column == 'sectors':
+                    row = row[row[column] == filter_value]
+            
+            # Get the old value
+            if len(row) != 1:
+                breakpoint()
+                raise ValueError(f'Error in adjust_layout_file: row not found for {key} in model_df_clean_wide')
+            
+            #get the original value and set as float
+            original_value = float(row[change['Year']].values[0].copy())
+            # Change the value in the layout file
+            layout_df.loc[row.index, change['Year']] = change['new_value']
+            
+            # Append the change back into the YAML for record keeping
+            if 'old_values' not in change:
+                changes_dictionary_copy[key][changes_list.index(change)]['old_values'] = {}
+            if ESTO_DATA_FILENAME not in changes_dictionary_copy[key][changes_list.index(change)]['old_values'].keys():
+                changes_dictionary_copy[key][changes_list.index(change)]['old_values'][ESTO_DATA_FILENAME] = original_value
+            elif changes_dictionary_copy[key][changes_list.index(change)]['old_values'][ESTO_DATA_FILENAME] != original_value:
+                breakpoint()
+                raise ValueError(f'Error in adjust_layout_file: old value in changes dictionary does not match value in layout file for {key}')
+    
     save_changes_dictionary(changes_dictionary_copy, CHANGES_FILE)
     # Return the layout file with the changes made
     return layout_df
 
 def revert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False(SINGLE_ECONOMY_ID, model_df_clean_wide):
+    #this hasnt been used since its creation since we moved from layout file to ESTO data file manipulation.
     #note that this can be run even if the values have already been changed, so running this twice in a row by running merging_results twice will not screw up the data
     changes_dictionary = load_changes_dictionary(CHANGES_FILE)
     model_df_clean_wide_copy = model_df_clean_wide.copy()
@@ -189,7 +190,7 @@ def revert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False(SI
                 row = model_df_clean_wide[model_df_clean_wide['scenarios'] == scenario].copy()
                 
                 for column, filter_value in change_copy.items():
-                    if column not in {'new_value', 'KEEP_CHANGES_IN_FINAL_OUTPUT', 'Year', 'change_id', 'old_values'}:
+                    if column != 'fuels' or column != 'sectors':
                         row = row[row[column] == filter_value]
                 
                 if len(row) != 1:

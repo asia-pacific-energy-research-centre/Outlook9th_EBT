@@ -8,7 +8,6 @@ import os
 from datetime import datetime
 from utility_functions import *
 import merging_functions
-from adjust_data_with_post_hoc_changes import adjust_layout_file_with_post_hoc_changes
 set_working_directory()#from utility_functions.py
 
 def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
@@ -362,17 +361,86 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     # - To do the pivot properly, ther became value_not_in_the_range.
     # - And now they are going to become np.nan again.
 
-
+    # breakpoint()
+    ###########################
+    # for economy in merged_df_clean_wide['economy'].unique():
+    #     merged_df_clean_wide = adjust_layout_file_with_post_hoc_changes(economy, merged_df_clean_wide)
+    # # breakpoint()#can we recalculate the totals here?
+    # merged_df_clean_wide_copy = merged_df_clean_wide.copy()
     ###########################
     #label subtotals in the data:
     shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
     merged_df_clean_wide = merging_functions.label_subtotals(merged_df_clean_wide, shared_categories)
-    ###########################
+    ########################################################################
     
-    for economy in merged_df_clean_wide['economy'].unique():
-        merged_df_clean_wide = adjust_layout_file_with_post_hoc_changes(economy, merged_df_clean_wide)
     
-    ###########################
+    #THE BELOW IS A SUGGESTED IMPROVEMENT FOR WHEN WE HAVBE THE TIME. IF WE CAN FIND A WAY TO REMOVE SUBTOTALS FROM THE LAYOUT FILE AND RECALCAULTE THAT AGGREGATES, THEN IT WOULD SIMPLIFY A LOT OF THINGS SINCE IT WOULD MEAN WE WOULD HAVE CONSISTENT ROWS BETWEEN ALYOUT AND RESULTS FILES, MENAING WE ONLY NEED ON SUBTOTAL COLUMN AS WELL. 
+    # #test removing the subtotals
+    # merged_df_clean_wide = merged_df_clean_wide[~merged_df_clean_wide['is_subtotal']].copy().reset_index(drop = True)
+    # ###########################
+    # #add on columns for all eyars in the results, so that the sector aggregate calcs work below (just set values to 0):
+    # results_years = [float(year) for year in range(OUTLOOK_BASE_YEAR + 1, OUTLOOK_LAST_YEAR + 1)]
+    # merged_df_clean_wide[results_years] = 0
+    # #and then create subtotal columns which are the same as is_subtotal:
+    # # subtotal_layout, subtotal_results
+    # merged_df_clean_wide['subtotal_layout'] = merged_df_clean_wide['is_subtotal']
+    # merged_df_clean_wide['subtotal_results'] = merged_df_clean_wide['is_subtotal']
+    # merged_df_clean_wide.drop(columns = 'is_subtotal', inplace = True)
+    # shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']
+    # ###########################
+    # #NOW CALCAULTE THE AGGREGATES WHICH ARE COMBINATIONS OF SECTORS FROM DIFFERENT MODELLERS RESULTS. EVEN THOUGH THE LAYOUT DATA ALREADY CONTAINS THESE AGGREGATES, WE WILL RECALCULATE THEM AS A WAY OF TESTING THAT THE MERGES DONE UNTIL NOW ARE CORRECT. 
+    # #now, in case they are there, drop the aggregate sectors (except total transformation) from the merged data so we can recalculate them
+    # new_aggregate_sectors = ['12_total_final_consumption', '13_total_final_energy_consumption', '07_total_primary_energy_supply']
+    # merged_df_clean_wide = merged_df_clean_wide.loc[~merged_df_clean_wide['sectors'].isin(new_aggregate_sectors)].copy()
+    # #and drop aggregate fuels since we will recalculate them
+    # merged_df_clean_wide = merged_df_clean_wide.loc[~merged_df_clean_wide['fuels'].isin(['19_total', '21_modern_renewables', '20_total_renewables'])].copy()
+    
+    # # Define a dictionary that maps each sector group to its corresponding total column
+    # sector_mappings = [
+    #     (['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '12_total_final_consumption'),
+    #     (['14_industry_sector', '15_transport_sector', '16_other_sector'], '13_total_final_energy_consumption'),
+    #     (['01_production', '09_total_transformation_sector'], '01_production')
+    # ]
+
+    # # Initialize an empty dictionary to store the resulting DataFrames
+    # sector_aggregates_df = pd.DataFrame()
+    # # Loop over the sector mappings and process the data for each sector group
+    # for (sectors, aggregate_sector) in sector_mappings:
+    #     sector_df = merging_functions.calculate_sector_aggregates(merged_df_clean_wide, sectors, aggregate_sector, shared_categories, shared_categories_w_subtotals)
+    #     sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
+    
+    # # Drop '01_production' from merged_df_clean_wide as it is included in sector_aggregates_df
+    # merged_df_clean_wide = merged_df_clean_wide[merged_df_clean_wide['sectors'] != '01_production'].copy()
+    
+    # # Add the new '01_production' back to merged_df_clean_wide
+    # new_01_production = sector_aggregates_df[sector_aggregates_df['sectors'] == '01_production'].copy()
+    # merged_df_clean_wide = pd.concat([merged_df_clean_wide, new_01_production])
+    
+    # # Calculate '07_total_primary_energy_supply' using updated merged_df_clean_wide
+    # new_sectors_for_tpes = ['01_production', '02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers', '05_international_aviation_bunkers', '08_transfers', '09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy', '14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use']
+    # sector_df = merging_functions.calculate_sector_aggregates(merged_df_clean_wide, new_sectors_for_tpes, '07_total_primary_energy_supply', shared_categories, shared_categories_w_subtotals, MERGE_SUPPLY_RESULTS_OVERRIDE=True)
+    # sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
+
+    # # Drop '01_production' again from merged_df_clean_wide to avoid duplication
+    # merged_df_clean_wide = merged_df_clean_wide[merged_df_clean_wide['sectors'] != '01_production'].copy()
+    
+    # # # Calculate the subtotals in the sector aggregates #NO SUBTOTALS IN LAYOUT DF ANYMORE
+    # # sector_aggregates_df = merging_functions.calculating_subtotals_in_sector_aggregates(sector_aggregates_df, shared_categories_w_subtotals)
+    
+    # # # Label the subtotals in the sector aggregates
+    # # sector_aggregates_df = merging_functions.label_subtotals(sector_aggregates_df, shared_categories)
+    # # sector_aggregates_df.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
+    # # sector_aggregates_df['subtotal_results'] = sector_aggregates_df['subtotal_layout']
+    
+    # # Ensure the index is consistent after concatenation if needed
+    # sector_aggregates_df.reset_index(drop=True, inplace=True)
+    # fuel_aggregates_df = merging_functions.calculate_fuel_aggregates(sector_aggregates_df, merged_df_clean_wide, shared_categories)
+    # final_merged_df_clean_wide = merging_functions.create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,merged_df_clean_wide, shared_categories)
+    # #drop the extra years and set subtotals to is_subtotal again:
+    # final_merged_df_clean_wide.drop(columns = results_years, inplace = True)
+    # final_merged_df_clean_wide['is_subtotal'] = final_merged_df_clean_wide['subtotal_results']
+    # final_merged_df_clean_wide.drop(columns = ['subtotal_layout', 'subtotal_results'], inplace = True)
+    ####################################################################################################
     
     reference_df = merged_df_clean_wide[merged_df_clean_wide['scenarios'] == 'reference'].copy().reset_index(drop = True)
     target_df = merged_df_clean_wide[merged_df_clean_wide['scenarios'] == 'target'].copy().reset_index(drop = True)

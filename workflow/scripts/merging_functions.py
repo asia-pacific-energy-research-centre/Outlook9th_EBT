@@ -472,6 +472,9 @@ def set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df):
         raise Exception("There are still subfuels with x in them that are not subtotals. This is unexpected. the fuels are {}".format(fuels))
     if new_rows_df.shape[0] == 0:
         return concatted_results_df, layout_df
+    
+    #the below shouldnt be needed if the unallocated types are added to the layout file configs from the beginning but its useful to double check. 
+    
     #add tehse new unallocated rows to the layout_df as 0s
     layout_df_years =[year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]
     similar_cols = [col for col in layout_df.columns if col in concatted_results_df.columns]
@@ -497,10 +500,77 @@ def set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df):
         raise Exception("There are columns with '_layout' in them. This is unexpected.")
     #concat these new rows to the layout_df
     new_layout_df = pd.concat([layout_df, merged_df[layout_df.columns]], ignore_index=True)  
-
+    if merged_df[layout_df.columns].shape[0]== 0:
+        return concatted_results_df, layout_df
     return concatted_results_df, new_layout_df
              
 
+def allocate_problematic_x_rows_to_unallocated(results_df, layout_df, years_to_keep_in_results):
+        
+    #if tehre are these rows in the dataframe as well as rows where the subfuel is x but the fuel is the key, then we need to set the rows wehre subfuels is x to '##_unallocated'. And to double check that this is not causing an error. we will also quickly double check that this row is not a subtotal by checking that the row with the same sector, subfuel as x and fuel as the key does not add upto all the rows with the same sector and subfuel !=x.
+    sectors_with_issues = ['18_01_electricity_plants', '09_01_electricity_plants'] #try to be as specfic as possible here to reduce chance of errors
+    subfuels_to_solve = {'16_others':['16_x_efuel', '16_x_ammonia', '16_x_hydrogen']}
+    new_rows = pd.DataFrame()
+    results_df_copy_ = results_df.copy()
+    for scenario in results_df_copy_['scenarios'].unique():
+        results_df_copy = results_df_copy_[results_df_copy_['scenarios'] == scenario].copy()
+        for sector_col in ['sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']:
+            if any(results_df_copy[sector_col].isin(sectors_with_issues)):
+                #grab that row and check for the subfuel x rows
+                df = results_df_copy[results_df_copy[sector_col].isin(sectors_with_issues)].copy()
+                for fuel, subfuel_list in subfuels_to_solve.items():
+                    if any(df['fuels'] == fuel):
+                        df_fuel = df[df['fuels'] == fuel].copy()
+                        if any(df_fuel['subfuels']=='x') and any(df_fuel['subfuels'].isin(subfuel_list)):
+                            breakpoint()
+                            #check that the row with subfuel x is not a subtotal (ignorign the subottal column since modellers sometimes ignore it)
+                            fuel_sum = df_fuel[(df_fuel['subfuels']!='x')][years_to_keep_in_results].sum().sum()
+                            x_subfuel_sum = df_fuel[df_fuel['subfuels'] == 'x'][years_to_keep_in_results].sum().sum()
+                            if fuel_sum == 0:
+                                continue
+                            if abs(fuel_sum - x_subfuel_sum) < 0.001*fuel_sum:
+                                continue#we have a subtotal so we dont need to do anything
+                            #if we dont have a subtotal then we need to set the subfuel x row to unallocated and then we can continue to the next fuel
+                            #set the subfuel x row to unallocated
+                            results_df.loc[(results_df['subfuels'] == 'x') & (results_df['fuels'] == fuel) & (results_df[sector_col].isin(sectors_with_issues) & (results_df['scenarios'] == scenario)), 'subfuels'] = f'{fuel}_unallocated'
+                            new_rows = pd.concat([new_rows, results_df.loc[(results_df['subfuels'] == f'{fuel}_unallocated') & (results_df['fuels'] == fuel) & (results_df[sector_col].isin(sectors_with_issues) & (results_df['scenarios'] == scenario))]], ignore_index=True)
+                            #now onto the next sector
+    if len(new_rows) == 0:
+        return results_df, layout_df
+    #add 'is_subtotal' = false to the row:
+    new_rows['is_subtotal'] = False
+    #double check these new rows are in the layout_df - they shuld be if thy are added in the config, but sometimes they may not be:
+    layout_df_years =[year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]
+    similar_cols = [col for col in layout_df.columns if col in new_rows.columns]
+    similar_cols_non_years = [col for col in similar_cols if col not in layout_df_years]
+    missing_cols = [col for col in layout_df.columns if col not in new_rows.columns]
+    
+    # if any of missing cols are not in layout_df_years then throw an error else, fill all year cols with 0s
+    if len([col for col in missing_cols if col not in layout_df_years]) > 0:
+        breakpoint()
+        raise Exception("There are missing columns in the layout_df that are not in the results_df. This is unexpected.")
+    
+    new_rows[layout_df_years] = 0
+    #identify rows that are not already in the layout_df
+    new_rows = new_rows[layout_df.columns].copy()
+    merged_df = new_rows.merge(layout_df[similar_cols_non_years], on=similar_cols_non_years, how='left', indicator=True, suffixes=('', '_layout'))
+    
+    #drop rows that are already in the layout_df and cols with _layout in them
+    merged_df = merged_df[merged_df['_merge'] == 'left_only'].copy()
+    merged_df.drop(columns=['_merge'], inplace=True)
+    #if tehre are any cols with _layout, throw an error
+    if len([col for col in merged_df.columns if '_layout' in str(col)]) > 0:
+        breakpoint()
+        raise Exception("There are columns with '_layout' in them. This is unexpected.")
+    #concat these new rows to the layout_df
+    new_layout_df = pd.concat([layout_df, merged_df[layout_df.columns]], ignore_index=True)  
+    #if there are no new rows then return the original dfs
+    if merged_df[layout_df.columns].shape[0] == 0:
+        return results_df, layout_df
+    return results_df, new_layout_df    
+                            
+                                            
+                                    
 def filter_for_only_buildings_data_in_buildings_file(results_df):
     #this is only because the buildings file is being given to us with all the other data in it. so we need to filter it to only have the buildings data in it so that nothing unexpected happens.
     #check for data in the end year where sub1sectors is 16_01_buildings
@@ -609,7 +679,7 @@ def format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout
     results_layout_df = pd.concat([missing_sectors_df, merged_df])
     return results_layout_df
 
-def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories, shared_categories_w_subtotals):
+def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories, shared_categories_w_subtotals,MERGE_SUPPLY_RESULTS_OVERRIDE=False):
     """
     Calculate common aggregates for groups of sectors such as total transformation,
     total primary energy supply, etc. This is based on filtering out subtotal entries 
@@ -656,14 +726,17 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
             tfc_df = demand_sectors_df.groupby(key_cols).sum(numeric_only=True).reset_index()
             # Multiplies all numeric columns by -1 to turn the values into negative
             numeric_cols = tfc_df.select_dtypes(include=[np.number]).columns
+            
             tfc_df[numeric_cols] = tfc_df[numeric_cols] * -1
             # Filter df to only include the transformation sector
             transformation_sector_df = df_filtered[df_filtered['sectors'].isin(['08_transfers', '09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy'])].copy()
             # Concatenating the two DataFrames
             tpes_df = pd.concat([transformation_sector_df, tfc_df], ignore_index=True)
+        
             tpes_bottom_up_df = tpes_df.groupby(key_cols).sum(numeric_only=True).reset_index()
             # Multiplying all numeric columns by -1 to flip the values
             numeric_cols = tpes_bottom_up_df.select_dtypes(include=[np.number]).columns
+            
             tpes_bottom_up_df[numeric_cols] = tpes_bottom_up_df[numeric_cols] * -1
             
             # tpes_bottom_up_df.to_csv('data/temp/error_checking/tpes_bottom_up_' + df_filtered.name + '.csv', index=False)
@@ -680,6 +753,7 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
             # supply_df = pd.concat([supply_sectors_df[~supply_sectors_df['sectors'].isin(negative_sectors)], negative_df], ignore_index=True).copy()
             
             # tpes_top_down_df = supply_df.groupby(key_cols).sum(numeric_only=True).reset_index()
+            
             
             tpes_top_down_df = supply_sectors_df.groupby(key_cols).sum(numeric_only=True).reset_index().copy()
             
@@ -715,7 +789,7 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
             else:
                 print(f"No significant differences found in TPES calculation with {df_filtered.name} DataFrame.")
                 # If MERGE_SUPPLY_RESULTS is True, use the top-down TPES calculation
-                if MERGE_SUPPLY_RESULTS:
+                if MERGE_SUPPLY_RESULTS or MERGE_SUPPLY_RESULTS_OVERRIDE:
                     aggregated_df = tpes_top_down_df.copy()
                 else:
                     aggregated_df = tpes_bottom_up_df.copy()
@@ -1655,7 +1729,8 @@ def process_agriculture(excel_file, shared_categories, economy, OUTLOOK_BASE_YEA
 
     return all_transformed_data
 
-def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR):
+def split_fuels_into_subfuels_based_on_historical_splits(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR):
+    #this will be used to split the fuels into subfuels based on historical splits.
     df = pd.read_csv(csv_file)
 
     # Determine the fuels to check based on file name
@@ -1692,15 +1767,20 @@ def split_subfuels(csv_file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OU
                 melted = matching_rows.melt(id_vars=shared_categories, value_vars=year_columns_for_analysis)
 
                 # Sum up the years using groupby
-                summed = melted.groupby(shared_categories).sum().reset_index()
-
-                # Calculate the proportions
-                total_values = summed[summed['subfuels'] == 'x']['value']
+                summed = melted.groupby(shared_categories).sum(numeric_only=True).reset_index()
+                # Calculate the sum of those sums:
+                sum_of_subfuels = summed.value.sum()
+                    
                 proportion_dict = {}
                 for _, row in summed.iterrows():
                     if row['subfuels'] != 'x':
                         # proportion = row['value'] / total_values.iloc[0]
-                        proportion = row['value'] / total_values.iloc[0] if total_values.iloc[0] != 0 else 0
+                        try:
+                            proportion = row['value'] / sum_of_subfuels if sum_of_subfuels != 0 else 0
+                        except:
+                            breakpoint()
+                            proportion = row['value'] / sum_of_subfuels if sum_of_subfuels != 0 else 0
+                            
                         proportion_dict[row['subfuels']] = proportion
 
                 # Create new rows in df using the proportions

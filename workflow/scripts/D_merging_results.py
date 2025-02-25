@@ -9,7 +9,7 @@ from utility_functions import *
 import merging_functions
 import warnings
 
-from adjust_data_with_post_hoc_changes import revert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False
+# from adjust_data_with_post_hoc_changes import revert_changrevert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_Falsees_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False
 
 def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_filename=None, PRINT=False):
     """Takes the layout file and the results files, and merges them together.  The results files are generated from the model runs in the demand model, and the layout file is generated from the historical data file and the layout file template. 
@@ -23,6 +23,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # layout_df = pd.read_csv(layout_file)
     layout_df = original_layout_df.copy()
 
+    # layout_df = revert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False(SINGLE_ECONOMY_ID,layout_df)#i dont think this will work becasue it will create differences between results and layout for hist years but maybe its ok?
     #extract unique economies:
     economies = layout_df['economy'].unique()
 
@@ -77,7 +78,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         elif file.endswith('.csv'):
             # Check if 'pipeline' or 'buildings' is in the file name (case-insensitive)
             if 'pipeline' in file.lower(): # or 'buildings' in file.lower():
-                results_df = merging_functions.split_subfuels(file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR) # Split subfuels for pipeline and buildings files
+                results_df = merging_functions.split_fuels_into_subfuels_based_on_historical_splits(file, layout_df, shared_categories, OUTLOOK_BASE_YEAR, OUTLOOK_LAST_YEAR) # Split subfuels for pipeline and buildings files
                 if PRINT:
                     print(f"Processing CSV file {file} with split subfuels...")
             else:
@@ -114,8 +115,8 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         results_df = merging_functions.filter_out_solar_with_zeros_in_buildings_file(results_df)
         results_df = merging_functions.power_move_x_in_chp_and_hp_to_biomass(results_df)
         # breakpoint()
-        # results_df, layout_df = merging_functions.allocate_16_15_subfuel_x_rows_to_unallocated(results_df, layout_df)
-        
+        results_df, layout_df = merging_functions.allocate_problematic_x_rows_to_unallocated(results_df, layout_df,years_to_keep_in_results)
+        ########
         #TEMP#
         
         # find sectors where there are null values for all the years base_year->end_year. This will help to identify where perhaps the results file is missing data or has been incorrectly formatted.
@@ -327,7 +328,6 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         
         os.rename(old_file_path, new_old_file_path)
 
-    final_df = revert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False(SINGLE_ECONOMY_ID,final_df)
     #save the combined data to a new Excel file
     #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
     date_today = datetime.now().strftime('%Y%m%d')

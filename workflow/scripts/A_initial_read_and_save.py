@@ -9,6 +9,7 @@ import re
 import os
 from utility_functions import *
 
+from adjust_data_with_post_hoc_changes import adjust_layout_file_with_post_hoc_changes
 set_working_directory()#from utility_functions.py
 
 def initial_read_and_save(SINGLE_ECONOMY_ID):
@@ -79,18 +80,32 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
         print("Number of columns are not the same for all economies.")
 
     # Name the first two columns which are currently blank
-
     for i in economies:
-        RawEGEDA[i].rename(columns = {'Unnamed: 0': 'fuels', 
-                                    'Unnamed: 1': 'sectors'}, inplace = True)
-        
-    # Prepare lists for dataframe merging process later
-
-    years = list(range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1, 1))
-
+        #identify what column contains 01_production, make that column sectors and the other column fuels
+        if '1. Production' in RawEGEDA[i]['Unnamed: 0'].unique():        
+            RawEGEDA[i].rename(columns = {'Unnamed: 0': 'sectors', 
+                                'Unnamed: 1': 'fuels'}, inplace = True)
+        elif '1. Production' in RawEGEDA[i]['Unnamed: 1'].unique():
+            RawEGEDA[i].rename(columns = {'Unnamed: 0': 'fuels', 
+                                'Unnamed: 1': 'sectors'}, inplace = True)
+        else:
+            raise Exception('The first two columns of the EGEDA data are not as expected. Check the data and try again')
+    
     economy_dict = pd.read_csv('./config/economy_dict.csv', 
                             header = None, 
                             index_col = 0).squeeze('columns').to_dict()
+
+    ###################################
+    
+    #make post-hoc changes to the data. first extract the economy name form the sheet name but insert an underscore between the first and second word
+    #then use this to make changes to the data
+    for i in economies:
+        economy = economy_dict[i]
+        RawEGEDA[i] = adjust_layout_file_with_post_hoc_changes(economy, RawEGEDA[i])
+    ###################################
+    # Prepare lists for dataframe merging process later
+
+    years = list(range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1, 1))
 
     # From dict to dataframe and From wide-df to long df 
     # - In the for-loop, we melted the wide-df into long-df and saved them in a list one after another. 
