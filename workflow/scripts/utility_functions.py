@@ -214,7 +214,7 @@ def shift_output_files_to_visualisation_input(economy_ids = ["01_AUS", "02_BD", 
                             os.makedirs(os.path.join(visualisation_input_path, economy_id))
                         shutil.copy(file_path, new_file_path)
 #%%
-def compare_layout_files_for_latest_year(path1, path2, economy_ids,  latest_year):
+def compare_layout_files_for_latest_year(path1, path2, economy_ids,folder_location, latest_year):
     """
     This function is used to compare the layout files for the latest year. Can be done using an economy id or on all economies. It will join on the non year columns and copare the year columns. It will then output a csv with the differences as well as where indicator for join is not both
         
@@ -223,8 +223,8 @@ def compare_layout_files_for_latest_year(path1, path2, economy_ids,  latest_year
     economy_ids= None
     utils.compare_layout_files_for_latest_year(path1, path2, economy_ids,  latest_year=2022)
     """
-    file1 = pd.read_csv(path1)
-    file2 = pd.read_csv(path2)
+    file1 = pd.read_csv(folder_location+path1)
+    file2 = pd.read_csv(folder_location+path2)
     if economy_ids is not None:
         file1 = file1[file1['economy'].isin(economy_ids)]
         file2 = file2[file2['economy'].isin(economy_ids)]
@@ -252,14 +252,16 @@ def compare_layout_files_for_latest_year(path1, path2, economy_ids,  latest_year
     joined_df  = joined_df[(joined_df['diff'] != 0) | (joined_df['_merge'] != 'both')]
     
     #save and print stats
-    joined_df.to_csv(f'layout_diff_{economy_ids}.csv')
+    joined_df.to_csv(f'{folder_location}layout_diff_{economy_ids}_{latest_year}.csv')
     print(joined_df['_merge'].value_counts())
     print(joined_df['diff'].describe())
     return joined_df
     
 #%%
-# path1 = '../../results/model_df_wide_tgt_20250221.csv'
-# path2 = '../../results/model_df_wide_tgt_20250221_old.csv'
+# folder_location = '../../'
+# path1 = 'merged_file_energy_19_THA_20250225.csv'#./../results
+# path2 = 'merged_file_energy_19_THA_20250225premerge.csv'#./../results
+# output_location = folder_location
 # economy_ids= ['19_THA', '16_RUS', '04_CHL', '5_PRC', '07_INA']
-# compare_layout_files_for_latest_year(path1, path2, economy_ids,  latest_year=2022)
+# compare_layout_files_for_latest_year(path1, path2, economy_ids, folder_location, latest_year=2030)
 #%%
