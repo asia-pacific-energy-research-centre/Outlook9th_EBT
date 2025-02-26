@@ -1451,6 +1451,14 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
         bad_values_rows_exceptions_dict['NZ_11_statistical_discrepancy_others'] = {'economy':'12_NZ', 'sectors':'11_statistical_discrepancy', 'fuels':'16_others', 'subfuels':'x'}
         # 19_THA	11_statistical_discrepancy	x	x	x	x	06_crude_oil_and_ngl	x
         bad_values_rows_exceptions_dict['THA_11_statistical_discrepancy'] = {'economy':'19_THA', 'sectors':'11_statistical_discrepancy', 'fuels':'06_crude_oil_and_ngl', 'subfuels':'x'}
+        
+        # 05_PRC	10_losses_and_own_use	x	x	x	x	01_coal	01_x_thermal_coal 1990-2022
+        bad_values_rows_exceptions_dict['PRC_10_losses_and_own_use_coal'] = {'economy':'05_PRC', 'sectors':'10_losses_and_own_use', 'fuels':'01_coal'}
+        # 05_PRC	10_losses_and_own_use	x	x	x	x	02_coal_products	x 1991-2022
+        bad_values_rows_exceptions_dict['PRC_10_losses_and_own_use_coal_products'] = {'economy':'05_PRC', 'sectors':'10_losses_and_own_use', 'fuels':'02_coal_products'}
+        #05_PRC	10_losses_and_own_use	x	x	x	x	07_petroleum_products	07_07_gas_diesel_oil and 07_09_lpg 1991-2022
+        bad_values_rows_exceptions_dict['PRC_10_losses_and_own_use_petroleum_products'] = {'economy':'05_PRC', 'sectors':'10_losses_and_own_use', 'fuels':'07_petroleum_products'}
+        
         # breakpoint()#consider by december 2024 whether thes are still necessary or we shoiuld fix the data. or undeerlying issue.
         #######TEMP FOR NEW ESTO DATA
         #CREATE ROWS TO IGNORE. THESE ARE ONES THAT WE KNOW CAUSE ISSUES BUT ARENT NECESSARY TO FIX, AT LEAST RIGHT NOW
