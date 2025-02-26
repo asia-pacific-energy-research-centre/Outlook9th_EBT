@@ -507,34 +507,37 @@ def set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df):
 
 def allocate_problematic_x_rows_to_unallocated(results_df, layout_df, years_to_keep_in_results):
         
-    #if tehre are these rows in the dataframe as well as rows where the subfuel is x but the fuel is the key, then we need to set the rows wehre subfuels is x to '##_unallocated'. And to double check that this is not causing an error. we will also quickly double check that this row is not a subtotal by checking that the row with the same sector, subfuel as x and fuel as the key does not add upto all the rows with the same sector and subfuel !=x.
-    sectors_with_issues = ['18_01_electricity_plants', '09_01_electricity_plants'] #try to be as specfic as possible here to reduce chance of errors
+    #if tehre are rows in the dataframe where the fuel is the key in subfuels_to_solve and the subfuel is in the values in subfuels_to_solve as well as rows where the subfuel for that same fuel is x, then we need to set the rows wehre subfuels is x to '##_unallocated' now so that it doesnt confse the subtotalling funcitons later. 
+    sectors_with_issues = ['18_electricity_output_in_gwh', '09_total_transformation_sector'] #try to be as specfic as possible here to reduce chance of errors
     subfuels_to_solve = {'16_others':['16_x_efuel', '16_x_ammonia', '16_x_hydrogen']}
     new_rows = pd.DataFrame()
     results_df_copy_ = results_df.copy()
     for scenario in results_df_copy_['scenarios'].unique():
         results_df_copy = results_df_copy_[results_df_copy_['scenarios'] == scenario].copy()
         for sector_col in ['sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']:
-            if any(results_df_copy[sector_col].isin(sectors_with_issues)):
-                #grab that row and check for the subfuel x rows
-                df = results_df_copy[results_df_copy[sector_col].isin(sectors_with_issues)].copy()
-                for fuel, subfuel_list in subfuels_to_solve.items():
-                    if any(df['fuels'] == fuel):
-                        df_fuel = df[df['fuels'] == fuel].copy()
-                        if any(df_fuel['subfuels']=='x') and any(df_fuel['subfuels'].isin(subfuel_list)):
-                            breakpoint()
-                            #check that the row with subfuel x is not a subtotal (ignorign the subottal column since modellers sometimes ignore it)
-                            fuel_sum = df_fuel[(df_fuel['subfuels']!='x')][years_to_keep_in_results].sum().sum()
-                            x_subfuel_sum = df_fuel[df_fuel['subfuels'] == 'x'][years_to_keep_in_results].sum().sum()
-                            if fuel_sum == 0:
-                                continue
-                            if abs(fuel_sum - x_subfuel_sum) < 0.001*fuel_sum:
-                                continue#we have a subtotal so we dont need to do anything
-                            #if we dont have a subtotal then we need to set the subfuel x row to unallocated and then we can continue to the next fuel
-                            #set the subfuel x row to unallocated
-                            results_df.loc[(results_df['subfuels'] == 'x') & (results_df['fuels'] == fuel) & (results_df[sector_col].isin(sectors_with_issues) & (results_df['scenarios'] == scenario)), 'subfuels'] = f'{fuel}_unallocated'
-                            new_rows = pd.concat([new_rows, results_df.loc[(results_df['subfuels'] == f'{fuel}_unallocated') & (results_df['fuels'] == fuel) & (results_df[sector_col].isin(sectors_with_issues) & (results_df['scenarios'] == scenario))]], ignore_index=True)
-                            #now onto the next sector
+            for sector in sectors_with_issues:
+                if any(results_df_copy[sector_col]==sector):
+                    #grab that row and check for the subfuel x rows
+                    df = results_df_copy[results_df_copy[sector_col]==sector].copy()
+                    for fuel, subfuel_list in subfuels_to_solve.items():
+                        if any(df['fuels'] == fuel):
+                            df_fuel = df[df['fuels'] == fuel].copy()
+                            if any(df_fuel['subfuels']=='x') and any(df_fuel['subfuels'].isin(subfuel_list)):
+                                ###########REALISED THAT CHECKING FOR SUBTOTALS HERE WAS NOT GOING TO WORK UNLESS IT WAS A LOT MORE COMPREHENSIVE I.E. CHECKING FOR LOWER LEVEL SUBTOTALS FIRST WOULD BE REQUIRED). so instead we will just hope nothign goes wrong!
+                                ##############################
+                                # breakpoint()
+                                # #check that the row with subfuel x is not a subtotal (ignorign the subottal column since modellers sometimes ignore it)
+                                # fuel_sum = df_fuel[(df_fuel['subfuels']!='x')][years_to_keep_in_results].sum().sum()
+                                # x_subfuel_sum = df_fuel[df_fuel['subfuels'] == 'x'][years_to_keep_in_results].sum().sum()
+                                # if fuel_sum == 0:
+                                #     continue
+                                # if abs(fuel_sum - x_subfuel_sum) < 0.001*fuel_sum:
+                                #     continue#we have a subtotal so we dont need to do anything
+                                #if we dont have a subtotal then we need to set the subfuel x row to unallocated and then we can continue to the next fuel
+                                #set the subfuel x row to unallocated
+                                results_df.loc[(results_df['subfuels'] == 'x') & (results_df['fuels'] == fuel) & (results_df[sector_col]==sector) & (results_df['scenarios'] == scenario), 'subfuels'] = f'{fuel}_unallocated'
+                                new_rows = pd.concat([new_rows, results_df.loc[(results_df['subfuels'] == f'{fuel}_unallocated') & (results_df['fuels'] == fuel) & (results_df[sector_col]==sector) & (results_df['scenarios'] == scenario)]], ignore_index=True)
+                                #now onto the next sector
     if len(new_rows) == 0:
         return results_df, layout_df
     #add 'is_subtotal' = false to the row:
