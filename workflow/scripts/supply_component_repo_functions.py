@@ -19,7 +19,7 @@ timestamp = datetime.now().strftime('%Y_%m_%d')
 # os.chdir(re.split(wanted_wd, os.getcwd())[0] + wanted_wd)
 
 def pipeline_transport(economy, model_df_clean_wide):
-    """This takes in data from the EBT system and separates historical data from projection data. It then calculates the ratio of gas consumption to total consumption in the pipeline sector and uses this ratio to calculate the energy consumption (of gas, petroleum prods and electricity) in the pipeline sector for the projection years.  This was done after demand was modelled, because the energy used for pipeline transport is a function of the demand of gas.
+    """This takes in data from the EBT system and separates historical data from projection data. It then calculates the ratio of gas consumption to total consumption in the pipeline sector and uses this ratio to calculate the energy consumption (of gas, petroleum prods and electricity) in the pipeline sector for the projection years.  This was done after demand was modelled, because the energy used for pipeline transport is a function of the demand of gas. - note that this doesnt consider gas use form the power sector...
     The function saves the results in a CSV file in the Outlook9th_EBT\data\modelled_data folder for automatic use by the EBT process.
     """
     # 2022 and beyond
