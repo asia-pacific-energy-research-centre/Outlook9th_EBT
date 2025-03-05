@@ -109,6 +109,10 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         #drop where all vlaues in a row are 0. these arent needed as the rows will come from the layout file
         results_df = merging_functions.remove_all_zeros(results_df, years_to_keep_in_results)
         
+        #convert all columns in sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels to lowercase. there should be no uppercase in these columns )sometimes a modeller will put in a sector name in uppercase, but we will convert it to lowercase to match the layout file)
+        for column in ['sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']:
+            results_df[column] = results_df[column].str.lower()
+                
         #TEMP# 
         #buildings file currently includes all sectors historical data, just like the layout file, not just buildings. This is a temporary fix to remove the non-buildings sectors from the results file.
         results_df = merging_functions.filter_for_only_buildings_data_in_buildings_file(results_df)
