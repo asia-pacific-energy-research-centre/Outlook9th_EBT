@@ -55,12 +55,43 @@ def incorporate_capacity_data(final_df,SINGLE_ECONOMY_ID):
                 #     break
                 #insert sheet name before the yearscols but after everything else
                 capacity_df['sheet'] = sheet
-                capacity_df = capacity_df[columns_to_keep + ['sheet'] + [col for col in capacity_df.columns if col not in columns_to_keep + ['sheet']]]
                 
+                #make all cols into strs
+                capacity_df.columns = capacity_df.columns.astype(str)
+                
+                year_cols = [col for col in capacity_df.columns if re.match(r'\d{4}', col)]
+                capacity_df = capacity_df[columns_to_keep + ['sheet'] + year_cols]
                 
                 # Concatenate to all_capacity_data
                 all_capacity_data = pd.concat([all_capacity_data, capacity_df], ignore_index=True)
 
+    #and also extract capcity data from sheets that are for all economies. they will be in data\processed
+    all_economy_capacity_data_files = ['refining_capacity_all_economies_thousand_barrels_p_day.xlsx']
+    for file in all_economy_capacity_data_files:
+        # breakpoint()#is the year col also being put in wrong place?
+        if '.xlsx' in file:
+            capacity_df = pd.read_excel(f'data/processed/{file}')
+        else:
+            capacity_df = pd.read_csv(f'data/processed/{file}')
+        #insert sheet name before the yearscols but after everything else
+        capacity_df['sheet'] = file.replace('.xlsx','').replace('.csv','')
+    
+        #make all cols into strs
+        capacity_df.columns = capacity_df.columns.astype(str)
+        #year cols are 4 digits long. use re to extract them
+        year_cols = [col for col in capacity_df.columns if re.match(r'\d{4}', col)]
+        
+        capacity_df = capacity_df[columns_to_keep + ['sheet'] + year_cols]
+        
+        #extrcat data for the SINGLE_ECONOMY_ID if its in there
+        if SINGLE_ECONOMY_ID in capacity_df['economy'].unique():
+            capacity_df = capacity_df[capacity_df['economy'] == SINGLE_ECONOMY_ID]
+            # Concatenate to all_capacity_data
+            all_capacity_data = pd.concat([all_capacity_data, capacity_df], ignore_index=True)
+        else:
+            # breakpoint()
+            print(f'Could not find capacity data for {SINGLE_ECONOMY_ID} in {file}')
+            pass
     # Define the folder path where you want to save the file
     folder_path = f'results/{SINGLE_ECONOMY_ID}/capacity/'
     old_folder_path = f'{folder_path}/old'

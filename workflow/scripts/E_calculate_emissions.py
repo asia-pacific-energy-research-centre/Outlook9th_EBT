@@ -213,8 +213,8 @@ def calculate_aggregate_total_combustion_values(final_df_copy, non_year_and_valu
     "15_transport_sector",
     "16_other_sector"
     ]
-    historical_data = final_df_copy.loc[final_df_copy['year'] <= OUTLOOK_BASE_YEAR].copy()
-    projected_data = final_df_copy.loc[final_df_copy['year'] > OUTLOOK_BASE_YEAR].copy()
+    historical_data = final_df_copy.loc[final_df_copy['year'].astype(int) <= OUTLOOK_BASE_YEAR].copy()
+    projected_data = final_df_copy.loc[final_df_copy['year'].astype(int)  > OUTLOOK_BASE_YEAR].copy()
     total_emissions_historical = historical_data.loc[historical_data['sectors'].isin(selected_categories) & (historical_data['subtotal_layout']==False)].copy()
     total_emissions_projected = projected_data.loc[projected_data['sectors'].isin(selected_categories) & (projected_data['subtotal_results']==False)].copy()
     

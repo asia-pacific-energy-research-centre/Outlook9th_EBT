@@ -8,10 +8,11 @@ from datetime import datetime
 from utility_functions import *
 import merging_functions
 import warnings
-
+import results_adjustment_functions
+from data_checking_functions import check_for_negatives_or_postives_in_wrong_sectors
 # from adjust_data_with_post_hoc_changes import revert_changrevert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_Falsees_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False
 
-def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_filename=None, PRINT=False):
+def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None, previous_merged_df_filename=None, PRINT=False):
     """Takes the layout file and the results files, and merges them together.  The results files are generated from the model runs in the demand model, and the layout file is generated from the historical data file and the layout file template. 
     The process is messy and in some places doesnt seem to take the simplest way forwards. Most of the time this is because of compromises that are made because of the different level of detail between inputs, and the layout file. So the code here is complex, but relatively flexible.
     Some issues with the structure of the data that we need to deal with:
@@ -23,12 +24,13 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # layout_df = pd.read_csv(layout_file)
     layout_df = original_layout_df.copy()
 
+    # #make sure all year columns in layout_df are ints
+    # layout_year_cols = [col for col in layout_df.columns if str(col).isdigit()]
+    # layout_df.rename(columns={col: int(col) for col in layout_year_cols}, inplace=True)
     # layout_df = revert_changes_to_merged_file_where_KEEP_CHANGES_IN_FINAL_OUTPUT_is_False(SINGLE_ECONOMY_ID,layout_df)#i dont think this will work becasue it will create differences between results and layout for hist years but maybe its ok?
     #extract unique economies:
     economies = layout_df['economy'].unique()
 
-    # Specify the shared category columns in the desired order
-    shared_categories = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
     years_to_keep_in_results = [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
 
     # Create an empty concatted_results_df with the shared_categories
@@ -51,10 +53,34 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         # Exit the function
         return None
 
-
+    if final_results_df is not None:
+        #we wont bother going through the results files and sintead just use the final_results_df that has been passed in. This is useful for when we have the output fromthis funciton that had a few adjusmtnes made and we jsut want to merge it again with the layout file.
+        # quickly make surethe data matches requirements: 
+        final_results_df = final_results_df[(final_results_df['economy'].isin(economies))]
+        if 'subtotal_results' in final_results_df.columns:
+            final_results_df = final_results_df.loc[final_results_df['subtotal_results']==False]
+            final_results_df.drop(columns='subtotal_results', inplace=True)
+        
+        #now if we ignore te year columns, check the columns mathc otherwsie
+        non_year_cols = [col for col in final_results_df.columns if not col.isdigit()]
+        if set(non_year_cols) != set(concatted_results_df.columns):
+            breakpoint()
+            raise ValueError("final_results_df columns do not match the concatted_results_df columns.")
+        
+        #and set the only year cols we have to be the ones in 
+        final_results_df = final_results_df[shared_categories + years_to_keep_in_results]
+        # breakpoint()#seems theres still subttals?
+        concatted_results_df = final_results_df.copy()
+        results_data_files = []
+        concatted_results_df['origin'] = 'final_results_df'
+        #and label subtotals with false so we can use them later:
+        concatted_results_df['is_subtotal'] = False
+        # concatted_results_df = merging_functions.label_subtotals(concatted_results_df, shared_categories + ['origin'])
+        
     #FIRST, LOAD IN ALL THE RESULTS FILES AND CONCAT THEM TOGETHER. THEN WE CAN MERGE THEM WITH THE LAYOUT FILE AND IDENTIFY ANY STRUCTURAL ISSUES
     # Iterate over the results files
     for file in results_data_files:
+            
         if PRINT:
             print(f"Start processing {file}...")
         # Check if the file is an Excel file
@@ -96,7 +122,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
 
         # Convert columns to string type
         results_df.columns = results_df.columns.astype(str)
-                
+        
         ###TEST### DATA CENTRES
         layout_df = merging_functions.insert_data_centres_into_layout_df(layout_df, results_df,shared_categories)
         ###TEST### DATA CENTRES      
@@ -115,11 +141,13 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
                 
         #TEMP# 
         #buildings file currently includes all sectors historical data, just like the layout file, not just buildings. This is a temporary fix to remove the non-buildings sectors from the results file.
-        results_df = merging_functions.filter_for_only_buildings_data_in_buildings_file(results_df)
-        results_df = merging_functions.filter_out_solar_with_zeros_in_buildings_file(results_df)
-        results_df = merging_functions.power_move_x_in_chp_and_hp_to_biomass(results_df)
-        # breakpoint()
-        results_df, layout_df = merging_functions.allocate_problematic_x_rows_to_unallocated(results_df, layout_df,years_to_keep_in_results)
+        results_df = results_adjustment_functions.filter_for_only_buildings_data_in_buildings_file(results_df)
+        results_df = results_adjustment_functions.filter_out_solar_with_zeros_in_buildings_file(results_df)
+        results_df = results_adjustment_functions.power_move_x_in_chp_and_hp_to_biomass(results_df)
+        results_df, layout_df = results_adjustment_functions.allocate_problematic_x_rows_to_unallocated(results_df, layout_df,years_to_keep_in_results)
+        results_df = results_adjustment_functions.edit_hydrogen_transfomation_rows(results_df)
+        results_df = results_adjustment_functions.create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_df, layout_df, SINGLE_ECONOMY_ID, shared_categories, years_to_keep_in_results)
+
         ########
         #TEMP#
         
@@ -140,7 +168,11 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
                 DROP_SUBTOTALS = True
                 
         #if there are any subtotal columns, check none of them are true, cause not sure if we should keep them or not. and then remove the cols
-        subtotal_cols = [col for col in filtered_results_df.columns if 'subtotal' in col]
+        try:
+            subtotal_cols = [col for col in filtered_results_df.columns if 'subtotal' in col]
+        except:
+            breakpoint()
+            subtotal_cols = [col for col in filtered_results_df.columns if 'subtotal' in col]
         if len(subtotal_cols) > 0:
             if filtered_results_df[subtotal_cols].sum().sum() > 0:
                 if DROP_SUBTOTALS:
@@ -162,12 +194,13 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
                 breakpoint()
                 raise ValueError(f"Economy in results file {file} is not the same as the single economy id {SINGLE_ECONOMY_ID}.")
             
-        merging_functions.check_bunkers_are_negative(filtered_results_df, file)          
-        try:
-            merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
-        except Exception as e:
-            breakpoint()
-            merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
+        check_for_negatives_or_postives_in_wrong_sectors(filtered_results_df, SINGLE_ECONOMY_ID, file,INGORE_NANS=True)
+           
+        # try:
+        merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
+        # except Exception as e:
+        #     breakpoint()
+        #     merging_functions.check_for_differeces_between_layout_and_results_df(layout_df, filtered_results_df, shared_categories, file)
             
         #########RUN COMMON CHECKS ON THE RESULTS FILE OVER.#########
         basename = os.path.basename(file)
@@ -175,15 +208,26 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         #the origin col is used because some data will come from two different results files, yet have the same sector and fuels columns but different levels of detail. This means that after we remove subtotals and then try to recreate them in calculate_subtotals, we might end up with duplicate rows. So we need to be able to identify that these rows came from different origin files so the duplicates can be removed by being summed together.
         filtered_results_df_subtotals_labelled = merging_functions.label_subtotals(filtered_results_df, shared_categories + ['origin'])
         # Combine the results_df with all the other results_dfs we have read so far
+        
+        if len([col for col in layout_df.columns if '2022' in col]) > 1:
+            breakpoint()
         concatted_results_df = pd.concat([concatted_results_df, filtered_results_df_subtotals_labelled])
 
+    #make all cols strs
+    concatted_results_df.columns = concatted_results_df.columns.astype(str)
     # Define the range of years to keep
     years_to_keep = set(range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR + 1))
+    year_cols = [col for col in concatted_results_df.columns if str(col).isdigit()]
+    year_cols_to_drop = [col for col in year_cols if int(col) not in years_to_keep]
+    concatted_results_df.drop(columns=year_cols_to_drop, inplace=True)
     
-    # Filter out columns beyond OUTLOOK_LAST_YEAR
-    # Convert column names to strings for comparison, as some might be integers
-    concatted_results_df = concatted_results_df[[col for col in concatted_results_df.columns if str(col).isdigit() and int(col) in years_to_keep or not str(col).isdigit()]]
     #ONLY CALCUALTE SUBTOTALS ONCE WE HAVE CONCATTED ALL RESULTS TOGETHER, SO WE CAN GENERATE SUBTOTALS ACROSS RESUTLS. I.E. 09_total_transformation_sector
+    
+    #if there are two 2022s in the cols then breakpint
+    if len([col for col in concatted_results_df.columns if '2022' in col]) > 1:
+        breakpoint()
+    if len([col for col in layout_df.columns if '2022' in col]) > 1:
+        breakpoint()
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
     
     concatted_results_df, layout_df = merging_functions.set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df)
@@ -208,9 +252,9 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     missing_sectors_df.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
     # Merge the new_layout_df with the concatted_results_df based on shared_categories using outer merge (so we can see which rows are missing/extra from the results_df)
     merged_df = pd.merge(trimmed_layout_df, trimmed_concatted_results_df, on=shared_categories, how="outer", indicator=True)
-    
+
+
     results_layout_df = merging_functions.format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df,missing_sectors_df)
-    # results_layout_df.to_csv('results_layout_df_before_drop.csv')
     
     #add subtotals to shared_categories now its in all the dfs
     shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']
@@ -228,7 +272,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     sector_mappings = [
         (['14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '12_total_final_consumption'),
         (['14_industry_sector', '15_transport_sector', '16_other_sector'], '13_total_final_energy_consumption'),
-        (['01_production', '09_total_transformation_sector'], '01_production')
+        # (['01_production', '09_total_transformation_sector'], '01_production')
         # (['01_production','02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers','05_international_aviation_bunkers', '08_transfers',  '09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy', '14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use'], '07_total_primary_energy_supply') #'09_total_transformation_sector', #TODO IM NOT SURE IF IVE CALCUALTED TPES RIGHT
         #'10_losses_and_own_use', '11_statistical_discrepancy',#,
         # (['09_total_transformation_sector'], '09_total_transformation_sector')
@@ -242,24 +286,23 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
     
     # Drop '01_production' from results_layout_df as it is included in sector_aggregates_df
-    results_layout_df = results_layout_df[results_layout_df['sectors'] != '01_production'].copy()
+    # results_layout_df = results_layout_df[results_layout_df['sectors'] != '01_production'].copy()
     
     # Add the new '01_production' back to results_layout_df
-    new_01_production = sector_aggregates_df[sector_aggregates_df['sectors'] == '01_production'].copy()
+    # new_01_production = sector_aggregates_df[sector_aggregates_df['sectors'] == '01_production'].copy()
     # new_01_production.to_csv('data/temp/error_checking/new_01_production.csv')
     # results_layout_df.to_csv('data/temp/error_checking/results_layout_df.csv')
     # new_01_production = merging_functions.label_subtotals(new_01_production, shared_categories)
     # new_01_production.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
     # new_01_production['subtotal_results'] = new_01_production['subtotal_layout']
-    results_layout_df = pd.concat([results_layout_df, new_01_production])
+    # results_layout_df = pd.concat([results_layout_df, new_01_production])
     
     # Calculate '07_total_primary_energy_supply' using updated results_layout_df
     new_sectors_for_tpes = ['01_production', '02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers', '05_international_aviation_bunkers', '08_transfers', '09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy', '14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use']
     sector_df = merging_functions.calculate_sector_aggregates(results_layout_df, new_sectors_for_tpes, '07_total_primary_energy_supply', shared_categories, shared_categories_w_subtotals)
     sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
-
     # Drop '01_production' again from results_layout_df to avoid duplication
-    results_layout_df = results_layout_df[results_layout_df['sectors'] != '01_production'].copy()
+    # results_layout_df = results_layout_df[results_layout_df['sectors'] != '01_production'].copy()
     
     # Calculate the subtotals in the sector aggregates
     sector_aggregates_df = merging_functions.calculating_subtotals_in_sector_aggregates(sector_aggregates_df, shared_categories_w_subtotals)
@@ -272,6 +315,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # Ensure the index is consistent after concatenation if needed
     sector_aggregates_df.reset_index(drop=True, inplace=True)
     fuel_aggregates_df = merging_functions.calculate_fuel_aggregates(sector_aggregates_df, results_layout_df, shared_categories)
+    # breakpoint()
     final_df = merging_functions.create_final_energy_df(sector_aggregates_df, fuel_aggregates_df,results_layout_df, shared_categories)
     
     #now check for issues with the new aggregates and subtotals by using the layout file as the reference    
@@ -290,17 +334,27 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
     # # Change TRUE to FALSE under 'subtotal_results' column if it's '01_production' in 'sectors' and '15_solid_biomass' or '16_others' in 'fuels'
     # final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['15_solid_biomass', '16_others'])), 'subtotal_results'] = False
     #belive the above isnt needed anymore so we will just test to make sure that the production where suvfuels is x matches the sum of the subfuels: (if it is identified as still being an issue then jsut uncomment the above code - the visualisaton system will just automatically allocated the 16_otehrs , x to have the subfuel 16_others_unallocated)
-    sum_of_subfuels = final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (final_df['subtotal_results'] == False)][range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)].sum().sum()
-    subtotal = final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (final_df['subtotal_results'] == True)][range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)].sum().sum()
+    projected_years = [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
+    sum_of_subfuels = final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (final_df['subtotal_results'] == False)][projected_years].sum().sum()
+    subtotal = final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (final_df['subtotal_results'] == True)][projected_years].sum().sum()
     if abs(sum_of_subfuels - subtotal) > 0.001*sum_of_subfuels:
         breakpoint()
         raise ValueError(f"Subtotals for 01_production 15_solid_biomass and 16_others are not equal. Sum of subfuels: {sum_of_subfuels}, subtotal: {subtotal}. Probably need to uncomment the code that sets the subtotals to false for these rows.")
     
     #######################################
     
-    # Define the folder path where you want to save the file
-    folder_path = f'results/{SINGLE_ECONOMY_ID}/merged'
-    old_folder_path = f'{folder_path}/old'
+    save_merged_file(final_df, SINGLE_ECONOMY_ID, previous_merged_df_filename, shared_categories_w_subtotals, 
+    folder_path=f'results/{SINGLE_ECONOMY_ID}/merged', old_folder_path=f'results/{SINGLE_ECONOMY_ID}/merged/old', COMPARE_TO_PREVIOUS_MERGE = True)
+    
+    return final_df
+
+
+def save_merged_file(final_df, SINGLE_ECONOMY_ID, previous_merged_df_filename, shared_categories_w_subtotals, 
+    folder_path, old_folder_path,   
+    COMPARE_TO_PREVIOUS_MERGE = True):
+    """Saves the merged file to a new CSV file and moves the previous merged file to the 'old' folder."""
+    # Identify the previous merged file
+    
     # Check if the folder already exists
     if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
         # If the folder doesn't exist, create it
@@ -311,9 +365,9 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         # If the old folder doesn't exist, create it
         os.makedirs(old_folder_path)
     
-    merging_functions.compare_to_previous_merge(final_df, shared_categories_w_subtotals, results_data_path=folder_path,previous_merged_df_filename=previous_merged_df_filename, new_subtotal_columns=['subtotal_layout', 'subtotal_results'], previous_subtotal_columns=['subtotal_historic','subtotal_predicted','subtotal'])
-
-    # Identify the previous merged file
+    if COMPARE_TO_PREVIOUS_MERGE:
+        merging_functions.compare_to_previous_merge(final_df, shared_categories_w_subtotals, results_data_path=folder_path,previous_merged_df_filename=previous_merged_df_filename, new_subtotal_columns=['subtotal_layout', 'subtotal_results'], previous_subtotal_columns=['subtotal_historic','subtotal_predicted','subtotal'])
+    
     previous_merged_df_filename = None
     if os.path.exists(folder_path):
         for file in os.listdir(folder_path):
@@ -339,10 +393,6 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, previous_merged_df_fi
         final_df.to_csv(f'{folder_path}/merged_file_energy_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
     else:
         final_df.to_csv(f'results/merged_file_energy_{date_today}.csv', index=False)
-    
-    return final_df
-
-
 # #%%
 # a = merging_results()
 # a.to_csv('new.csv')

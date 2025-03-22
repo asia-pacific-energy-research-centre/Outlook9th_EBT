@@ -13,10 +13,6 @@ from utility_functions import *
 set_working_directory()#from utility_functions.py
 
 def create_energy_df(df_no_year_econ_index,SINGLE_ECONOMY_ID):
-    
-    # interim save
-    interim_path = './data/interim/'
-    os.makedirs(interim_path, exist_ok = True)
 
     # # read interim data
     # if USE_SINGLE_ECONOMY_ID:

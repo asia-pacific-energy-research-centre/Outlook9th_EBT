@@ -92,7 +92,7 @@
 
 #this function will take in the layout file and the changes dictionary and return the layout file with the changes made. 
 # However, so that we can keep track of the changes made, we will also return a dictionary of the changes made. This dictionary will have the same structure as the changes dictionary, but the values will be the old values that were replaced. This will allow us to revert the changes if KEET_DATA_IN_FINAL_OUTPUT is False. This will be done after running D_merging_results, so that we can keep the original layout file and the original data in the final energy df if we dont want to show the changes in the final output. 
-# - maybe the above point can be done only if MERGE_SUPPLY_RESULTS is True, as that indicates that we are at the final stage of the pipeline, where supply results are being merged.
+# - maybe the above point can be done only if MAJOR_SUPPLY_DATA_AVAILABLE is True, as that indicates that we are at the final stage of the pipeline, where supply results are being merged.
 
 import pandas as pd
 import yaml

@@ -187,7 +187,7 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
             for na_col in nas:
                 if na_col not in ECONOMYS_WITH_INITIAL_NAS_AND_THEIR_COLS[SINGLE_ECONOMY_ID]:
                     breakpoint()
-                    raise Exception(f'There are nas in the initial data for {SINGLE_ECONOMY_ID}. Check the file ./data/interim/nas_in_initial_data_{SINGLE_ECONOMY_ID}.csv for more information. The nas are in the column: {nas}')
+                    raise Exception(f'There are nas in the initial data for {SINGLE_ECONOMY_ID}. Check the file ./data/temp/nas_in_initial_data_{SINGLE_ECONOMY_ID}.csv for more information. The nas are in the column: {nas}')
             #if its in the value column set values to 0, so that they can be kept in the data and not ruin any calculations. othewise if its in a non value col, drop teh row
             if 'value' in nas:
                 df['value'] = df['value'].fillna(0)
@@ -200,7 +200,7 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
             
         else:
             breakpoint()
-            raise Exception(f'There are nas in the initial data for {SINGLE_ECONOMY_ID}. Check the file ./data/interim/nas_in_initial_data_{SINGLE_ECONOMY_ID}.csv for more information. The nas are in the column: {nas}')
+            raise Exception(f'There are nas in the initial data for {SINGLE_ECONOMY_ID}. Check the file ./data/temp/nas_in_initial_data_{SINGLE_ECONOMY_ID}.csv for more information. The nas are in the column: {nas}')
     
     # Transfer item_number into two digits 
     df['fuels'] = df['fuels'].apply(lambda x: re.sub(r'\d+', lambda y: y.group(0).zfill(2), x))

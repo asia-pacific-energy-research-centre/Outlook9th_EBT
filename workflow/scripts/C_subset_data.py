@@ -21,9 +21,9 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     Returns:
         _type_: _description_
     """
-    # interim save
-    interim_path = './data/interim/'
-    os.makedirs(interim_path, exist_ok = True)
+    # temp save
+    temp_path = './data/temp/'
+    os.makedirs(temp_path, exist_ok = True)
 
     if (isinstance(SINGLE_ECONOMY_ID, str)):
         merged_df_clean_wide =merged_df_clean_wide[merged_df_clean_wide['economy'] == SINGLE_ECONOMY_ID].copy()
@@ -212,11 +212,10 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     hyd_subfuels = list(hyd_fuel[(hyd_fuel.str.count('\d') > 2) | (hyd_fuel.str.contains('_x_') == True)])
     hyd_subfuels.append('x')
     # Manually adjust the hyd_fuels list to include '17_x_green_electricity'
+    #append 08_01_natural_gas to hyd_fuels/subfuels
     hyd_fuels.append('17_x_green_electricity')
     hyd_subfuels.remove('17_x_green_electricity')
-
-    # Ensure 'x' is still appended to hyd_subfuels
-    hyd_subfuels.append('x')
+    hyd_subfuels.append('08_01_natural_gas')
 
     hyd_df = sixth_subset[sixth_subset['sub1sectors'].isin(hyd_vector)].copy()
 
@@ -225,15 +224,15 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     hyd_df = hyd_df[(hyd_df['fuels'].isin(hyd_fuels)) & (hyd_df['subfuels'].isin(hyd_subfuels))].copy()
 
     merged_df_clean_wide = pd.concat([seventh_subset, ine_df, trn_df, bld_df, ag_df, pow_df, ref_df, hyd_df]).copy().reset_index(drop = True)
-
-    # Drop rows where 'fuels' is '17_x_green_electricity' and 'sectors' is not '09_total_transformation'
-    condition = (merged_df_clean_wide['fuels'] == '17_x_green_electricity') & (merged_df_clean_wide['sectors'] != '09_total_transformation_sector')
+    
+    # Drop rows where 'fuels' is '17_x_green_electricity' and 'sectors' is not '09_total_transformaiton' or 01_production
+    condition = (merged_df_clean_wide['fuels'] == '17_x_green_electricity') & (~merged_df_clean_wide['sectors'].isin(['09_total_transformation_sector', '01_production', '07_total_primary_energy_supply']))
     merged_df_clean_wide = merged_df_clean_wide[~condition].copy()
     # Set the values in the year columns to 0 only for rows where 'fuels' is '17_x_green_electricity'
     merged_df_clean_wide.loc[merged_df_clean_wide['fuels'] == '17_x_green_electricity', year_list] = 0
 
     ############################################################################################################
-    #TODO WHY DOES THIS NEED TO BE DONE? WHY ARE THEY NOT REQUESTED
+    #TODO WHY DOES THIS NEED TO BE DONE? WHY ARE THEY NOT 'REQUESTED'? does that refer to requested to be modelled by someone? 
     # Now subset and remove transformation data rows that have not been requested as per above
     # I.e. remove all zero and np.nan rows in these categories
     # Level 0
@@ -247,13 +246,10 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
 
     merged_df_clean_wide = pd.concat([split_df, remain_df]).copy()
 
-
     # Level 1
-    subset1 = ['09_03_heat_pumps', '09_04_electric_boilers', '09_05_chemical_heat_for_electricity_production',
-            '09_06_gas_processing_plants', '09_09_petrochemical_industry', '09_11_charcoal_processing', 
+    subset1 = ['09_03_heat_pumps', '09_04_electric_boilers', '09_05_chemical_heat_for_electricity_production', '09_09_petrochemical_industry', '09_11_charcoal_processing', 
             '09_12_nonspecified_transformation', '17_01_transformation_sector', '17_02_industry_sector',
             '17_03_transport_sector', '17_04_other_sector']
-
     split_df = merged_df_clean_wide[merged_df_clean_wide['sub1sectors'].isin(subset1)].copy()
     remain_df = merged_df_clean_wide[~merged_df_clean_wide['sub1sectors'].isin(subset1)].copy()
 
@@ -418,7 +414,7 @@ def subset_data(merged_df_clean_wide,SINGLE_ECONOMY_ID):
     
     # # Calculate '07_total_primary_energy_supply' using updated merged_df_clean_wide
     # new_sectors_for_tpes = ['01_production', '02_imports', '03_exports', '06_stock_changes', '04_international_marine_bunkers', '05_international_aviation_bunkers', '08_transfers', '09_total_transformation_sector', '10_losses_and_own_use', '11_statistical_discrepancy', '14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use']
-    # sector_df = merging_functions.calculate_sector_aggregates(merged_df_clean_wide, new_sectors_for_tpes, '07_total_primary_energy_supply', shared_categories, shared_categories_w_subtotals, MERGE_SUPPLY_RESULTS_OVERRIDE=True)
+    # sector_df = merging_functions.calculate_sector_aggregates(merged_df_clean_wide, new_sectors_for_tpes, '07_total_primary_energy_supply', shared_categories, shared_categories_w_subtotals, MAJOR_SUPPLY_DATA_AVAILABLE_OVERRIDE=True)
     # sector_aggregates_df = pd.concat([sector_aggregates_df, sector_df])
 
     # # Drop '01_production' again from merged_df_clean_wide to avoid duplication
