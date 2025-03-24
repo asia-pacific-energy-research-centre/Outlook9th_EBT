@@ -54,10 +54,14 @@ def handle_statistical_discrepancies_for_transformation_output(group_copy, econo
     # breakpoint()
     OKAY=False
     
-    #first, check if the difference is significant, if not just add it as a discrepancy. else do a check:
-    if abs(extra_supply_from_transformation_output) / abs(total_required) <0.05:
+    #first, check if the difference is significant or its a div by 0 siutation, if not just add it as a discrepancy. else do a check 
+    if total_required == 0:
+        OKAY = False 
+    elif abs(extra_supply_from_transformation_output) / abs(total_required) < 0.05:
         OKAY = True 
     else:
+        OKAY = False
+    if OKAY == False:
         for tuples in SPECIFIED_ALLOWED_STATISTICAL_DISCREPANCIES:
             if tuples[0] == 'ALL':
                 #jsut assume its this econ

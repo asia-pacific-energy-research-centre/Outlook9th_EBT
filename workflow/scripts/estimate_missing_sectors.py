@@ -180,7 +180,7 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
     """
     #      if the ratio is not able to be clacualted then base it off an average of all economies data for this activity.
     all_economies_df, date_id = find_most_recent_file_date_id('results/', RETURN_DATE_ID=True, filename_part = 'model_df_wide_tgt')
-    all_economies_df = pd.read_csv(all_economies_df)
+    all_economies_df = pd.read_csv(os.path.join('results', f'model_df_wide_tgt_{date_id}.csv'))
     df = df.loc[df['economy'] == economy]
     df_copy = df.copy()
     str_OUTLOOK_BASE_YEAR = str(OUTLOOK_BASE_YEAR)

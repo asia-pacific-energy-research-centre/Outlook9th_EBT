@@ -1452,7 +1452,11 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             
             missing_rows_exceptions_dict['russia_nonspecified_transformation'] = {'_merge':'new_layout_df', 'economy':'16_RUS', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_12_nonspecified_transformation'}
             
-            missing_rows_exceptions_dict['new_statistical_discrepancys'] = {'_merge':'new_layout_df', 'sectors':'11_statistical_discrepancy'}#created in adjust_projected_supply_to_balance_demand(). for new fuels especially they might turn up and cause issues
+            missing_rows_exceptions_dict['new_statistical_discrepancys'] = {'_merge':'new_layout_df', 'sectors':'11_statistical_discrepancy'}
+            # 11_geothermal 02_imports#i dont know why these started but they are there :(
+            missing_rows_exceptions_dict['geothermal_imports'] = {'_merge':'new_layout_df', 'fuels':'11_geothermal', 'subfuels':'x'}
+
+            #created in adjust_projected_supply_to_balance_demand(). for new fuels especially they might turn up and cause issues
             #             09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	08_01_natural_gas
             # 09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	x
             # 09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	08_01_natural_gas

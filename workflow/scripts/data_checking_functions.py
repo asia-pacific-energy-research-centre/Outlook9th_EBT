@@ -247,7 +247,7 @@ def double_check_difference_one_year_after_base_year(df_copy, economy, threshold
             yaml.dump(error_dict, file, default_flow_style=False)
         # breakpoint()
         ERROR = True
-        error_text = 'Found big differences in the data. See the error files for details. {diff_csv_path}, {error_yaml_path}'
+        error_text = f'Found big differences in the data. See the error files for details. {diff_csv_path}, {error_yaml_path}'
     else:
         ERROR = False
         error_text = None

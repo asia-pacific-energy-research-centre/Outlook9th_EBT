@@ -210,7 +210,7 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
     # --- Load and prepare base-year layout data ---
     
     all_economies_layout_df = find_most_recent_file_date_id('results/', filename_part='model_df_wide_tgt', RETURN_DATE_ID=False)
-    all_economies_layout_df = pd.read_csv(all_economies_layout_df)
+    all_economies_layout_df = pd.read_csv(os.path.join('results/', all_economies_layout_df))
     #convert all year col names to strs
     all_economies_layout_df.columns = [str(col) for col in all_economies_layout_df.columns]
     all_economies_layout_df = all_economies_layout_df[[str_OUTLOOK_BASE_YEAR] + shared_categories].copy()
