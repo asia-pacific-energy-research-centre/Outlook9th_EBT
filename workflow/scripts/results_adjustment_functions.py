@@ -211,6 +211,8 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
     
     all_economies_layout_df = find_most_recent_file_date_id('results/', filename_part='model_df_wide_tgt', RETURN_DATE_ID=False)
     all_economies_layout_df = pd.read_csv(os.path.join('results/', all_economies_layout_df))
+    #drop where is_subtotal is true
+    all_economies_layout_df = all_economies_layout_df.loc[all_economies_layout_df['is_subtotal'] == False].copy()
     #convert all year col names to strs
     all_economies_layout_df.columns = [str(col) for col in all_economies_layout_df.columns]
     all_economies_layout_df = all_economies_layout_df[[str_OUTLOOK_BASE_YEAR] + shared_categories].copy()
@@ -259,6 +261,7 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
     
     # --- Estimate losses for LNG transformation ---
     # This function returns updated gas_supply and a DataFrame of LNG losses (for all projection years)
+    breakpoint()#why are we estiamting weird subtiotals where gas x is higher than gas lng in fuels subfuels for vn
     lng_losses_projection, gas_trade_base_year = estimate_losses_for_lng_processes(lng_supply, layout_df, base_year_lng_and_gas_all_econs, all_economies_layout_df, gas_supply, str_OUTLOOK_BASE_YEAR, years_to_keep_in_results_str, SINGLE_ECONOMY_ID)
     
     gas_supply_minus_losses = subtract_losses_from_larger_source(gas_supply, lng_losses_projection,years_to_keep_in_results_str)

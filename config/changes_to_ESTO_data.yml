@@ -5,6 +5,7 @@ CHL_lng_losses:
   new_value: -0.477847858
   old_values:
     00APEC_2024_20250219: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 10.1.3 Liquefaction/regasification plants
 - Year: 2022
   economy: 04_CHL
@@ -12,6 +13,7 @@ CHL_lng_losses:
   new_value: -0.228117798
   old_values:
     00APEC_2024_20250219: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 10.1.3 Liquefaction/regasification plants
 INA_NON_ENERGY:
 - Year: 2022
@@ -21,6 +23,7 @@ INA_NON_ENERGY:
   old_values:
     00APEC_2024_20250219: 2832.9837128384647
     00APEC_2024_20250221: 2832.9837128384647
+    00APEC_2024_20250312: 2832.9837128384647
   sectors: 12. Total final consumption
 - Year: 2022
   economy: 07_INA
@@ -29,6 +32,7 @@ INA_NON_ENERGY:
   old_values:
     00APEC_2024_20250219: 0.0
     00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 17. Non-energy use
 - Year: 2022
   economy: 07_INA
@@ -37,6 +41,7 @@ INA_NON_ENERGY:
   old_values:
     00APEC_2024_20250219: 0.0
     00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 12. Total final consumption
 - Year: 2022
   economy: 07_INA
@@ -45,6 +50,7 @@ INA_NON_ENERGY:
   old_values:
     00APEC_2024_20250219: 0.0
     00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 17. Non-energy use
 - Year: 2022
   economy: 07_INA
@@ -53,6 +59,7 @@ INA_NON_ENERGY:
   old_values:
     00APEC_2024_20250219: 0.0
     00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 12. Total final consumption
 - Year: 2022
   economy: 07_INA
@@ -61,6 +68,7 @@ INA_NON_ENERGY:
   old_values:
     00APEC_2024_20250219: 0.0
     00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 17. Non-energy use
 - Year: 2022
   economy: 07_INA
@@ -69,6 +77,7 @@ INA_NON_ENERGY:
   old_values:
     00APEC_2024_20250219: 7292.015968475189
     00APEC_2024_20250221: 7292.015968475189
+    00APEC_2024_20250312: 7292.015968475189
   sectors: 12. Total final consumption
 - Year: 2022
   economy: 07_INA
@@ -77,6 +86,7 @@ INA_NON_ENERGY:
   old_values:
     00APEC_2024_20250219: 265.1196970400045
     00APEC_2024_20250221: 265.1196970400045
+    00APEC_2024_20250312: 265.1196970400045
   sectors: 17. Non-energy use
 THA_OIL_REFINERIES:
 - Year: 2022
@@ -85,6 +95,7 @@ THA_OIL_REFINERIES:
   new_value: 3392.445163
   old_values:
     00APEC_2024_20250221: 3780.0688743649193
+    00APEC_2024_20250312: 3780.0688743649193
   sectors: 12. Total final consumption
 - Year: 2022
   economy: 19_THA
@@ -92,6 +103,7 @@ THA_OIL_REFINERIES:
   new_value: 1911.808042
   old_values:
     00APEC_2024_20250221: 1912.2306158448
+    00APEC_2024_20250312: 1912.2306158448
   sectors: 9. Total transformation sector
 - Year: 2022
   economy: 19_THA
@@ -99,6 +111,7 @@ THA_OIL_REFINERIES:
   new_value: 1705.82448
   old_values:
     00APEC_2024_20250221: 1721.6921236932003
+    00APEC_2024_20250312: 1721.6921236932003
   sectors: 9.7 Oil refineries
 - Year: 2022
   economy: 19_THA
@@ -106,6 +119,7 @@ THA_OIL_REFINERIES:
   new_value: 1361.459834
   old_values:
     00APEC_2024_20250221: 1639.5437917476004
+    00APEC_2024_20250312: 1639.5437917476004
   sectors: 12. Total final consumption
 - Year: 2022
   economy: 19_THA
@@ -113,6 +127,7 @@ THA_OIL_REFINERIES:
   new_value: 408.1346587
   old_values:
     00APEC_2024_20250221: 400.68440509680005
+    00APEC_2024_20250312: 400.68440509680005
   sectors: 17. Non-energy use
 - Year: 2022
   economy: 19_THA
@@ -120,6 +135,7 @@ THA_OIL_REFINERIES:
   new_value: 80.09884938
   old_values:
     00APEC_2024_20250221: 185.42535009120002
+    00APEC_2024_20250312: 185.42535009120002
   sectors: 17. Non-energy use
 - Year: 2022
   economy: 19_THA
@@ -127,6 +143,7 @@ THA_OIL_REFINERIES:
   new_value: 22.94575321
   old_values:
     00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 9. Total transformation sector
 - Year: 2022
   economy: 19_THA
@@ -134,6 +151,7 @@ THA_OIL_REFINERIES:
   new_value: 22.94575321
   old_values:
     00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 9.7 Oil refineries
 - Year: 2022
   economy: 19_THA
@@ -141,6 +159,7 @@ THA_OIL_REFINERIES:
   new_value: 13.39558705
   old_values:
     00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 12. Total final consumption
 - Year: 2022
   economy: 19_THA
@@ -148,6 +167,7 @@ THA_OIL_REFINERIES:
   new_value: 13.39558705
   old_values:
     00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 0.0
   sectors: 17. Non-energy use
 - Year: 2022
   economy: 19_THA
@@ -155,6 +175,7 @@ THA_OIL_REFINERIES:
   new_value: -408.9245927
   old_values:
     00APEC_2024_20250221: -473.19805613520003
+    00APEC_2024_20250312: -473.19805613520003
   sectors: 9.7 Oil refineries
 - Year: 2022
   economy: 19_THA
@@ -162,4 +183,5 @@ THA_OIL_REFINERIES:
   new_value: -1519.234508
   old_values:
     00APEC_2024_20250221: -1550.451700724716
+    00APEC_2024_20250312: -1550.451700724716
   sectors: 9. Total transformation sector

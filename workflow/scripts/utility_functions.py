@@ -271,6 +271,8 @@ def identify_if_major_supply_data_is_available(SINGLE_ECONOMY_ID):
     supply_sectors = ['01_production', '02_imports', '03_exports']
 
     FOUND = False  # Initially assume no file meets the criteria
+    if not isinstance(SINGLE_ECONOMY_ID, str):
+        return
 
     for file in os.listdir(folder_path):
         file_path = os.path.join(folder_path, file)
