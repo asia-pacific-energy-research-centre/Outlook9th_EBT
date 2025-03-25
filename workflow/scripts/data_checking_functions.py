@@ -165,10 +165,10 @@ def double_check_difference_one_year_after_base_year(df_copy, economy, threshold
     
     # Calculate the percentage difference between the two years.
     base_year_df['percent_diff'] = (
-        (base_year_df[base_year_plus_one] - base_year_df[str_OUTLOOK_BASE_YEAR])
-        / base_year_df[str_OUTLOOK_BASE_YEAR]
+        (((base_year_df[base_year_plus_one] - base_year_df[str_OUTLOOK_BASE_YEAR])
+        / base_year_df[str_OUTLOOK_BASE_YEAR])*100).round(0)
     )
-    big_differences = base_year_df[base_year_df['percent_diff'] > threshold]
+    big_differences = base_year_df[base_year_df['percent_diff'] > threshold*100]
     
     # Load expected differences from a YAML file.
     expected_yaml_path = f"config/expected_differences_by_economy_between_{str_OUTLOOK_BASE_YEAR}_{base_year_plus_one}.yaml"
@@ -232,6 +232,10 @@ def double_check_difference_one_year_after_base_year(df_copy, economy, threshold
     big_differences = big_differences.drop(columns = [col for col in big_differences.columns if col.endswith('_total_demand') and col != str_OUTLOOK_BASE_YEAR + '_total_demand' and col != 'portion_of_total_demand'], errors='ignore')
     #and drop subtotal cols
     big_differences = big_differences.drop(columns = ['subtotal_layout',	'subtotal_results'], errors='ignore')
+    
+    #round all of the nuber cols to 1 dp at least
+    cols_to_round = [str_OUTLOOK_BASE_YEAR, base_year_plus_one, 'percent_diff', 'diff', f'{str_OUTLOOK_BASE_YEAR}_total_demand', 'portion_of_total_demand']
+    big_differences[cols_to_round] = big_differences[cols_to_round].round(1)
     #################################
     # If there are any unexpected differences, write them out as YAML.
     if len(error_dict) > 0:

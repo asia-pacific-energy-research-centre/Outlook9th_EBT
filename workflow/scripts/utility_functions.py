@@ -420,9 +420,9 @@ def move_files_by_templates(economy_id, file_templates, base_path="data/modelled
 
 #%%
 # folder_location = '../../'
-# path1 = 'merged_file_energy_19_THA_20250225.csv'#./../results
-# path2 = 'merged_file_energy_19_THA_20250225premerge.csv'#./../results
+# path1 = 'merged_file_energy_05_PRC_20250303.csv'#./../results
+# path2 = 'merged_file_energy_05_PRC_20250317.csv'#./../results
 # output_location = folder_location
-# economy_ids= ['19_THA', '16_RUS', '04_CHL', '5_PRC', '07_INA']
+# economy_ids= ['05_PRC']
 # compare_layout_files_for_latest_year(path1, path2, economy_ids, folder_location, latest_year=2030)
 #%%

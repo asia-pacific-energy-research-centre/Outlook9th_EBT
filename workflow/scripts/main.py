@@ -55,18 +55,17 @@ def main(SINGLE_ECONOMY_ID, ONLY_RUN_UP_TO_MERGING=False):
         
         # Create energy DataFrame
         layout_df = B.create_energy_df(df_no_year_econ_index, SINGLE_ECONOMY_ID)
-        # Subset the data
         
+        # Subset the data
         layout_df = C.subset_data(layout_df, SINGLE_ECONOMY_ID)
         
         if (isinstance(SINGLE_ECONOMY_ID, str)) and not (ONLY_RUN_UP_TO_MERGING):#if we arent using a single economy we dont need to merge
             # Merge the results
-            # layout_df.to_csv('temp.csv', index=False)
-            # breakpoint()
-            # layout_df = pd.read_csv('temp.csv')
             first_merge_df = D.merging_results(layout_df, SINGLE_ECONOMY_ID)
             print('\n ### First merge complete ### \n')
+            
             if utils.MAJOR_SUPPLY_DATA_AVAILABLE:
+                
                 #create newly modelled data using that first merge:
                 estimate_missing_sectors_using_activity_estimates(first_merge_df,SINGLE_ECONOMY_ID, MERGE_ONTO_INPUT_DATA=False,SAVE_OUTPUT_TO_MODELLED_DATA_FOLDER=True)
 
