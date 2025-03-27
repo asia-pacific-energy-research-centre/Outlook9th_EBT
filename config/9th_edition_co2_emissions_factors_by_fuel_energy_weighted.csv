@@ -40,6 +40,7 @@ fuels,subfuels,CO2e emissions factor,Unit,Gas
 15_solid_biomass,15_03_charcoal,0.11199999999999999,Mt/PJ,CARBON DIOXIDE
 15_solid_biomass,15_04_black_liquor,0.0953,Mt/PJ,CARBON DIOXIDE
 15_solid_biomass,15_05_other_biomass,0.1,Mt/PJ,CARBON DIOXIDE
+15_solid_biomass,15_solid_biomass_unallocated,0.1,Mt/PJ,CARBON DIOXIDE
 15_solid_biomass,x,0.11155288116392267,Mt/PJ,CARBON DIOXIDE
 16_others,16_01_biogas,0.05462242767420443,Mt/PJ,CARBON DIOXIDE
 16_others,16_02_industrial_waste,0.143,Mt/PJ,CARBON DIOXIDE
@@ -50,6 +51,7 @@ fuels,subfuels,CO2e emissions factor,Unit,Gas
 16_others,16_07_bio_jet_kerosene,0.07503582464515424,Mt/PJ,CARBON DIOXIDE
 16_others,16_08_other_liquid_biofuels,0.0796,Mt/PJ,CARBON DIOXIDE
 16_others,16_09_other_sources,,Mt/PJ,CARBON DIOXIDE
+16_others,16_others_unallocated,0.143,Mt/PJ,CARBON DIOXIDE
 16_others,16_x_ammonia,,Mt/PJ,CARBON DIOXIDE
 16_others,16_x_efuel,,Mt/PJ,CARBON DIOXIDE
 16_others,16_x_hydrogen,,Mt/PJ,CARBON DIOXIDE

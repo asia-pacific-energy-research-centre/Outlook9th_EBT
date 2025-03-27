@@ -108,7 +108,7 @@ def allocate_problematic_x_rows_to_unallocated(results_df, layout_df, years_to_k
     #add 'is_subtotal' = false to the row:
     new_rows['is_subtotal'] = False
     #double check these new rows are in the layout_df - they shuld be if thy are added in the config, but sometimes they may not be:
-    layout_df_years =[year for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]
+    layout_df_years =[str(year) for year in range(EBT_EARLIEST_YEAR, OUTLOOK_LAST_YEAR+1)]
     similar_cols = [col for col in layout_df.columns if col in new_rows.columns]
     similar_cols_non_years = [col for col in similar_cols if col not in layout_df_years]
     missing_cols = [col for col in layout_df.columns if col not in new_rows.columns]
@@ -261,7 +261,6 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
     
     # --- Estimate losses for LNG transformation ---
     # This function returns updated gas_supply and a DataFrame of LNG losses (for all projection years)
-    breakpoint()#why are we estiamting weird subtiotals where gas x is higher than gas lng in fuels subfuels for vn
     lng_losses_projection, gas_trade_base_year = estimate_losses_for_lng_processes(lng_supply, layout_df, base_year_lng_and_gas_all_econs, all_economies_layout_df, gas_supply, str_OUTLOOK_BASE_YEAR, years_to_keep_in_results_str, SINGLE_ECONOMY_ID)
     
     gas_supply_minus_losses = subtract_losses_from_larger_source(gas_supply, lng_losses_projection,years_to_keep_in_results_str)
@@ -284,7 +283,6 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
     ##################################################################
     
     # --- Estimate pipeline energy use for gas ---
-    
     gas_pipeline_energy_use = estimate_pipeline_energy_use_based_on_gas_imports_production(gas_supply_minus_losses, layout_df, shared_categories, years_to_keep_in_results_str, str_OUTLOOK_BASE_YEAR)
     # Note: Pipeline energy use is added separately since only gas supply data is available for this calculation.
     new_gas_supply = subtract_pipeline_adjustment_from_larger_source(gas_supply_minus_losses,gas_pipeline_energy_use, years_to_keep_in_results_str)
@@ -439,9 +437,26 @@ def estimate_losses_for_lng_processes(lng_supply, layout_df, base_year_lng_and_g
         ((layout_df['sectors'] == '02_imports') | (layout_df['sectors'] == '03_exports')) &
         (layout_df['subfuels'].isin(['08_02_lng', '08_01_natural_gas']))
     ].copy()
-    
+    losses = layout_df[
+        (layout_df['sub2sectors'] == '10_01_03_liquefaction_regasification_plants') &
+        (layout_df['subfuels'].isin(['08_02_lng', '08_01_natural_gas']))
+    ].copy()
     gas_trade_base_year = gas_trade_base_year[['economy', 'scenarios', 'sectors', 'subfuels', str_OUTLOOK_BASE_YEAR]].copy()
     
+    # Check for NO_LOSSES_BASE_YEAR in the sector 10_01_03_liquefaction_regasification_plants
+    if losses.loc[
+            (losses['sub2sectors'] == '10_01_03_liquefaction_regasification_plants'),
+            str_OUTLOOK_BASE_YEAR
+        ].shape[0] > 0:
+        if losses.loc[
+            (losses['sub2sectors'] == '10_01_03_liquefaction_regasification_plants'),
+            str_OUTLOOK_BASE_YEAR
+        ].sum() > 0:
+            NO_LOSSES_BASE_YEAR = False
+        else:
+            NO_LOSSES_BASE_YEAR = True
+    else:
+        NO_LOSSES_BASE_YEAR = True
     #do check for NO_LNG_IMPORTS_BASE_YEAR and NO_LNG_EXPORTS_BASE_YEAR
     if gas_trade_base_year.loc[
             (gas_trade_base_year['subfuels'] == '08_02_lng') & (gas_trade_base_year['sectors'] == '02_imports'),
@@ -457,7 +472,7 @@ def estimate_losses_for_lng_processes(lng_supply, layout_df, base_year_lng_and_g
             else:
                 NO_LNG_IMPORTS_BASE_YEAR = False
         except:
-            breakpoint()
+            breakpoint()#not sure why this is happening
             
     else:
         NO_LNG_IMPORTS_BASE_YEAR = True
@@ -477,7 +492,7 @@ def estimate_losses_for_lng_processes(lng_supply, layout_df, base_year_lng_and_g
         NO_LNG_EXPORTS_BASE_YEAR = True
     # Check if there is valid LNG trade in the base year
     
-    if NO_LNG_IMPORTS_BASE_YEAR and NO_LNG_EXPORTS_BASE_YEAR:
+    if (NO_LNG_IMPORTS_BASE_YEAR and NO_LNG_EXPORTS_BASE_YEAR) | NO_LOSSES_BASE_YEAR:
         BASE_YEAR_LNG_AVAILABLE = False
     else:
         BASE_YEAR_LNG_AVAILABLE = True
@@ -508,7 +523,7 @@ def estimate_losses_for_lng_processes(lng_supply, layout_df, base_year_lng_and_g
     gas_trade_base_year_copy = gas_trade_base_year.copy()
     
     # --- Calculate losses ratio for LNG transformation ---
-    if not BASE_YEAR_LNG_AVAILABLE:
+    if (not BASE_YEAR_LNG_AVAILABLE) | NO_LOSSES_BASE_YEAR:
         # --- Calculate ratio for each economy and average ---
         losses_list = []
         for economy in base_year_lng_and_gas_all_econs['economy'].unique():

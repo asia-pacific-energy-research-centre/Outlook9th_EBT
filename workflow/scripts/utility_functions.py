@@ -266,10 +266,12 @@ def identify_if_major_supply_data_is_available(SINGLE_ECONOMY_ID):
     #this will be used for when we are running the system and need to know if it is at the stage where there is all the input data we need and so we should set utility_funtions.MAJOR_SUPPLY_DATA_AVAILABLE to True. If so, it will check it is already set to True and if not it will raise an error. If it is not at the stage where all the data is available it will check that it is set to False and if not it will raise an error.
     #the telltale sign that supply data is available will be that there is a file in data\modelled_data\{SINGLE_ECONOMY_ID} and in there i a file with rows for 01_production 02_imports 03_exports of 01_coal 06_crude_oil_and_ngl 08_gas in the sectors and fuels columns respectively..
     #this is important because there are many steps that can only be done once we are sure we have all the data we need before finalising the results/running time consuming checking and adjustment funcitons and so on.
+    
+    #NOTE. THIS WILL GET CONFUSED IF ANOTHER DATA RETURN CONTAINS ALL THE ROWS FOR SUPPLY DATA AND AT LEAST ONE OF THOSE ROWS HAS A NON ZERO IN BASE YEAR +1. 
     folder_path = f'./data/modelled_data/{SINGLE_ECONOMY_ID}'
     supply_fuels = ['01_coal', '06_crude_oil_and_ngl', '08_gas']
     supply_sectors = ['01_production', '02_imports', '03_exports']
-
+    
     FOUND = False  # Initially assume no file meets the criteria
     if not isinstance(SINGLE_ECONOMY_ID, str):
         return
@@ -292,21 +294,28 @@ def identify_if_major_supply_data_is_available(SINGLE_ECONOMY_ID):
 
         # Verify that every fuel/sector combination is present in the DataFrame
         all_found = True
+        supply_df = pd.DataFrame()
         for fuel in supply_fuels:
             for sector in supply_sectors:
                 if df[(df['sectors'] == sector) & (df['fuels'] == fuel)].empty:
                     all_found = False
                     break  # Break out of inner loop if a combination is missing
+                else:
+                    supply_df = pd.concat([supply_df, df[(df['sectors'] == sector) & (df['fuels'] == fuel)]])
             if not all_found:
                 break  # Break out of outer loop if a combination is missing
 
         if all_found:
+            #double check that when you sum up the values for OUTLOOK_BASE_YEAR+1, they are not all 0
+            #make all cols strs 
+            supply_df.columns = supply_df.columns.astype(str)
+            if supply_df[str(OUTLOOK_BASE_YEAR + 1)].sum() == 0:
+                breakpoint()
+                raise ValueError(f"Supply data seems to be available but all values for {OUTLOOK_BASE_YEAR + 1} are 0. We dont want to be receiving data with supply values but which are all 0s, whether it is from supply modellers or another model. The file in question is {file_path}")
             FOUND = True
             break  # Stop checking further files as one file meets the criteria
 
     # At this point, FOUND is True if at least one file has all combinations.
-
-
     if FOUND:
         #check that MAJOR_SUPPLY_DATA_AVAILABLE is set to True
         if not MAJOR_SUPPLY_DATA_AVAILABLE:
@@ -328,11 +337,7 @@ def check_russia_base_year(SINGLE_ECONOMY_ID):
     elif SINGLE_ECONOMY_ID != '16_RUS':
         if OUTLOOK_BASE_YEAR == OUTLOOK_BASE_YEAR_RUSSIA:
             raise ValueError('OUTLOOK_BASE_YEAR in utils is equal to OUTLOOK_BASE_YEAR_RUSSIA in utils')
-            
-            
-import os
-import re
-import shutil
+
 
 def move_files_by_templates(economy_id, file_templates, base_path="data/modelled_data"):
     """
@@ -417,8 +422,10 @@ def move_files_by_templates(economy_id, file_templates, base_path="data/modelled
 # ]
 
 # for economy in ALL_ECONOMY_IDS:
+#     if economy not in os.listdir(base_path):
+#         continue
 #     move_files_by_templates(economy, file_templates, base_path)
-# # move_files_by_templates(economy_id, file_templates, base_path)
+# move_files_by_templates(economy_id, file_templates, base_path)
 
 #%%
 # folder_location = '../../'
@@ -428,3 +435,27 @@ def move_files_by_templates(economy_id, file_templates, base_path="data/modelled
 # economy_ids= ['05_PRC']
 # compare_layout_files_for_latest_year(path1, path2, economy_ids, folder_location, latest_year=2030)
 #%%
+
+# #filter out all non agirculture datafrom all garicultre data rweturns:
+# def filter_out_non_agriculture_data_from_agriculture_data(economy):
+#     #search in economy modelled data folder and find the sheet that has agriculture in its file name. then filter out all non agriculture data from it. then save again:
+#     if not os.path.exists(f'../../data/modelled_data/{economy}'):
+#         return
+#     for file in os.listdir(f'../../data/modelled_data/{economy}'):
+#         if 'agriculture' in file or 'Agriculture' in file:
+#             if '.csv' in file:
+#                 agriculture_data = pd.read_csv(f'../../data/modelled_data/{economy}/{file}')
+#             elif '.xlsx' in file:
+#                 raise ValueError('Excel files not supported. cant be sure what is in the other sheets in the file')
+            
+#             #filter out all non agirculture datafrom all garicultre data rweturns:
+#             agriculture_data = agriculture_data[agriculture_data['sub1sectors']=='16_02_agriculture_and_fishing']
+#             #double check there is still data in the file
+#             if agriculture_data.empty:
+#                 raise ValueError('No data in the agriculture file')
+#             agriculture_data.to_csv(f'../../data/modelled_data/{economy}/{file}', index=False)
+#     return
+# #%%
+# for economy in ALL_ECONOMY_IDS:
+#     filter_out_non_agriculture_data_from_agriculture_data(economy)
+# %%
