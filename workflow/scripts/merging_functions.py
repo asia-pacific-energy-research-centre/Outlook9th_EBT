@@ -156,13 +156,32 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
         #ignore where all of the cols in cols_to_sum are 'x'. This is where  the data is at its most detailed level already. We will ignore these rows and tehrefor not create a subtotal for them.
         agg_df = agg_df[~(agg_df[cols_to_sum] == 'x').all(axis=1)].copy()#but what this will do is create duplcates?i think this is the falt of mixing subfuels and subsectors as they are independt. need to trawt them separately
         
-        #and ignore where only one, or less, values are non zero/nan for this group (group_cols), as this is also the most detailed level of data (or there is at least no data to sum up to a subtotal)and so shoudlnt have its values replaced with x'sand be summed up.
-        agg_df_more_than_one_non_zero = melted_df.loc[(melted_df['value'] != 0) & (melted_df['value'].notnull())].copy()
-        agg_df_more_than_one_non_zero = agg_df_more_than_one_non_zero.groupby(group_cols_no_year, as_index=False)['value'].count().reset_index().copy()
-        agg_df_more_than_one_non_zero = agg_df_more_than_one_non_zero[agg_df_more_than_one_non_zero['value'] > 1].copy()
-        agg_df = agg_df.merge(agg_df_more_than_one_non_zero[group_cols_no_year], on=group_cols_no_year, how='left', indicator=True)
+        
+        #note i added the below code on 4/2/2025 as it seemed it was better tan the ither code
+        #and ignore where only one, or less, values are non zero/nan for this group (group_cols), as this is also the most detailed level of data (or there is at least no data to sum up to a subtotal)and so shoudlnt have its values replaced with x'sand be summed up. #please note there is a very small chance this causes issues. i think its if we have a row that has a unique subfuels and sector and is only non zero for one year. This will cause it to be dropped from the df and not included in the subtotal. But this is very unlikely to happen, so we will ignore it for now.
+        # breakpoint()
+        agg_df_more_than_one_non_zero_no_years = melted_df[group_cols_no_year +['value']].groupby(group_cols_no_year, as_index=False).sum().reset_index().copy()
+        agg_df_more_than_one_non_zero_no_years = agg_df_more_than_one_non_zero_no_years.loc[(agg_df_more_than_one_non_zero_no_years['value'] != 0) & (agg_df_more_than_one_non_zero_no_years['value'].notnull())].copy()
+        agg_df_more_than_one_non_zero_no_years = agg_df_more_than_one_non_zero_no_years.groupby(group_cols_no_year, as_index=False)['value'].count().reset_index().copy()
+        
+        agg_df_more_than_one_non_zero_no_years = agg_df_more_than_one_non_zero_no_years[agg_df_more_than_one_non_zero_no_years['value'] != 0].copy()
+        agg_df = agg_df.merge(agg_df_more_than_one_non_zero_no_years[group_cols_no_year], on=group_cols_no_year, how='left', indicator=True)
         agg_df = agg_df[agg_df['_merge'] == 'both'].copy()
         agg_df.drop(columns=['_merge'], inplace=True)       
+        
+        #identify if 15_03_01_passenger or 15_03_02_freight are in sub2sectors, if so
+
+        # # #join that to the melted df and remove where there is no match. This will stop the effect of years? nah?
+        
+        #note i removed the below code on 4/2/2025 as it seemed the above code was better
+        # agg_df_more_than_one_non_zero_no_years = melted_df.loc[(melted_df['value'] != 0) & (melted_df['value'].notnull())].copy()
+        # agg_df_more_than_one_non_zero = melted_df.loc[(melted_df['value'] != 0) & (melted_df['value'].notnull())].copy()
+        # agg_df_more_than_one_non_zero = agg_df_more_than_one_non_zero.groupby(group_cols_no_year, as_index=False)['value'].count().reset_index().copy()
+        # # agg_df_one_non_zero = agg_df_more_than_one_non_zero.loc[agg_df_more_than_one_non_zero['value'] == 1].copy()#unlikely. maybe we should be searching for only 1 or more non zeros? #inore me if you unvcomment the others, its not useful.. just conisdering if we can do ==1 instead of >1
+        # agg_df_more_than_one_non_zero = agg_df_more_than_one_non_zero[agg_df_more_than_one_non_zero['value'] > 1].copy()
+        # agg_df = agg_df.merge(agg_df_more_than_one_non_zero[group_cols_no_year], on=group_cols_no_year, how='left', indicator=True)
+        # agg_df = agg_df[agg_df['_merge'] == 'both'].copy()
+        # agg_df.drop(columns=['_merge'], inplace=True)       
         
         # agg_df = agg_df[~(agg_df[cols_to_sum] == 'x').any(axis=1)].copy()#i think this is causeing us to drop allpossible rows to gruop by. resultuiing in no new subtotals being created. TODO: investigate this.
         agg_df = agg_df.groupby(group_cols, as_index=False)['value'].sum().copy()
@@ -207,18 +226,29 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     # melted_df = melted_df[melted_df['subfuels'] != '12_x_other_solar']
 
     # Save the dataframe before subtotal calculations
-    melted_df.to_csv('melted_df_before_subtotals.csv', index=False)
+    # melted_df.to_csv('melted_df_before_subtotals.csv', index=False)
 
     # Process the DataFrame with each cols_to_sum combination so you get a subtotal calculated for every level of detail.
+    
+    # if DATAFRAME_ORIGIN =='layout':#to do with hkc inudstry
+    #     #we're going to filter for only the industry sector and petrolum pridycts aso that investigating isssues is easyuer.
+    #     melted_df = melted_df[(melted_df['sectors'] == '14_industry_sector') & (melted_df['fuels'] == '07_petroleum_products')].copy()
+        
     for cols_to_sum in sets_of_cols_to_sum:
+        # if DATAFRAME_ORIGIN =='layout':#to do with hkc inudstry
+        #     breakpoint()
+        # if cols_to_sum == ['sub3sectors', 'sub4sectors']:
+        #     breakpoint()#why do we lose the jet fuel row here?
         subtotalled_results = pd.concat([subtotalled_results,calculate_subtotal_for_columns(melted_df, cols_to_sum)], ignore_index=True)
+    # if DATAFRAME_ORIGIN =='layout':#to do with hkc inudstry
+    #     breakpoint()
     #then run it to calauclte a subtotl of each group, including the new subtotals for subsectors, where the subfuel is x. 
     subtotalled_results = pd.concat([subtotalled_results,calculate_subtotal_for_columns(pd.concat([subtotalled_results,melted_df]), ['subfuels'])], ignore_index=True)
     
     # Fill 'x' for the aggregated levels as they will just be nas
     for col in sets_of_cols_to_sum[-1]:
         # Save the dataframe to CSV for inspection
-        subtotalled_results.to_csv('subtotalled_results.csv', index=False)
+        # subtotalled_results.to_csv('subtotalled_results.csv', index=False)
 
         #check for nas
         if subtotalled_results[col].isna().any():
@@ -255,6 +285,8 @@ def calculate_subtotals(df, shared_categories, DATAFRAME_ORIGIN):
     ###################
     
     #now merge with the original df with subtotals. Fristly, we will idenitfy where subtotals dont calacualte to the same vlaue. If the input is a results df then assume its an error. If the input is a layout df then assume that what was originally labelled as a subtotal is in fact a value that wasnt able to be disaggregated. For these values, keep the original, dont calcualte the subtotal and relabel it as not a subtotal.
+    # if DATAFRAME_ORIGIN =='layout':#to do with hkc inudstry
+    #     breakpoint() #is it here? layout_df.loc[(layout_df['sectors'] == '14_industry_sector') & (layout_df['sub1sectors'] == 'x') & (layout_df['fuels'] == '07_petroleum_products') & (layout_df['subfuels'] == 'x')]
     EPSILON_PERCENT = 0.01
     merged_data = melted_df_with_subtotals.merge(subtotalled_results, on=shared_categories+['year'], how='outer', suffixes=('', '_new_subtotal'), indicator=True)
     #check where the values are different:

@@ -1,0 +1,691 @@
+
+SGP_data_centres:
+- Year: 2007
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 1.481
+  old_values:
+    00APEC_2024_20250312: .nan
+  sectors: 16.1.4 Traditional data centres
+- Year: 2008
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 3.004
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2009
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 4.518
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2010
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 6.68
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2011
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 8.28
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2012
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 10.14
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2013
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 10.362
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2014
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 10.668
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2015
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 10.89
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2016
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 11.16
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2017
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 11.316
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2018
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 11.484
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2019
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 11.766
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2020
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 11.538
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2021
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 12.174
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2022
+  economy: 17_SGP
+  fuels: 17 Electricity
+  insert_new_row: true
+  new_value: 12.39
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 16.1.4 Traditional data centres
+- Year: 2007
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 38.13
+  old_values:
+    00APEC_2024_20250312: 52.27416000857297
+  sectors: 16.1 Commercial and public services
+- Year: 2008
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 39.71
+  old_values:
+    00APEC_2024_20250312: 54.01656000885872
+  sectors: 16.1 Commercial and public services
+- Year: 2009
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 41.93
+  old_values:
+    00APEC_2024_20250312: 53.280360008737986
+  sectors: 16.1 Commercial and public services
+- Year: 2010
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 41.1
+  old_values:
+    00APEC_2024_20250312: 55.69092000913332
+  sectors: 16.1 Commercial and public services
+- Year: 2011
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 42.6
+  old_values:
+    00APEC_2024_20250312: 57.15468000937337
+  sectors: 16.1 Commercial and public services
+- Year: 2012
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 47.07
+  old_values:
+    00APEC_2024_20250312: 58.91796000966255
+  sectors: 16.1 Commercial and public services
+- Year: 2013
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 49.63
+  old_values:
+    00APEC_2024_20250312: 60.18696000987066
+  sectors: 16.1 Commercial and public services
+- Year: 2014
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 50.79
+  old_values:
+    00APEC_2024_20250312: 61.36776001006431
+  sectors: 16.1 Commercial and public services
+- Year: 2015
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 51.01
+  old_values:
+    00APEC_2024_20250312: 62.931600010320786
+  sectors: 16.1 Commercial and public services
+- Year: 2016
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 48.76
+  old_values:
+    00APEC_2024_20250312: 63.71856001044984
+  sectors: 16.1 Commercial and public services
+- Year: 2017
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 49.01
+  old_values:
+    00APEC_2024_20250312: 65.01600001066262
+  sectors: 16.1 Commercial and public services
+- Year: 2018
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 48.87
+  old_values:
+    00APEC_2024_20250312: 66.90168001097187
+  sectors: 16.1 Commercial and public services
+- Year: 2019
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 48.78
+  old_values:
+    00APEC_2024_20250312: 69.54804001140589
+  sectors: 16.1 Commercial and public services
+- Year: 2020
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 49.82
+  old_values:
+    00APEC_2024_20250312: 66.66336001093279
+  sectors: 16.1 Commercial and public services
+- Year: 2021
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 50.7
+  old_values:
+    00APEC_2024_20250312: 71.41356001171182
+  sectors: 16.1 Commercial and public services
+- Year: 2022
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 52.04
+  old_values:
+    00APEC_2024_20250312: 76.27428001250898
+  sectors: 16.1 Commercial and public services
+SINGAPORE_SUBTOTALS:
+- Year: 2007
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 97.49437
+  old_values:
+    00APEC_2024_20250312: 58.59622800857301
+  sectors: 16.1 Commercial and public services
+- Year: 2008
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 101.94
+  old_values:
+    00APEC_2024_20250312: 60.63170400885877
+  sectors: 16.1 Commercial and public services
+- Year: 2009
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 109.388
+  old_values:
+    00APEC_2024_20250312: 59.93753508912568
+  sectors: 16.1 Commercial and public services
+- Year: 2010
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 112.6634
+  old_values:
+    00APEC_2024_20250312: 62.84312211203499
+  sectors: 16.1 Commercial and public services
+- Year: 2011
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 116.3501
+  old_values:
+    00APEC_2024_20250312: 63.854298400491686
+  sectors: 16.1 Commercial and public services
+- Year: 2012
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 126.6234
+  old_values:
+    00APEC_2024_20250312: 65.56174585130744
+  sectors: 16.1 Commercial and public services
+- Year: 2013
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 132.1659
+  old_values:
+    00APEC_2024_20250312: 67.96239921869545
+  sectors: 16.1 Commercial and public services
+- Year: 2014
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 134.8745
+  old_values:
+    00APEC_2024_20250312: 68.39352947507247
+  sectors: 16.1 Commercial and public services
+- Year: 2015
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 137.2151
+  old_values:
+    00APEC_2024_20250312: 70.05024477502407
+  sectors: 16.1 Commercial and public services
+- Year: 2016
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 136.2443
+  old_values:
+    00APEC_2024_20250312: 70.89250068442301
+  sectors: 16.1 Commercial and public services
+- Year: 2017
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 135.1393
+  old_values:
+    00APEC_2024_20250312: 71.93060803227233
+  sectors: 16.1 Commercial and public services
+- Year: 2018
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 134.857
+  old_values:
+    00APEC_2024_20250312: 73.74749519607586
+  sectors: 16.1 Commercial and public services
+- Year: 2019
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 137.4604
+  old_values:
+    00APEC_2024_20250312: 76.23952057614521
+  sectors: 16.1 Commercial and public services
+- Year: 2020
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 141.7659
+  old_values:
+    00APEC_2024_20250312: 72.92236588216166
+  sectors: 16.1 Commercial and public services
+- Year: 2021
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 144.3952
+  old_values:
+    00APEC_2024_20250312: 78.10824257712584
+  sectors: 16.1 Commercial and public services
+- Year: 2022
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 144.7712
+  old_values:
+    00APEC_2024_20250312: 83.26103482621484
+  sectors: 16.1 Commercial and public services
+- Year: 2007
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 144.5272
+  old_values:
+    00APEC_2024_20250312: 85.89852001250817
+  sectors: 16 Other sector
+- Year: 2008
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 149.5627
+  old_values:
+    00APEC_2024_20250312: 87.56690401272687
+  sectors: 16 Other sector
+- Year: 2009
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 155.5312
+  old_values:
+    00APEC_2024_20250312: 87.93537906836684
+  sectors: 16 Other sector
+- Year: 2010
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 161.8441
+  old_values:
+    00APEC_2024_20250312: 91.31787185778012
+  sectors: 16 Other sector
+- Year: 2011
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 165.7613
+  old_values:
+    00APEC_2024_20250312: 91.8200227405237
+  sectors: 16 Other sector
+- Year: 2012
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 175.597
+  old_values:
+    00APEC_2024_20250312: 93.92872479100103
+  sectors: 16 Other sector
+- Year: 2013
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 181.0023
+  old_values:
+    00APEC_2024_20250312: 96.88764296363911
+  sectors: 16 Other sector
+- Year: 2014
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 184.2538
+  old_values:
+    00APEC_2024_20250312: 97.77776730530101
+  sectors: 16 Other sector
+- Year: 2015
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 189.1877
+  old_values:
+    00APEC_2024_20250312: 100.75864592385211
+  sectors: 16 Other sector
+- Year: 2016
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 190.8038
+  old_values:
+    00APEC_2024_20250312: 102.94630133226703
+  sectors: 16 Other sector
+- Year: 2017
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 190.3163
+  old_values:
+    00APEC_2024_20250312: 102.9268513139396
+  sectors: 16 Other sector
+- Year: 2018
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 191.8163
+  old_values:
+    00APEC_2024_20250312: 104.57819179729793
+  sectors: 16 Other sector
+- Year: 2019
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 197.8521
+  old_values:
+    00APEC_2024_20250312: 108.56323813602602
+  sectors: 16 Other sector
+- Year: 2020
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 199.6611
+  old_values:
+    00APEC_2024_20250312: 107.71321436436465
+  sectors: 16 Other sector
+- Year: 2021
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 206.6049
+  old_values:
+    00APEC_2024_20250312: 112.81330556854931
+  sectors: 16 Other sector
+- Year: 2022
+  economy: 17_SGP
+  fuels: 19 Total
+  new_value: 210.3075
+  old_values:
+    00APEC_2024_20250312: 116.26222034459947
+  sectors: 16 Other sector
+- Year: 2007
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 77.74988
+  old_values:
+    00APEC_2024_20250312: 76.2688800125081
+  sectors: 16 Other sector
+- Year: 2008
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 80.60632
+  old_values:
+    00APEC_2024_20250312: 77.60232001272678
+  sectors: 16 Other sector
+- Year: 2009
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 82.43928
+  old_values:
+    00APEC_2024_20250312: 77.9212800127791
+  sectors: 16 Other sector
+- Year: 2010
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 87.6458
+  old_values:
+    00APEC_2024_20250312: 80.96580001327841
+  sectors: 16 Other sector
+- Year: 2011
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 90.0198
+  old_values:
+    00APEC_2024_20250312: 81.73980001340534
+  sectors: 16 Other sector
+- Year: 2012
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 94.01856
+  old_values:
+    00APEC_2024_20250312: 83.87856001375609
+  sectors: 16 Other sector
+- Year: 2013
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 10.362
+  old_values:
+    00APEC_2024_20250312: 85.45284001401427
+  sectors: 16 Other sector
+- Year: 2014
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 10.668
+  old_values:
+    00APEC_2024_20250312: 87.1513200142928
+  sectors: 16 Other sector
+- Year: 2015
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 100.8216
+  old_values:
+    00APEC_2024_20250312: 89.93160001474878
+  sectors: 16 Other sector
+- Year: 2016
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 103.1954
+  old_values:
+    00APEC_2024_20250312: 92.03544001509381
+  sectors: 16 Other sector
+- Year: 2017
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 103.571
+  old_values:
+    00APEC_2024_20250312: 92.25504001512984
+  sectors: 16 Other sector
+- Year: 2018
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 105.3493
+  old_values:
+    00APEC_2024_20250312: 93.86532001539392
+  sectors: 16 Other sector
+- Year: 2019
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 109.8552
+  old_values:
+    00APEC_2024_20250312: 98.08920001608664
+  sectors: 16 Other sector
+- Year: 2020
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 108.707
+  old_values:
+    00APEC_2024_20250312: 97.16904001593574
+  sectors: 16 Other sector
+- Year: 2021
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 114.2182
+  old_values:
+    00APEC_2024_20250312: 102.04416001673525
+  sectors: 16 Other sector
+- Year: 2022
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 117.8387
+  old_values:
+    00APEC_2024_20250312: 105.44868001729358
+  sectors: 16 Other sector
+- Year: 2007
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 61.80032
+  old_values:
+    00APEC_2024_20250312: 38.13
+  sectors: 16.1 Commercial and public services
+- Year: 2008
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 64.6524
+  old_values:
+    00APEC_2024_20250312: 39.71
+  sectors: 16.1 Commercial and public services
+- Year: 2009
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 69.59888
+  old_values:
+    00APEC_2024_20250312: 41.93
+  sectors: 16.1 Commercial and public services
+- Year: 2010
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 71.6696
+  old_values:
+    00APEC_2024_20250312: 41.1
+  sectors: 16.1 Commercial and public services
+- Year: 2011
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 74.2172
+  old_values:
+    00APEC_2024_20250312: 42.6
+  sectors: 16.1 Commercial and public services
+- Year: 2012
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 81.0762
+  old_values:
+    00APEC_2024_20250312: 47.07
+  sectors: 16.1 Commercial and public services
+- Year: 2013
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 84.30964
+  old_values:
+    00APEC_2024_20250312: 49.63
+  sectors: 16.1 Commercial and public services
+- Year: 2014
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 86.38584
+  old_values:
+    00APEC_2024_20250312: 50.79
+  sectors: 16.1 Commercial and public services
+- Year: 2015
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 87.89524
+  old_values:
+    00APEC_2024_20250312: 51.01
+  sectors: 16.1 Commercial and public services
+- Year: 2016
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 87.22888
+  old_values:
+    00APEC_2024_20250312: 48.76
+  sectors: 16.1 Commercial and public services
+- Year: 2017
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 86.56964
+  old_values:
+    00APEC_2024_20250312: 49.01
+  sectors: 16.1 Commercial and public services
+- Year: 2018
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 86.3874
+  old_values:
+    00APEC_2024_20250312: 48.87
+  sectors: 16.1 Commercial and public services
+- Year: 2019
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 88.19868
+  old_values:
+    00APEC_2024_20250312: 48.78
+  sectors: 16.1 Commercial and public services
+- Year: 2020
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 91.0382
+  old_values:
+    00APEC_2024_20250312: 49.82
+  sectors: 16.1 Commercial and public services
+- Year: 2021
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 92.67372
+  old_values:
+    00APEC_2024_20250312: 50.7
+  sectors: 16.1 Commercial and public services
+- Year: 2022
+  economy: 17_SGP
+  fuels: 17 Electricity
+  new_value: 92.9096
+  old_values:
+    00APEC_2024_20250312: 52.04
+  sectors: 16.1 Commercial and public services

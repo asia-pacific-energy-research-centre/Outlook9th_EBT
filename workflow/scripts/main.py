@@ -13,7 +13,7 @@ import merging_functions
 import workflow.scripts.minor_fuel_supply_modelling as minor_fuel_supply_modelling
 
 from estimate_missing_sectors import estimate_missing_sectors_using_activity_estimates
-from final_data_adjustment_functions import adjust_projected_supply_to_balance_demand
+from final_data_adjustment_functions import adjust_projected_supply_to_balance_demand, make_manual_changes_to_rows
 from data_checking_functions import double_check_difference_one_year_after_base_year, check_for_negatives_or_postives_in_wrong_sectors
 
 from datetime import datetime
@@ -41,7 +41,6 @@ def main(SINGLE_ECONOMY_ID, ONLY_RUN_UP_TO_MERGING=False):
     """
     # Set the working directory
     utils.set_working_directory()
-    utils.identify_if_major_supply_data_is_available(SINGLE_ECONOMY_ID)
     utils.check_russia_base_year(SINGLE_ECONOMY_ID)
     
     # Check if SINGLE_ECONOMY_ID is in utils.AGGREGATE_ECONOMIES
@@ -50,27 +49,37 @@ def main(SINGLE_ECONOMY_ID, ONLY_RUN_UP_TO_MERGING=False):
         G.aggregate_economies(SINGLE_ECONOMY_ID)
         return None, None, None, None
     else:
+        
+        utils.identify_if_major_supply_data_is_available(SINGLE_ECONOMY_ID)
+        
         # Perform initial read and save
         df_no_year_econ_index = A.initial_read_and_save(SINGLE_ECONOMY_ID) 
         
         # Create energy DataFrame
         layout_df = B.create_energy_df(df_no_year_econ_index, SINGLE_ECONOMY_ID)
-        
+        # breakpoint()
         # Subset the data
         layout_df = C.subset_data(layout_df, SINGLE_ECONOMY_ID)
-        
+        # breakpoint()
         if (isinstance(SINGLE_ECONOMY_ID, str)) and not (ONLY_RUN_UP_TO_MERGING):#if we arent using a single economy we dont need to merge
             # Merge the results
             first_merge_df = D.merging_results(layout_df, SINGLE_ECONOMY_ID)
             print('\n ### First merge complete ### \n')
-            breakpoint()
+            
+            #########
+            #NOTE TESTING PUTTING THIS HERE TO TRY ESTIMATE MISTING SECTORS WHERE WE CAN AS SOON AS THE DATA IS AVAILABLE. THIS WAY THE TRANSFOMATION SECTORS CAN GET THE DATA THEY NEED EARLIER IN THE PIPELINE.
+            estimate_missing_sectors_using_activity_estimates(first_merge_df,SINGLE_ECONOMY_ID, MERGE_ONTO_INPUT_DATA=False,SAVE_OUTPUT_TO_MODELLED_DATA_FOLDER=True)
+        
+            #run merging again now that we've created new modelled files in the modelled data folder
+            second_merge_df = D.merging_results(layout_df, SINGLE_ECONOMY_ID)
+            #########
             if utils.MAJOR_SUPPLY_DATA_AVAILABLE:
                 
-                #create newly modelled data using that first merge:
-                estimate_missing_sectors_using_activity_estimates(first_merge_df,SINGLE_ECONOMY_ID, MERGE_ONTO_INPUT_DATA=False,SAVE_OUTPUT_TO_MODELLED_DATA_FOLDER=True)
+                # #create newly modelled data using that first merge:
+                # estimate_missing_sectors_using_activity_estimates(first_merge_df,SINGLE_ECONOMY_ID, MERGE_ONTO_INPUT_DATA=False,SAVE_OUTPUT_TO_MODELLED_DATA_FOLDER=True)
 
-                #run merging again now that we've created new modelled files in the modelled data folder
-                second_merge_df = D.merging_results(layout_df, SINGLE_ECONOMY_ID)
+                # #run merging again now that we've created new modelled files in the modelled data folder
+                # second_merge_df = D.merging_results(layout_df, SINGLE_ECONOMY_ID)
                 
                 #important to run this after merging new sector estiamtes in case they include new demands or transformation outputs.
                 minor_fuel_supply_modelling.minor_fuels_supply_and_transformation_handler(SINGLE_ECONOMY_ID, second_merge_df, PLOT = True, CREATE_MARS_EXAMPLE=False)
@@ -86,6 +95,9 @@ def main(SINGLE_ECONOMY_ID, ONLY_RUN_UP_TO_MERGING=False):
                 
                 # utils.compare_values_in_final_energy_dfs(old_final_energy_df, final_energy_df)
                 print('Done running supply component repo functions and merging_results \n################################################\n')
+                
+                for scenario in final_energy_df.scenarios.unique():
+                    final_energy_df = make_manual_changes_to_rows(final_energy_df, SINGLE_ECONOMY_ID, scenario)
                 
                 if utils.CHECK_DATA:
                     print('Running data checks \n################################################\n')
@@ -106,6 +118,11 @@ def main(SINGLE_ECONOMY_ID, ONLY_RUN_UP_TO_MERGING=False):
                         print('Errors found in data checks but ERRORS_DAIJOUBU: {} \n {}'.format(error_text1, error_text2))
                     print('Done running data checks \n################################################\n')
             else:
+                #calc emissions:
+                emissions_df = E.calculate_emissions(first_merge_df,SINGLE_ECONOMY_ID)
+                #calc capacity
+                capacity_df = F.incorporate_capacity_data(first_merge_df,SINGLE_ECONOMY_ID)
+                
                 return first_merge_df, None, None, layout_df
         else:
             return None, None, None, layout_df
@@ -113,17 +130,20 @@ def main(SINGLE_ECONOMY_ID, ONLY_RUN_UP_TO_MERGING=False):
     return final_energy_df, emissions_df, capacity_df, layout_df
 #%%
 # Run the main function and store the result
+RUSSIA = ['16_RUS']
+COMPLETED = ['18_CT', '09_ROK', '02_BD', '15_PHL', '10_MAS', '21_VN','01_AUS']
+TRANSFORMATION = ['12_NZ', '13_PNG', '14_PE','04_CHL','08_JPN', '17_SGP','19_THA', '20_USA','03_CDA']# '03_CDA'
+DEMAND = []
+SUPPLY = ['05_PRC', '06_HKC', '07_INA', '11_MEX']
+# CURRENT = ['13_PNG']
 FOUND=False
 if __name__ == "__main__":#"03_CDA","05_PRC","07_INA","11_MEX","18_CT","19_THA", 
-    for economy in ["09_ROK"]:#['01_AUS', "02_BD", "09_ROK", "10_MAS",   "15_PHL",  "21_VN"]:#['01_AUS', "02_BD", "15_PHL", "18_CT","21_VN"]:# utils.AGGREGATE_ECONOMIES:#['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC '09_ROK', '02_BD',  '15_PHL'
-            #     if economy == '05_PRC':
-            #         FOUND = True
-            #     elif not FOUND:
-            #         continue
-            # '01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC' 
-        # try:
-        final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID=economy)#'09_ROK')#'21_VN')#'01_AUS')#'16_RUS')#economy)#'00_APEC')#economy)
-    # "03_CDA","05_PRC","07_INA","11_MEX","18_CT","19_THA", "20_USA", #tehse econs need to not hae merged supply data yet
+    for economy in [  '14_PE']:#[ '14_PE','04_CHL','08_JPN', '17_SGP','19_THA', '20_USA','03_CDA''17_SGP',]+SUPPLY:#['00_APEC', '22_SEA', '23_NEA', '23b_ONEA', '24_OAM', '25_OCE', '24b_OOAM', '26_NA'] + SUPPLY + TRANSFORMATION:# ['20_USA', '19_THA', '07_INA','03_CDA']:#['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC '09_ROK', '02_BD',  '15_PHL' "10_MAS", '08_JPN', '17_SGP','19_THA', '20_USA', '20_USA',['15_PHL', '10_MAS', '21_VN','01_AUS']+'03_CDA', '08_JPN',
+        final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID=economy)
 #%%
 #"06_HKC",'04_CHL' - seemed it could be because we need to just base iput data for moelling offnew data. 
+# %%
+#todo:
+#mexico, indonesia, '02_BD'
+
 # %%

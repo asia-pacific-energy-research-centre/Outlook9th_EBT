@@ -49,9 +49,9 @@ acitvity_to_missing_sectors_dict = {
     # 'biofuels_processing': {
     #     'sub1sectors': ['09_10_biofuels_processing']
     # },
-    # 'charcoal_processing': {
-    #     'sub1sectors': ['09_11_charcoal_processing']
-    # },
+    'charcoal_processing': {
+        'sub1sectors': ['09_11_charcoal_processing']#after a bit of deliberation i decded to include this, even though we estiamte charcoal production in the minor fuel supply modelling system based on demand. The problem is that we still need that, but also having this is more accurate. I expect that doubel ups will get rmoved by the supply balancing system anyway. one issue is that its proxy is just total charcoal demand. but i thinkt hat should be ok given modellers continue to project that.
+    },
     'charcoal_processing_losses': {
         'sub2sectors': ['10_01_15_charcoal_production_plants']#to avoid losing losses from demand we will contineu to estiamte thse, but since transfomration supply is just a bit difficult and satisfied by production, we wont do that.
     },
@@ -94,13 +94,13 @@ acitvity_to_missing_sectors_dict = {
         'sub2sectors': ['10_01_17_nonspecified_own_uses']
     },
     'nonspecified_others': {
-        'sectors': ['16_05_nonspecified_others']
+        'sub1sectors': ['16_05_nonspecified_others']
     },
     # 'pipeline_transport': {
     #     'sub1sectors': ['15_05_pipeline_transport']
     # },
     'nonspecified_transport': {
-        'sectors': ['15_06_nonspecified_transport']
+        'sub1sectors': ['15_06_nonspecified_transport']
     }
 }
 
@@ -124,12 +124,13 @@ acitvity_to_missing_sectors_dict = {
 activity_to_proxies_dict = {
     'gas_works': {'subfuels': ['08_03_gas_works_gas']},
     # 'losses_from_lng_liquefaction_gasification': {'fuels': ['08_gas'], 'sub2sectors': ['09_06_02_liquefaction_regasification_plants']},#note that for oecd coutnries we dont have historical splits between lng and nautral gas for imports/exports as well as any data on 09_06_02_liquefaction_regasification_plants. hwoever since this script will default to an avg of all economies if one economy's data is missing we can still use this script to project the future energy use for this sector.the issue is though, that these economies DO have dataon losses in this sector.. but im sure the difference wont be too major and it shoudlget caught in the error checking if ti is
+    
     'oil_and_gas_extraction': {'sectors': ['01_production'], 'fuels': ['08_gas', '06_crude_oil_and_ngl']},
     'petrochemical_industry': {'sub2sectors': ['14_03_02_chemical_incl_petrochemical']},
     # 'biofuels_processing': {'subfuels': ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene',
     #                                       '16_08_other_liquid_biofuels', '15_01_fuelwood_and_woodwaste',
     #                                       '15_02_bagasse', '15_04_black_liquor', '15_05_other_biomass']},
-    # 'charcoal_processing': {'subfuels': ['15_03_charcoal']},
+    'charcoal_processing': {'subfuels': ['15_03_charcoal']},
     'charcoal_processing_losses': {'subfuels': ['15_03_charcoal']},
     'electric_boilers': {None},  # No proxy needed; assumed to be projected elsewhere.
     'coal_transformation_own_use': {'sub1sectors': ['09_08_coal_transformation'], 'fuels': ['01_coal', '02_coal_products']},
@@ -143,11 +144,49 @@ activity_to_proxies_dict = {
     'nonspecified_transformation': {'sectors': ['09_total_transformation_sector']},
     'nonspecified_own_uses': {'sub1sectors': ['10_01_own_use']},
     'nonspecified_others': {'sectors': ['16_other_sector']},
-    # 'pipeline_transport': {'sectors': ['01_production'], 'subfuels': ['08_01_natural_gas']},
     'nonspecified_transport': {'sectors': ['15_transport_sector']}
+    # 'pipeline_transport': {'sectors': ['01_production'], 'subfuels': ['08_01_natural_gas']},
 }
 
-# =============================================================================
+
+###################
+#since russia is a bit special we will do some specifics separatey here:
+russia_changes_to_activity_to_proxies_dict = { 
+    'nonspecified_transformation': {'sectors': ['12_total_final_consumption'], 'subfuels': ['08_01_natural_gas']},
+    'nonspecified_own_uses': {'sectors': ['12_total_final_consumption'], 'subfuels':['07_09_lpg', '07_08_fuel_oil']},#all data is for these combinations so we just want to base it off total demand for these fuels in the sub1sectors.
+}
+canada_heat_activity = {
+    'canada_heat': {'sectors': ['19_heat_output_in_pj']}
+}
+canada_heat_activity_proxy = {
+    'canada_heat': {'fuels': ['18_heat']}
+}
+
+
+#################################
+#BRUNEI
+# hey found an issue in coal for the autoproducer (electricity plant used exclusively by a plant) from the oil refinery (hengyi). Bascially we were accidentally recategorising coal use in 10_01_11_oil_refineries (own use) as electricity generation inputs and tehn not projecting the smaller actual electricity gneration inputs. 
+ 
+# see cahrt below for example (TGT)
+# intended (i did a quick projection of power inputs based on ratio in base year): 
+# actual:
+ 
+# This wil look weird in the charts so we will need to do soemthing about it. It will also mean tehre is extra ~20pj of coal imports in/around 2030 and onwards. 
+# We will also need to fix the fuel consumption in power sector (but not generation since that is correct) so there is no increase in 2023 due to miscategorisation as well as setting the increase in ~2025 to be the amount used by pwoer sector (blue) in chart 1 above rather than own use (black). 
+ 
+# I've built a system into the EBT code for post hoc changes like tehse which i think is suited to this problem, so hopefully wont cause extra work for anyone else, and only a mniimal amount for me. 
+ 
+# may pay to double check the ratio between coal demand for coal generation and coal genration stays the same too.. 
+ 
+# Anyway just a quick note for later!
+# bd_coal_own_use_for_oil_refineries_activity = {
+#     'bd_coal_own_use_for_oil_refineries': {'fuels': ['01_coal'], 'sub2sectors': ['10_01_11_oil_refineries']}
+# }
+# bd_coal_own_use_for_oil_refineries_proxy = {
+#     'bd_coal_own_use_for_oil_refineries': {'fuels': ['01_coal'], 'sectors': ['18_electricity_output_in_gwh']}
+# }#todo take away the extra coal use from this fro the bd power coal use. Also note that this depends on the assumption that the only coal power producer is associated with the refinery where a portion of that heat form that power is used for own use in the refinery. without this assumption we would have to think hard about what it could be based on, as it isnt clear there is any other proxy, i think.
+#################################
+#=============================================================================
 # Function: def estimate_missing_sectors_using_activity_estimates(df, 
 
 # =============================================================================
@@ -178,9 +217,26 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
       pd.DataFrame: A modified DataFrame with projected energy use for the activities, where the projections
                     replace the original data in the future years.
     """
+    #######temp. if we get too many of these just make a function
+    if economy == '16_RUS':
+        #use the dicts for russia
+        for key, value in russia_changes_to_activity_to_proxies_dict.items():
+            activity_to_proxies_dict[key] = value
+    if economy == '03_CDA':
+        for key, value in canada_heat_activity.items():
+            acitvity_to_missing_sectors_dict[key] = value
+        for key, value in canada_heat_activity_proxy.items():
+            activity_to_proxies_dict[key] = value
+    # if economy == '02_BD':
+    #     for key, value in bd_coal_own_use_for_oil_refineries_activity.items():
+    #         acitvity_to_missing_sectors_dict[key] = value
+    #     for key, value in bd_coal_own_use_for_oil_refineries_proxy.items():
+    #         activity_to_proxies_dict[key] = value
+    # breakpoint()
+    #######temp. if we get too many of these just make a function
     #      if the ratio is not able to be clacualted then base it off an average of all economies data for this activity.
-    all_economies_df, date_id = find_most_recent_file_date_id('results/', RETURN_DATE_ID=True, filename_part = 'model_df_wide_tgt')
-    all_economies_df = pd.read_csv(os.path.join('results', f'model_df_wide_tgt_{date_id}.csv'))
+    # all_economies_df, date_id = find_most_recent_file_date_id('results/', RETURN_DATE_ID=True, filename_part = 'model_df_wide_tgt')
+    # all_economies_df = pd.read_csv(os.path.join('results', f'model_df_wide_tgt_{date_id}.csv'))
     df = df.loc[df['economy'] == economy]
     df_copy = df.copy()
     str_OUTLOOK_BASE_YEAR = str(OUTLOOK_BASE_YEAR)
@@ -197,7 +253,7 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
     
     # Exclude aggregate fuel rows (e.g., totals) to avoid skewing the projections.
     df = df.loc[~df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])]
-    all_economies_df = all_economies_df.loc[~all_economies_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])]
+    # all_economies_df = all_economies_df.loc[~all_economies_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])]
     
     # Separate base year and future years data.
     base_year_df_all_economies = df.drop(columns=future_year_columns + pre_base_year_columns)
@@ -222,17 +278,24 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
     extracted_sectors_df_future = pd.DataFrame(columns=future_years_df.columns)
     
     for activity, sectors_dict in acitvity_to_missing_sectors_dict.items():
-        for key in ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'sectors']:
+        
+        matched_rows = base_year_df_all_economies.copy()
+        matched_rows['activity'] = activity
+        matched_rows_future = future_years_df.copy()
+        matched_rows_future['activity'] = activity
+        
+        for key in ['sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'sectors', 'subfuels', 'fuels']:
             if key in sectors_dict:
                 # Extract matching rows for the base year and label with the activity.
-                matched_rows = base_year_df_all_economies[base_year_df_all_economies[key].isin(sectors_dict[key])].copy()
-                matched_rows['activity'] = activity
-                extracted_sectors_df_base_year_all_economies = pd.concat([extracted_sectors_df_base_year_all_economies, matched_rows], ignore_index=True)
+                matched_rows = matched_rows[matched_rows[key].isin(sectors_dict[key])].copy()
                 
                 # Do the same for future years.
-                matched_rows = future_years_df[future_years_df[key].isin(sectors_dict[key])].copy()
-                matched_rows['activity'] = activity
-                extracted_sectors_df_future = pd.concat([extracted_sectors_df_future, matched_rows], ignore_index=True)
+                matched_rows_future = matched_rows_future[matched_rows_future[key].isin(sectors_dict[key])].copy()
+        
+        extracted_sectors_df_base_year_all_economies = pd.concat([extracted_sectors_df_base_year_all_economies, matched_rows], ignore_index=True)
+        
+        extracted_sectors_df_future = pd.concat([extracted_sectors_df_future, matched_rows_future], ignore_index=True)
+                
     
     # -----------------------------------------------------------------------------
     # Compute proxies for each activity.
@@ -281,7 +344,7 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
             [activity_proxy_df_future, proxy_rows_future],
             ignore_index=True
         )
-    
+        
     #calcualte an 00_APEC sum of all_economies data in activity_proxy_df_base_year_all_economies and extracted_sectors_df_base_year_all_economies which will allow us to create a ratio based on the average of all other economies to use when we cant calculate a ratio for a specific economy because they dont have that activity in the base year.
     apec_sum_extracted_sectors_df_base_year_all_economies = extracted_sectors_df_base_year_all_economies.groupby(['scenarios', 'activity']).sum().reset_index()
     apec_sum_activity_proxy_df_base_year_all_economies = activity_proxy_df_base_year_all_economies.groupby(['scenarios', 'activity']).sum().reset_index()
@@ -292,6 +355,7 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
     extracted_sectors_df_base_year_all_economies = pd.concat([extracted_sectors_df_base_year_all_economies, apec_sum_extracted_sectors_df_base_year_all_economies], ignore_index=True)
     activity_proxy_df_base_year_all_economies = pd.concat([activity_proxy_df_base_year_all_economies, apec_sum_activity_proxy_df_base_year_all_economies], ignore_index=True)
     
+    # breakpoint()
     # -----------------------------------------------------------------------------
     # Calculate the ratio between actual energy use and proxy in the base year.
     # -----------------------------------------------------------------------------
@@ -319,7 +383,7 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
     if (ratio_df['ratio'] == 0).any():
         breakpoint()
         raise ValueError("0s detected in ratio. Check for missing data. May not be an issue but i think it would mean that no data was at all available for this activity in the base year in all economies.")   
-    
+    # breakpoint()
     # -----------------------------------------------------------------------------
     # Project future energy use using the computed ratio.
     # -----------------------------------------------------------------------------
@@ -350,6 +414,7 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
     
     future_projection_df = future_projection_df.drop(columns=['_merge', str_OUTLOOK_BASE_YEAR + '_energy', str_OUTLOOK_BASE_YEAR + '_proxy'])
     
+    # breakpoint()
     # -----------------------------------------------------------------------------
     # Plot the projected energy use.
     # -----------------------------------------------------------------------------
@@ -373,13 +438,14 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
         )
         future_projection_df_plot['year'] = future_projection_df_plot['year'].astype(int)
         future_projection_df_plot = future_projection_df_plot.sort_values(by=['year', 'color'])
-        fig = px.line(
-            future_projection_df_plot[future_projection_df_plot['economy'] == economy],
-            x='year', y='value', color='color', title=f'Energy use projections for {economy}',
-            facet_col='scenarios', hover_data=['ratio', 'economy', 'scenarios', 'color'], line_dash='dash'
-        )
-        fig.add_vline(x=OUTLOOK_BASE_YEAR, line_dash='dash', line_color='black')
-        fig.write_html(f'plotting_output/missing_sectors_projections/{economy}_energy_projections.html')
+        if len(future_projection_df_plot[future_projection_df_plot['economy'] == economy])>0:
+            fig = px.line(
+                future_projection_df_plot[future_projection_df_plot['economy'] == economy],
+                x='year', y='value', color='color', title=f'Energy use projections for {economy}',
+                facet_col='scenarios', hover_data=['ratio', 'economy', 'scenarios', 'color'], line_dash='dash'
+            )
+            fig.add_vline(x=OUTLOOK_BASE_YEAR, line_dash='dash', line_color='black')
+            fig.write_html(f'plotting_output/missing_sectors_projections/{economy}_energy_projections.html')
         
     future_projection_df = future_projection_df.drop(columns=['activity', 'ratio'])
             

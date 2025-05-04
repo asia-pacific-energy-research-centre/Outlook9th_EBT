@@ -120,7 +120,7 @@ def handle_statistical_discrepancies_for_transformation_output(group_copy, econo
     return statistical_discrepancies_df, group_copy, error_df     
 
 
-def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False,adjustment_threshold=0.1):
+def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False,adjustment_threshold=0.01):
     """
     Adjust supply for projected data so that overall demand and supply balance.
 
@@ -191,7 +191,8 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
         economy, scenario, fuel, subfuel = key
         if fuel in['20_total_renewables', '21_modern_renewables', '19_total']:
             continue
-
+        # if fuel =='17_electricity' and subfuel == 'x':
+        #     breakpoint()
         # Create a mask for this group and work on a copy
         group_mask = (df['economy'] == economy) & (df['scenarios'] == scenario) & (df['fuels'] == fuel) & (df['subfuels'] == subfuel) & (df['subtotal_results'] == False)
         group_copy = df.loc[group_mask].copy()
@@ -368,3 +369,23 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
             raise ValueError(f"Errors where transformation output is too high are found in data checks. The extra output is suggested to be put in statistical discrepancies. See {os.path.join('data', 'temp', 'error_checking', f'{economy}_statistical_discrepancies.csv')} for more details. If you are okay with the discrepancies, add them to the SPECIFIED_ALLOWED_STATISTICAL_DISCREPANCIES dict in the function  adjust_projected_supply_to_balance_demand.")
     
     return df
+
+def make_manual_changes_to_rows(final_energy_df, economy, scenario):
+    #this will just be a messy function to make manual changes to the finaldata as is needed. Probelm is that these could be all sorts of little changes so i think it will be easier to have this be quite messy and just use whatever code we need to make the changes. just make sure to clearly label the changes and the reasons for them.
+    
+    ##########
+    #ROK shift all nautral gas imports to lng for projected years#this is caused by the adjust projected supply to balance demand function which sees there is not enough gas to supply the demand and so it creates imports of gas, even though technically they should be lng. Could think of no other way t make this change and have it useful for other similar cases.
+    if economy == '09_ROK':
+        
+        gas_imports  = final_energy_df.loc[(final_energy_df['subfuels'] == '08_01_natural_gas') & (final_energy_df['sectors'] == '02_imports') & (final_energy_df['economy'] == economy) & (final_energy_df['scenarios'] == scenario)]
+        #get the years that are projected
+        projected_years = [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
+        gas_imports = gas_imports[projected_years].copy()
+        #checl gas imports is > 0 
+        if gas_imports[projected_years].sum().sum() > 0:
+            #then set lng imports to have added gas imports for the projected years
+            final_energy_df.loc[(final_energy_df['subfuels'] == '08_02_lng') & (final_energy_df['sectors'] == '02_imports') & (final_energy_df['economy'] == economy) & (final_energy_df['scenarios'] == scenario), projected_years] += gas_imports[projected_years].values
+            #set gas imports to be 0 for the projected years
+            final_energy_df.loc[(final_energy_df['subfuels'] == '08_01_natural_gas') & (final_energy_df['sectors'] == '02_imports') & (final_energy_df['economy'] == economy) & (final_energy_df['scenarios'] == scenario), projected_years] = 0
+    
+    return final_energy_df

@@ -102,6 +102,8 @@ def initial_read_and_save(SINGLE_ECONOMY_ID):
     for i in economies:
         economy = economy_dict[i]
         RawEGEDA[i] = adjust_layout_file_with_post_hoc_changes(economy, RawEGEDA[i])
+    # if economy=='17_SGP':
+    #     breakpoint()
     ###################################
     # Prepare lists for dataframe merging process later
 

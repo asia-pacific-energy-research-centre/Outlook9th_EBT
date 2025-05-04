@@ -88,100 +88,1670 @@ INA_NON_ENERGY:
     00APEC_2024_20250221: 265.1196970400045
     00APEC_2024_20250312: 265.1196970400045
   sectors: 17. Non-energy use
-THA_OIL_REFINERIES:
-- Year: 2022
-  economy: 19_THA
-  fuels: 19 Total
-  new_value: 3392.445163
+RUSSIA_REMOVE_DETAILED_ELECTRICITY_OUTPUT_DATA:
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
   old_values:
-    00APEC_2024_20250221: 3780.0688743649193
-    00APEC_2024_20250312: 3780.0688743649193
-  sectors: 12. Total final consumption
-- Year: 2022
-  economy: 19_THA
-  fuels: 7 Petroleum products
-  new_value: 1911.808042
+    00APEC_2024_20250312: 109074.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
   old_values:
-    00APEC_2024_20250221: 1912.2306158448
-    00APEC_2024_20250312: 1912.2306158448
-  sectors: 9. Total transformation sector
-- Year: 2022
-  economy: 19_THA
-  fuels: 7 Petroleum products
-  new_value: 1705.82448
-  old_values:
-    00APEC_2024_20250221: 1721.6921236932003
-    00APEC_2024_20250312: 1721.6921236932003
-  sectors: 9.7 Oil refineries
-- Year: 2022
-  economy: 19_THA
-  fuels: 7 Petroleum products
-  new_value: 1361.459834
-  old_values:
-    00APEC_2024_20250221: 1639.5437917476004
-    00APEC_2024_20250312: 1639.5437917476004
-  sectors: 12. Total final consumption
-- Year: 2022
-  economy: 19_THA
-  fuels: 19 Total
-  new_value: 408.1346587
-  old_values:
-    00APEC_2024_20250221: 400.68440509680005
-    00APEC_2024_20250312: 400.68440509680005
-  sectors: 17. Non-energy use
-- Year: 2022
-  economy: 19_THA
-  fuels: 7 Petroleum products
-  new_value: 80.09884938
-  old_values:
-    00APEC_2024_20250221: 185.42535009120002
-    00APEC_2024_20250312: 185.42535009120002
-  sectors: 17. Non-energy use
-- Year: 2022
-  economy: 19_THA
-  fuels: 7.17 Other products
-  new_value: 22.94575321
-  old_values:
-    00APEC_2024_20250221: 0.0
     00APEC_2024_20250312: 0.0
-  sectors: 9. Total transformation sector
-- Year: 2022
-  economy: 19_THA
-  fuels: 7.17 Other products
-  new_value: 22.94575321
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
   old_values:
-    00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 109074.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
     00APEC_2024_20250312: 0.0
-  sectors: 9.7 Oil refineries
-- Year: 2022
-  economy: 19_THA
-  fuels: 7.17 Other products
-  new_value: 13.39558705
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
   old_values:
-    00APEC_2024_20250221: 0.0
     00APEC_2024_20250312: 0.0
-  sectors: 12. Total final consumption
-- Year: 2022
-  economy: 19_THA
-  fuels: 7.17 Other products
-  new_value: 13.39558705
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
   old_values:
-    00APEC_2024_20250221: 0.0
+    00APEC_2024_20250312: 1202.1160005432002
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 608.9170006836
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 90.3770016768
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
     00APEC_2024_20250312: 0.0
-  sectors: 17. Non-energy use
-- Year: 2022
-  economy: 19_THA
-  fuels: 19 Total
-  new_value: -408.9245927
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
   old_values:
-    00APEC_2024_20250221: -473.19805613520003
-    00APEC_2024_20250312: -473.19805613520003
-  sectors: 9.7 Oil refineries
-- Year: 2022
-  economy: 19_THA
-  fuels: 19 Total
-  new_value: -1519.234508
+    00APEC_2024_20250312: 502.82199818280003
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
   old_values:
-    00APEC_2024_20250221: -1550.451700724716
-    00APEC_2024_20250312: -1550.451700724716
-  sectors: 9. Total transformation sector
+    00APEC_2024_20250312: 40744.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 40744.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 872.3730026016
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 152.1800018892
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 720.1930007124
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 39.8510007264
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 39.8510007264
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 5274.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 5274.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 66.401999046
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 11.7379994364
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 54.6639996096
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 4264.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 4264.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 25.895998580400004
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 25.895998580400004
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 4343.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 4343.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 114303.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 114303.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 1309.1020001388001
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 694.2259981908
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 614.8760019480001
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 2178.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 2178.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 13.2250000716
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 13.2250000716
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.09 LPG
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 3551.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 3551.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 21.570000040800004
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 21.570000040800004
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 7.1 Refinery gas (not liquefied)
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 512194.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 468651.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 889.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 42654.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 5682.2990018400005
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 3000.9069995364002
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 464.9950012464
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 2216.3970010572
+  sectors: 19.4 AP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 37.0
+  sectors: 18. Electricity output in GWh
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 37.0
+  sectors: 18.4 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 135.719999622
+  sectors: 19. Heat output in PJ
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 3.0900007512
+  sectors: 19.3 AP CHP plants
+- Year: 1990
+  economy: 16_RUS
+  fuels: 15.5 Other biomass
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 132.6299988708
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 105874.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 105874.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 1206.0469996236002
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 621.5330013876
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 89.0539979976
+  sectors: 19.2 MAP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.2 Other bituminous coal
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 495.4600002384
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 41850.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 41850.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 864.4270004856002
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 152.9430001344
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 711.4840003512
+  sectors: 19.2 MAP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 1.5 Lignite
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.1 Coke oven coke
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 35.3400000552
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.3 Coke oven gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 35.3400000552
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 5205.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 5205.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 56.27299941
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 8.250997935600001
+  sectors: 19.3 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 2.4 Blast furnace gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 48.0220014744
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 3808.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 3808.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 24.581000062799998
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 24.581000062799998
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 6.1 Crude oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 16.2 Industrial waste
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: '12.1 of which: Photovoltaics'
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 3951.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 3951.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.2 MAP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.3 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.07 Gas/diesel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 19.4 AP heat plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 109867.0
+  sectors: 18. Electricity output in GWh
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 109867.0
+  sectors: 18.2 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.4 AP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 1324.6990024428
+  sectors: 19. Heat output in PJ
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 709.2280017864001
+  sectors: 19.1 MAP CHP plants
+- Year: 1991
+  economy: 16_RUS
+  fuels: 7.08 Fuel oil
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh

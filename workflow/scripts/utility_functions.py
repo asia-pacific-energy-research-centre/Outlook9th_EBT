@@ -17,7 +17,7 @@ ECONOMYS_WITH_INITIAL_NAS_AND_THEIR_COLS = {
 }
 ERRORS_DAIJOUBU = True
 # If merging supply results (i.e. the final stage of merging results from the modellers), set this to True and calculate TPES top down instead of bottom up
-MAJOR_SUPPLY_DATA_AVAILABLE = True    
+MAJOR_SUPPLY_DATA_AVAILABLE = False    
 CHECK_DATA = True
 # Set to True if you want to run time consuming checks on data, assuming MAJOR_SUPPLY_DATA_AVAILABLE is True 
 
@@ -106,7 +106,28 @@ def find_most_recent_file_date_id(directory_path, filename_part = None,RETURN_DA
         return most_recent_file, date_id
     else:
         return most_recent_file
-    
+
+def move_files_to_onedrive(STAGE, origin_date_id, econ_list=ALL_ECONOMY_IDS):
+    # utils.move_files_to_onedrive('06_TFC+Transformation', origin_date_id='20250424', econ_list=['05_PRC', '06_HKC', '07_INA', '11_MEX', '16_RUS'])
+
+    # clean_onedrive_workbooks_folder(date_ids_to_keep='20241211', specific_files_to_keep=[], econ_list=ALL_ECONOMY_IDS, archive_folder_name="first_iteration")
+    # clean_onedrive_workbooks_folder(date_ids_to_keep='20241211', specific_files_to_keep=[], econ_list=AGGREGATE_ECONOMY_MAPPING.keys(), archive_folder_name="first_iteration")
+    CURRENT_DATE_ID = datetime.now().strftime("%Y%m%d")
+    for economy_id in econ_list:
+        source_path = f'C:/Users/finbar.maunsell/github/Outlook9th_EBT/results/{economy_id}/merged/merged_file_energy_{economy_id}_{origin_date_id}.csv'
+        destination_path = f'C:/Users/finbar.maunsell/OneDrive - APERC/outlook 9th/Modelling/Integration/{economy_id}/{STAGE}/merged_file_energy_{economy_id}_{origin_date_id}.csv'
+        
+        # # Create destination directory if it doesn't exist
+        # os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+        
+        # Move the file
+        try:
+            shutil.copy(source_path, destination_path)
+            print(f"Moved {source_path} to {destination_path}")
+        except Exception as e:
+            print(f"Error moving {source_path} to {destination_path}: {e}")
+            
+
 def move_files_to_archive_for_economy(LOCAL_FILE_PATH, economy):
     #create archive folder if not there
     if not os.path.exists(f'{LOCAL_FILE_PATH}/Integration/{economy}/00_LayoutTemplate/'):
@@ -266,7 +287,8 @@ def identify_if_major_supply_data_is_available(SINGLE_ECONOMY_ID):
     #this will be used for when we are running the system and need to know if it is at the stage where there is all the input data we need and so we should set utility_funtions.MAJOR_SUPPLY_DATA_AVAILABLE to True. If so, it will check it is already set to True and if not it will raise an error. If it is not at the stage where all the data is available it will check that it is set to False and if not it will raise an error.
     #the telltale sign that supply data is available will be that there is a file in data\modelled_data\{SINGLE_ECONOMY_ID} and in there i a file with rows for 01_production 02_imports 03_exports of 01_coal 06_crude_oil_and_ngl 08_gas in the sectors and fuels columns respectively..
     #this is important because there are many steps that can only be done once we are sure we have all the data we need before finalising the results/running time consuming checking and adjustment funcitons and so on.
-    
+    if SINGLE_ECONOMY_ID in AGGREGATE_ECONOMIES:
+        return 
     #NOTE. THIS WILL GET CONFUSED IF ANOTHER DATA RETURN CONTAINS ALL THE ROWS FOR SUPPLY DATA AND AT LEAST ONE OF THOSE ROWS HAS A NON ZERO IN BASE YEAR +1. 
     folder_path = f'./data/modelled_data/{SINGLE_ECONOMY_ID}'
     supply_fuels = ['01_coal', '06_crude_oil_and_ngl', '08_gas']

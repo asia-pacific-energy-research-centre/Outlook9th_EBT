@@ -43,6 +43,15 @@ def check_for_negatives_or_postives_in_wrong_sectors(df, economy, file, INGORE_N
                 val = row[col]
                 # if null its also an issue, but 0 is ok
                 if (pd.isna(val) and not INGORE_NANS) or val > 0:
+                    #check the value is not really small. probably easiest just to base it off absolute value.. e.g. <0.01
+                    if abs(val) < ABSOLUTE_THRESHOLD:
+                        #record that we changed it in a separate df
+                        minor_errors_df = pd.concat([minor_errors_df, row], axis=1)
+                        #set the value to 0
+                        row[col] = 0
+                        #fid the row in the df and change it
+                        df.loc[idx] = row
+                        continue 
                     # breakpoint()
                     errors.append(f"Row {idx} (sector: {sector}) has non-negative value {val} in column {col}.")
                     row['error'] = f"Row {idx} (sector: {sector}) has non-negative value {val} in column {col}."
@@ -67,7 +76,7 @@ def check_for_negatives_or_postives_in_wrong_sectors(df, economy, file, INGORE_N
                     errors_df = pd.concat([errors_df, row], axis=1)
     
     if errors:
-        breakpoint()
+        # breakpoint()
         #save them to a file        
         error_path = f'data/temp/error_checking/{economy}_invalid_signs_in_data_{os.path.basename(file).strip(".csv").strip(".xlsx")}.csv'
         errors_df.T.to_csv(error_path)

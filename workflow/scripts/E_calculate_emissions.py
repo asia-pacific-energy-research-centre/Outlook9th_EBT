@@ -53,7 +53,7 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
         raise Exception('There are some NaNs in the dataframe before calculating emissions. The cols are {}'.format(cols_with_nans))
     
     # Read in emissions factors
-    emissions_factors = pd.read_csv('config/9th_edition_emissions_factors_all_gases_simplified.csv')
+    emissions_factors = pd.read_csv('data/9th_edition_emissions_factors_all_gases_simplified.csv')
 
     # Melt the final_df on all cols except year cols
     year_cols = [col for col in final_df.columns if str(col).isnumeric()]
@@ -101,7 +101,7 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
         # Define conditions for CCS rows
         industry_ccs_condition = df['sub3sectors'].str.endswith('_ccs') & df['sub3sectors'].str.startswith('14_') & (df['Gas'] == 'CARBON DIOXIDE')
         power_ccs_condition = df['sub2sectors'].str.endswith('_ccs') & df['sub2sectors'].str.startswith('09_') & (df['Gas'] == 'CARBON DIOXIDE')
-        
+        breakpoint()#why is 09 not hacing any emisisons output when we attached _captured emissions to it?
         # Create a copy for manipulation
         df_copy = df.loc[industry_ccs_condition | power_ccs_condition].copy()
 
@@ -115,8 +115,9 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
             raise Exception('There are some negative CO2e emissions factors in the CCS rows. Please check the data.')
         
         # Apply sector-specific factors
-        df_copy.loc[industry_ccs_condition, 'CO2e emissions factor'] *= -INDUSTRY_CCS_ABATEMENT_RATE
-        df_copy.loc[power_ccs_condition, 'CO2e emissions factor'] *= -POWER_CCS_ABATEMENT_RATE
+        df_copy.loc[industry_ccs_condition, 'CO2e emissions factor'] *= -(1-INDUSTRY_CCS_ABATEMENT_RATE)
+        df_copy.loc[power_ccs_condition, 'CO2e emissions factor'] *= -(1-POWER_CCS_ABATEMENT_RATE)
+        #THEN SINCE WE NEED TO KNOW EXACTLY WHERE THESE SECTORS ARE THAT HAVE THEIR EMSSONS CAPTURED, ADD 'CAPTURED EMISSIONS' TO THEIR NAME. 
         df_copy.loc[industry_ccs_condition, 'sub3sectors'] += '_captured_emissions'
         df_copy.loc[power_ccs_condition, 'sub2sectors'] += '_captured_emissions'
 
@@ -129,14 +130,15 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
 
         return df_final
     
+    # remove asny positive values in 09_total_transformation_sector since they are not combustion emissions, they are produced energy
+    final_df_copy.loc[(final_df_copy['sectors'] == '09_total_transformation_sector') & (final_df_copy['value'] > 0), 'CO2e emissions factor'] = 0
+    
     # Apply the emissions factor adjustments for CCS
     final_df_copy = split_ccs_rows(final_df_copy)
 
     # Set emissions factors for bunkers sectors to 0
     final_df_copy.loc[final_df_copy['sectors'] == '05_international_aviation_bunkers', 'CO2e emissions factor'] = 0
     final_df_copy.loc[final_df_copy['sectors'] == '06_international_marine_bunkers', 'CO2e emissions factor'] = 0
-    #and remove asny positive values in 09_total_transformation_sector since they are not combustion emissions, they are produced energy
-    final_df_copy.loc[(final_df_copy['sectors'] == '09_total_transformation_sector') & (final_df_copy['value'] > 0), 'CO2e emissions factor'] = 0
     
     # #and set 10_02_transmission_and_distribution_losses to 0
     # final_df_copy.loc[(final_df_copy['sub1sectors'] == '10_02_transmission_and_distribution_losses'), 'CO2e emissions factor'] = 0#actually nope, this is already excluded in the emissions factors since it has Sector not applicable = True (same as the non applicable tranformation sectors)
@@ -148,7 +150,6 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
     # Calculate emissions
     # final_df_copy['value'] = abs(final_df_copy['value']) (change any negative values to absolute first))
     final_df_copy['CO2e emissions (Mt/PJ)'] = (final_df_copy['value'] * final_df_copy['CO2e emissions factor'])
-
     # Drop unnecessary columns
     final_df_copy.drop(columns=['CO2e emissions factor', 'value'], inplace=True)
     
@@ -222,7 +223,7 @@ def calculate_aggregate_total_combustion_values(final_df_copy, non_year_and_valu
     total_emissions_historical['subtotal_results'] = False
     total_emissions_projected['subtotal_layout'] = False
     
-    #also drop anything where _captured_emissions is in the subsectors3 or 2 columnssince we are only interested in the total combustion emissions and not the net emissions
+    #also drop anything where _captured_emissions is in the subsectors3 or 2 columns since we are only interested in the total combustion emissions and not the net emissions
     captured_emissions_proj = total_emissions_projected.loc[(total_emissions_projected['sub3sectors'].str.contains('_captured_emissions', na=False)) | (total_emissions_projected['sub2sectors'].str.contains('_captured_emissions', na=False))].copy()
     captured_emissions_hist = total_emissions_historical.loc[(total_emissions_historical['sub3sectors'].str.contains('_captured_emissions', na=False)) | (total_emissions_historical['sub2sectors'].str.contains('_captured_emissions', na=False))].copy()  
     

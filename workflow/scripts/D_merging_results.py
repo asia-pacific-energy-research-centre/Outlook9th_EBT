@@ -116,15 +116,18 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
         else:
             print(f"Unsupported file format: {file}")
             continue
-
-        # Reorder the shared categories in the results DataFrame
-        results_df = results_df[shared_categories + list(results_df.columns.difference(shared_categories))]
+        try:
+            # Reorder the shared categories in the results DataFrame
+            results_df = results_df[shared_categories + list(results_df.columns.difference(shared_categories))]
+        except Exception as e:
+            breakpoint()
+            raise e
 
         # Convert columns to string type
         results_df.columns = results_df.columns.astype(str)
         
         ###TEST### DATA CENTRES
-        layout_df = merging_functions.insert_data_centres_into_layout_df(layout_df, results_df,shared_categories)
+        # layout_df = merging_functions.insert_data_centres_into_layout_df(layout_df, results_df,shared_categories)
         ###TEST### DATA CENTRES      
         
         #Keep columns from outlook_base_year to outlook_last_year only
@@ -146,8 +149,10 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
         results_df = results_adjustment_functions.power_move_x_in_chp_and_hp_to_biomass(results_df)
         results_df, layout_df = results_adjustment_functions.allocate_problematic_x_rows_to_unallocated(results_df, layout_df,years_to_keep_in_results)
         results_df = results_adjustment_functions.edit_hydrogen_transfomation_rows(results_df)
+        results_df = results_adjustment_functions.set_subfuel_for_06_crude_oil_and_ngl_stock_changes(results_df)
+        results_df = results_adjustment_functions.nullify_supply_stock_changes(results_df, PLOTTING=True)
         results_df = results_adjustment_functions.create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_df, layout_df, SINGLE_ECONOMY_ID, shared_categories, years_to_keep_in_results)
-
+        results_df = results_adjustment_functions.consolidate_imports_exports_from_supply_sector(results_df)
         ########
         #TEMP#
         
@@ -161,7 +166,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
         if results_df.empty or filtered_results_df.empty:
             continue
         #########RUN COMMON CHECKS ON THE RESULTS FILE.#########
-        files_with_subtotals_that_we_can_just_drop = ['CHL_Agriculture and Fishing_V1_tgt_2024_07_30.csv', 'CHL_Agriculture and Fishing_V1_ref_2024_07_30.csv', 'MEX_Agriculture_V1_ref_2024_07_04','MEX_Agriculture_V1_tgt_2024_07_04', 'PE_Agriculture and Fishing_V1_ref_2024_07_08.csv' , 'PE_Agriculture and Fishing_V1_tgt_2024_07_08.csv', 'PNG_Agriculture_V1_tgt_2024_06_21.csv', 'PNG_Agriculture_V1_ref_2024_06_21.csv', 'HKC_Agriculture_V1_ref_2024_04_11.csv', 'HKC_Agriculture_V1_tgt_2024_04_11.csv', 'VN_Agriculture and Fishing_V1_ref_2024_04_11.csv', 'VN_Agriculture and Fishing_V1_tgt_2024_04_11.csv', 'CT_Agriculture and Fishing_V3_ref_2024_11_27.csv', 'CT_Agriculture and Fishing_V3_tgt_2024_11_27.csv', 'ROK_Agriculture and Fishing_V2_ref_2024_11_27.csv', 'ROK_Agriculture and Fishing_V2_tgt_2024_11_27.csv', 'PHL_Agriculture and Fishing_V5_ref_2024_12_16.csv', 'PHL_Agriculture and Fishing_V5_tgt_2024_12_16.csv', 'VN_Agriculture and Fishing_V2_ref_2024_12_05.csv', 'VN_Agriculture and Fishing_V2_tgt_2024_12_05.csv', 'AUS_Agriculture_V3_ref_2024_12_02.csv', 'AUS_Agriculture_V4_tgt_2024_01_21.csv', 'THA_Agriculture_V3_ref_2024_11_28.csv', 'THA_Agriculture_V3_tgt_2024_11_28.csv', 'MAS_Agriculture and Fishing_V2_ref_2025_01_27.csv', 'MAS_Agriculture and Fishing_V2_tgt_2025_01_27.csv', 'RUS_Agriculture and Fishing_V2_ref_2025_01_29.csv', 'RUS_Agriculture and Fishing_V2_tgt_2025_01_29.csv', 'INA_Agriculture_V3_ref_2025_01_27.csv', 'INA_Agriculture_V3_tgt_2025_01_27.csv', 'USA_Agriculture_V3_ref_2024_12_04.csv', 'USA_Agriculture_V3_tgt_2024_12_04.csv', 'PRC_Agriculture_V4_ref_2025_01_27.csv', 'PRC_Agriculture_V4_tgt_2025_01_27.csv', 'MEX_Agriculture_V2_ref_2025_01_27.csv', 'MEX_Agriculture_V2_tgt_2025_01_27.csv', 'CDA_Agriculture_V2_ref_2024_12_03.csv', 'CDA_Agriculture_V2_tgt_2024_12_03.csv']#WARNING BE CARFEUL DOING THIS BECAUSE IF WE HAVE MULTIPLE SUBTOTAL COLS AND ONE IS TRUE AND THE OTHER IS FALSE, WE WOULD DROP THE ROW AND POTEINTIALLY LOSE DATA. NORMALLY JUST SAFER TO REMOVE THE SUBTOTALS MANUAULLY OR EVEN LEAVE THEM IN (WE ARENT TOTALLY SURE THIS IS SAFE THO).
+        files_with_subtotals_that_we_can_just_drop = ['CHL_Agriculture and Fishing_V1_tgt_2024_07_30.csv', 'CHL_Agriculture and Fishing_V1_ref_2024_07_30.csv', 'MEX_Agriculture_V1_ref_2024_07_04','MEX_Agriculture_V1_tgt_2024_07_04', 'PE_Agriculture and Fishing_V1_ref_2024_07_08.csv' , 'PE_Agriculture and Fishing_V1_tgt_2024_07_08.csv', 'PNG_Agriculture_V1_tgt_2024_06_21.csv', 'PNG_Agriculture_V1_ref_2024_06_21.csv', 'HKC_Agriculture_V1_ref_2024_04_11.csv', 'HKC_Agriculture_V1_tgt_2024_04_11.csv', 'VN_Agriculture and Fishing_V1_ref_2024_04_11.csv', 'VN_Agriculture and Fishing_V1_tgt_2024_04_11.csv', 'CT_Agriculture and Fishing_V3_ref_2024_11_27.csv', 'CT_Agriculture and Fishing_V3_tgt_2024_11_27.csv', 'ROK_Agriculture and Fishing_V2_ref_2024_11_27.csv', 'ROK_Agriculture and Fishing_V2_tgt_2024_11_27.csv', 'PHL_Agriculture and Fishing_V5_ref_2024_12_16.csv', 'PHL_Agriculture and Fishing_V5_tgt_2024_12_16.csv', 'VN_Agriculture and Fishing_V2_ref_2024_12_05.csv', 'VN_Agriculture and Fishing_V2_tgt_2024_12_05.csv', 'AUS_Agriculture_V3_ref_2024_12_02.csv', 'AUS_Agriculture_V4_tgt_2024_01_21.csv', 'THA_Agriculture_V3_ref_2024_11_28.csv', 'THA_Agriculture_V3_tgt_2024_11_28.csv', 'MAS_Agriculture and Fishing_V2_ref_2025_01_27.csv', 'MAS_Agriculture and Fishing_V2_tgt_2025_01_27.csv', 'RUS_Agriculture and Fishing_V2_ref_2025_01_29.csv', 'RUS_Agriculture and Fishing_V2_tgt_2025_01_29.csv', 'INA_Agriculture_V3_ref_2025_01_27.csv', 'INA_Agriculture_V3_tgt_2025_01_27.csv', 'USA_Agriculture_V3_ref_2024_12_04.csv', 'USA_Agriculture_V3_tgt_2024_12_04.csv', 'PRC_Agriculture_V4_ref_2025_01_27.csv', 'PRC_Agriculture_V4_tgt_2025_01_27.csv', 'MEX_Agriculture_V2_ref_2025_01_27.csv', 'MEX_Agriculture_V2_tgt_2025_01_27.csv', 'CDA_Agriculture_V2_ref_2024_12_03.csv', 'CDA_Agriculture_V2_tgt_2024_12_03.csv','JPN_Agriculture and Fishing_V3_ref_2025_02_18.csv','JPN_Agriculture and Fishing_V3_tgt_2025_02_18.csv','PE_Agriculture and Fishing_V2_ref_2025_02_19.csv','PE_Agriculture and Fishing_V2_tgt_2025_02_19.csv','NZ_Agriculture and Fishing_V5_ref_2025_04_17.csv','NZ_Agriculture and Fishing_V5_tgt_2025_04_17.csv', 'PNG_Agriculture_V2_ref_2025_02_20.csv', 'PNG_Agriculture_V2_tgt_2025_02_20.csv', 'CHL_Agriculture and Fishing_V2_ref_2025_02_20.csv', 'CHL_Agriculture and Fishing_V2_tgt_2025_02_20.csv']#WARNING BE CARFEUL DOING THIS BECAUSE IF WE HAVE MULTIPLE SUBTOTAL COLS AND ONE IS TRUE AND THE OTHER IS FALSE, WE WOULD DROP THE ROW AND POTEINTIALLY LOSE DATA. NORMALLY JUST SAFER TO REMOVE THE SUBTOTALS MANUAULLY OR EVEN LEAVE THEM IN (WE ARENT TOTALLY SURE THIS IS SAFE THO).
         DROP_SUBTOTALS = False
         for file_ in files_with_subtotals_that_we_can_just_drop:
             if file_ in file:
@@ -228,7 +233,21 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
         breakpoint()
     if len([col for col in layout_df.columns if '2022' in col]) > 1:
         breakpoint()
+    # breakpoint()#wats goign on with scenarios	economy	sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels	subtotal_layout	subtotal_results	2021	2022
+
+    # #target	06_HKC	14_industry_sector	x	x	x	x	07_petroleum_products	x	FALSE	TRUE	0	3.232906698
+    # #this should be labeled as a subtotal in subtotal layout but it is not. check it
+    # subtotal = concatted_results_df.loc[(concatted_results_df['sectors'] == '14_industry_sector') & (concatted_results_df['sub1sectors'] == 'x') & (concatted_results_df['fuels'] == '07_petroleum_products') & (concatted_results_df['subfuels'] == 'x')]
+    #chck if the subtotal is true or false:
+    # breakpoint()
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
+    
+    # breakpoint()#wats goign on with scenarios	economy	sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels	subtotal_layout	subtotal_results	2021	2022
+
+    # #target	06_HKC	14_industry_sector	x	x	x	x	07_petroleum_products	x	FALSE	TRUE	0	3.232906698
+    # #this should be labeled as a subtotal in subtotal layout but it is not. check it
+    # subtotal = concatted_results_df.loc[(concatted_results_df['sectors'] == '14_industry_sector') & (concatted_results_df['sub1sectors'] == 'x') & (concatted_results_df['fuels'] == '07_petroleum_products') & (concatted_results_df['subfuels'] == 'x')]
+    #chck if the subtotal is true or false:
     
     concatted_results_df, layout_df = merging_functions.set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df)
     
@@ -239,9 +258,11 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
     #drop years in range(OUTLOOK_BASE_YEAR, OUTLOOK_BASE_YEAR+1) as we dont need it. This will help to speed up the process. 
     
     layout_df.drop(columns=[col for col in layout_df.columns if any(str(year) in str(col) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1))], inplace=True)
+    # breakpoint()#this is where issues pop up layout_df.loc[(layout_df['sectors'] == '14_industry_sector') & (layout_df['sub1sectors'] == 'x') & (layout_df['fuels'] == '07_petroleum_products') & (layout_df['subfuels'] == 'x')]
     # layout_df_subtotals_labelled = merging_functions.label_subtotals(layout_df, shared_categories) #now has been moved to C_subset_data.py
     layout_df_subtotals_recalculated = merging_functions.calculate_subtotals(layout_df, shared_categories, DATAFRAME_ORIGIN='layout')
     
+    #chck if the subtotal is true or false:
     ############################## 
     
     trimmed_layout_df, missing_sectors_df = merging_functions.trim_layout_before_merging_with_results(layout_df_subtotals_recalculated,concatted_results_df)
@@ -309,6 +330,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
     
     # Label the subtotals in the sector aggregates
     sector_aggregates_df = merging_functions.label_subtotals(sector_aggregates_df, shared_categories)
+    
     sector_aggregates_df.rename(columns={'is_subtotal': 'subtotal_layout'}, inplace=True)
     sector_aggregates_df['subtotal_results'] = sector_aggregates_df['subtotal_layout']
     
@@ -328,18 +350,6 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
     
     # final_df with rows ordered in the same sequence as layout_df based on the columns in shared_categories
     final_df = layout_df[shared_categories].merge(final_df, on=shared_categories, sort=False)
-    
-    #######################################
-    # # Temp fix for 01_production 15_solid_biomass and 16_others subtotal label
-    # # Change TRUE to FALSE under 'subtotal_results' column if it's '01_production' in 'sectors' and '15_solid_biomass' or '16_others' in 'fuels'
-    # final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['15_solid_biomass', '16_others'])), 'subtotal_results'] = False
-    #belive the above isnt needed anymore so we will just test to make sure that the production where suvfuels is x matches the sum of the subfuels: (if it is identified as still being an issue then jsut uncomment the above code - the visualisaton system will just automatically allocated the 16_otehrs , x to have the subfuel 16_others_unallocated)
-    projected_years = [str(year) for year in range(OUTLOOK_BASE_YEAR+1, OUTLOOK_LAST_YEAR+1)]
-    sum_of_subfuels = final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (final_df['subtotal_results'] == False)][projected_years].sum().sum()
-    subtotal = final_df.loc[(final_df['sectors'] == '01_production') & (final_df['fuels'].isin(['16_others', '15_solid_biomass'])) & (final_df['subtotal_results'] == True)][projected_years].sum().sum()
-    if abs(sum_of_subfuels - subtotal) > 0.001*sum_of_subfuels:
-        breakpoint()
-        raise ValueError(f"Subtotals for 01_production 15_solid_biomass and 16_others are not equal. Sum of subfuels: {sum_of_subfuels}, subtotal: {subtotal}. Probably need to uncomment the code that sets the subtotals to false for these rows.")
     
     #######################################
     

@@ -24,7 +24,7 @@ SIMPLIFIED_ECONOMY_FUELS_DF_COLUMNS = ['economy', 'fuel', 'method']
 
 USING_NEW_FUELS_LIST=True
 SUBFUELS_LIST = ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene', '16_01_biogas', '15_01_fuelwood_and_woodwaste', '15_02_bagasse', '15_03_charcoal', '15_04_black_liquor', '15_05_other_biomass', '16_02_industrial_waste', '16_03_municipal_solid_waste_renewable', '16_04_municipal_solid_waste_nonrenewable', '16_08_other_liquid_minor_fuels', '16_09_other_sources', '01_05_lignite', '12_01_of_which_photovoltaics', '12_x_other_solar']
-FUELS_LIST = ['02_coal_products','09_nuclear', '10_hydro', '11_geothermal',  '13_tide_wave_ocean', '14_wind']
+FUELS_LIST = ['09_nuclear', '10_hydro', '11_geothermal',  '13_tide_wave_ocean', '14_wind']#'02_coal_products',#i think coal products shouldnt be being produced in this because they are created in the industry model under coal transformation.. problem is that i think if they are imported/exported then maybe they arent being accounted ?
 SUBFUELS_LIST += FUELS_LIST
 NEW_FUELS_LIST = ['16_others_unallocated', '15_solid_biomass_unallocated', '12_solar_unallocated']
 if USING_NEW_FUELS_LIST:
@@ -89,7 +89,7 @@ def minor_fuels_supply_and_transformation_handler(economy, model_df_clean_wide, 
     consumption_df = prepare_consumption_data(economy, model_df_clean_wide, input_data_dict)
     
     production_df, consumption_df = minor_fuels_simplified_modelling_methods_handler(economy, production_df, consumption_df, input_data_dict, model_df_clean_wide)
-    
+    # breakpoint()#can we have a flag for a fuel to make it continue to export the same amount as it has been exporting?
     final_df = calculate_exports_imports(model_df_clean_wide, consumption_df, production_df)
     if PLOT and final_df.shape[0] > 0:
         print('Plotting minor_fuels data')
@@ -467,17 +467,34 @@ def prepare_consumption_data(economy, model_df_clean_wide, input_data_dict):
     #grab the consumption data from the model_df_clean_wide for future years
     sectors= ['04_international_marine_bunkers', '05_international_aviation_bunkers', '09_total_transformation_sector', '10_losses_and_own_use', '14_industry_sector', '15_transport_sector', '16_other_sector', '17_nonenergy_use']
     removed_column_value_dict = {'sub1sectors':'09_10_minor_fuels_processing'}
-    consumption_df = model_df_clean_wide[(model_df_clean_wide['sectors'].isin(sectors)) & (model_df_clean_wide['subfuels'].isin(EBT_minor_fuels_list)) & (model_df_clean_wide['subtotal_results'] == False)].copy().reset_index(drop = True)
+    consumption_df_future = model_df_clean_wide[(model_df_clean_wide['sectors'].isin(sectors)) & (model_df_clean_wide['subfuels'].isin(EBT_minor_fuels_list)) & (model_df_clean_wide['subtotal_results'] == False)].copy().reset_index(drop = True)
+    consumption_df_hist = model_df_clean_wide[(model_df_clean_wide['sectors'].isin(sectors)) & (model_df_clean_wide['subfuels'].isin(EBT_minor_fuels_list)) & (model_df_clean_wide['subtotal_layout'] == False)].copy().reset_index(drop = True)
+    
+    non_year_cols = ['scenarios','economy','sectors','sub1sectors','sub2sectors','sub3sectors','sub4sectors', 'fuels',	'subfuels']
+    #drop the columns that are not in the all_years list
+    consumption_df_future = consumption_df_future[non_year_cols + proj_years].copy().reset_index(drop = True)
+    consumption_df_hist = consumption_df_hist[non_year_cols + historical_years].copy().reset_index(drop = True)
+    
+    #merge then fill nas with 0s in the years
+    consumption_df = pd.merge(
+        consumption_df_hist,consumption_df_future,
+        on=non_year_cols,
+        how='outer'
+    )
+    consumption_df[all_years] = consumption_df[all_years].fillna(0)
+    # breakpoint()
     print('Consumption data for minor_fuels is based on the sectors {}'.format(sectors))
     for column, value in removed_column_value_dict.items():
         consumption_df = consumption_df[consumption_df[column] != value].copy().reset_index(drop = True)
         print('Removing {} from {} in the minor_fuels consumption calculation for minor_fuels'.format(value, column))
     
     #drop any postivie values in 09_total_transformation_sector and then set any negative values to positive
+    # breakpoint()#why are we getting 0 cons for hydro in hist data
     for year in all_years:
         consumption_df.loc[(consumption_df['sectors'] == '09_total_transformation_sector') & (consumption_df[year] > 0), year] = 0
         consumption_df[year] = consumption_df[year].abs()
     
+    # breakpoint()#why are we getting 0 cons for hydro in hist data
     consumption_df = consumption_df[['scenarios','economy','subfuels']+all_years]
     #sum
     consumption_df = consumption_df.groupby(['scenarios','economy','subfuels']).sum().reset_index()
@@ -564,9 +581,7 @@ def keep_same_ratio_of_production_to_consumption(economy, model_df_clean_wide,fu
     fuel_production_df = production_fuel_consumption_df[['scenarios', 'economy', 'subfuels', 'year', 'production']].copy().reset_index(drop = True)
     return fuel_production_df, fuel_consumption_df
     
-    
-    
-    
+
 def satisfy_all_demand_with_domestic_production(economy, model_df_clean_wide, fuel_production_df, fuel_consumption_df, input_data_dict, years_to_ramp_over = 0, RAMP = False, EXACT = False):
     """This is for where we want the economy, for a certain fuel, to satisfy all demand with domestic production. This is useful for economies where we dont have capacity data and just want them to be self sufficient. This will mean that the imports and exports will be 0. 
     
@@ -619,7 +634,7 @@ def satisfy_all_demand_with_domestic_production(economy, model_df_clean_wide, fu
 
 
 def calculate_exports_imports(model_df_clean_wide, consumption_df, production_df):
-    
+    """todo: incorpoarte a way to mdoel exports and improts within this"""
     #merge consumption and production data
     final_df = consumption_df.merge(production_df, on = ['scenarios', 'economy', 'subfuels', 'year'], how = 'outer')
     #find any nas in either production or consumption and let user know, we should at least have 0's for these
@@ -632,6 +647,7 @@ def calculate_exports_imports(model_df_clean_wide, consumption_df, production_df
         breakpoint()
         raise Exception('There are NaNs in the production data')
     #calculate imports and exports. this is jsut the difference between consumption and production, and if negative, it is an export if positive it is an import
+    # breakpoint()# how to stop consumption 0 leading to trade for untineded fuels like hydro and coal?
     final_df['02_imports'] = np.where(final_df['consumption'] - final_df['production'] > 0, (final_df['consumption'] - final_df['production']), 0)
     final_df['03_exports'] = np.where(final_df['consumption'] - final_df['production'] < 0, (final_df['consumption'] - final_df['production']), 0)
     
@@ -657,7 +673,7 @@ def calculate_exports_imports(model_df_clean_wide, consumption_df, production_df
                 if not (df['sectors'] == sector).any():
                     prod_rows['sectors'] = sector
                     model_df_clean_wide_index_cols = pd.concat([model_df_clean_wide_index_cols, prod_rows], ignore_index = True)       
-
+    # breakpoint()
     # final_df_copy = final_df.copy()
     final_df = model_df_clean_wide_index_cols.merge(final_df, on = ['scenarios', 'economy', 'sectors', 'subfuels'], how = 'right')
     #check for any missing values, this is where we may have created a category that wasnt in the original model_df_clean_wide
@@ -666,6 +682,7 @@ def calculate_exports_imports(model_df_clean_wide, consumption_df, production_df
         print('There are {} NaNs in the final_df'.format(final_df[final_df['sectors'] != 'consumption'].isnull().sum().sum()))
         breakpoint()
         raise Exception('There are NaNs in the final_df')
+    # breakpoint()
     return final_df
 
 def plot_minor_fuels_data(final_refining_df, economy):
@@ -680,10 +697,18 @@ def plot_minor_fuels_data(final_refining_df, economy):
     # Filter data for the specific economy and melt for visualization.
     df = final_refining_df[final_refining_df['economy'] == economy].copy()
     df_melted = df.melt(id_vars=['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels'], var_name='year', value_name='energy_pj')
-    for fuel in ['16', '15']:
-        fuel_name = 'Solid_bio' if fuel == '15' else 'Other'
-        fuel_plot = df_melted[df_melted['subfuels'].str.contains(fuel)]
+    for fuel in ['16', '15', 'others']:
+        if fuel == '16':
+            fuel_name = 'Other'
+            fuel_plot = df_melted[df_melted['subfuels'].str.contains('16')].copy()
+        elif fuel == '15':
+            fuel_name = 'Solid Biomass'
+            fuel_plot = df_melted[df_melted['subfuels'].str.contains('15')].copy()
+        else:
+            fuel_name = 'Non biofuels'
+            fuel_plot = df_melted[~(df_melted['subfuels'].str.contains('16') | df_melted['fuels'].str.contains('15'))].copy()
         # Line chart to show the production, imports, and exports over the years by fuel type.
+        # breakpoint()#why does exports of hydro appear in historical data? seems suss
         fig_production = px.line(
             fuel_plot,
             x='year',

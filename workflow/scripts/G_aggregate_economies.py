@@ -3,7 +3,7 @@
 import pandas as pd
 import os
 from datetime import datetime
-from utility_functions import find_most_recent_file_date_id, AGGREGATE_ECONOMY_MAPPING
+from utility_functions import *
 
 def aggregate_economies(SINGLE_ECONOMY_ID):
 
@@ -50,6 +50,13 @@ def aggregate_economies(SINGLE_ECONOMY_ID):
             capacity_data_file = find_most_recent_file_date_id(f'{folder_path}/capacity/')
             capacity_data = pd.read_csv(f'{folder_path}/capacity/{capacity_data_file}')
 
+            #because we have data that has different base years (i.e. russia has base year 2021, not 2022) we cannot easily use the subtotal_layout, subtotal_results columns, otehrwise we end up having to specify whether the subtotal_layout is for X economies base year or Y ecoomies base year.. and so on so we will filter for subtotal_layout = false in all historical years (where eyar is less than base year, and subtoal_results = false where year is greater than base year, then concat back the data.
+            energy_data = adjsut_economy_subtotals_where_base_year_is_different(economy, energy_data)
+            emissions_co2_data = adjsut_economy_subtotals_where_base_year_is_different(economy, emissions_co2_data)
+            emissions_no2_data = adjsut_economy_subtotals_where_base_year_is_different(economy, emissions_no2_data)
+            emissions_ch4_data = adjsut_economy_subtotals_where_base_year_is_different(economy, emissions_ch4_data)
+            emissions_co2e_data = adjsut_economy_subtotals_where_base_year_is_different(economy, emissions_co2e_data)
+            
             # Concatenate the data files for each economy
             all_energy_data = pd.concat([all_energy_data, energy_data], ignore_index=True)
             all_emissions_co2_data = pd.concat([all_emissions_co2_data, emissions_co2_data], ignore_index=True)
@@ -65,7 +72,9 @@ def aggregate_economies(SINGLE_ECONOMY_ID):
     # Print the list of skipped economies
     if skipped_economies:
         print("The following economies were skipped due to missing files:", skipped_economies)
-
+        
+    breakpoint()#want to check whats happening with transport subtotals. 
+    
     # Rename all economy codes to the SINGLE_ECONOMY_ID
     all_energy_data['economy'] = SINGLE_ECONOMY_ID
     all_emissions_co2_data['economy'] = SINGLE_ECONOMY_ID
@@ -104,6 +113,7 @@ def aggregate_economies(SINGLE_ECONOMY_ID):
 
     # Function to save the aggregated data and handle old files
     def save_aggregated_data(all_data, data_type, file_name_id):
+        # breakpoint()
         # Define the folder path where you want to save the file
         folder_path = f'results/{SINGLE_ECONOMY_ID}/{data_type}/'
         old_folder_path = f'{folder_path}/old'
@@ -144,9 +154,98 @@ def aggregate_economies(SINGLE_ECONOMY_ID):
             all_data.to_csv(f'results/{file_name_id}_{date_today}.csv', index=False)
             
     # Save the aggregated data
-    save_aggregated_data(all_energy_data, 'merged_file_energy', 'merged_file_energy')
+    save_aggregated_data(all_energy_data, 'merged', 'merged_file_energy')
     save_aggregated_data(all_emissions_co2_data, 'emissions', 'emissions_co2')
     save_aggregated_data(all_emissions_no2_data, 'emissions', 'emissions_no2')
     save_aggregated_data(all_emissions_ch4_data, 'emissions', 'emissions_ch4')
     save_aggregated_data(all_emissions_co2e_data, 'emissions', 'emissions_co2e')
     save_aggregated_data(all_capacity_data, 'capacity', 'capacity')
+
+
+##########alternative method:
+# def filter_for_subtotal_false_in_all_economy_data():
+    
+# years_cols = [x for x in energy_w_subtotals.columns if re.match(r'\d\d\d\d', x)]
+
+# #make all values after the base year 0 in historical data
+# historical_data = emissions_co2_w_subtotals.copy()
+# historical_data.drop(columns=PROJ_YEARS_str, inplace=True)
+# proj_data = emissions_co2_w_subtotals.copy()
+# proj_data.drop(columns=HIST_YEARS_str, inplace=True)
+
+# #filter for only not subtotal_layout in historical data and not subtotal_results in proj data
+# historical_data = historical_data[(historical_data.subtotal_layout==False)]
+# proj_data = proj_data[(proj_data.subtotal_results==False)].copy()
+# #merge them and sum
+# emissions_co2 = pd.concat([historical_data, proj_data], axis=0)
+# emissions_co2.fillna(0, inplace=True)
+
+# historical_data = energy_w_subtotals.copy()
+# historical_data.drop(columns=PROJ_YEARS_str, inplace=True)
+# proj_data = energy_w_subtotals.copy()
+# proj_data.drop(columns=HIST_YEARS_str, inplace=True)
+# #filter for only not subtotal_layout in historical data and not subtotal_results in proj data
+# historical_data = historical_data[(historical_data.subtotal_layout==False)]
+# proj_data = proj_data[(proj_data.subtotal_results==False)].copy()
+# #merge them and sum
+# energy = pd.concat([historical_data, proj_data], axis=0)
+
+# #set any nas in the energy data to 0
+# energy.fillna(0, inplace=True)
+##########
+#orrr we can go inot the datasets that have different base eyars and recategorise the years that are base years for other economies so their subtotal_layout/subtoal_results columns match that expected structure instead:
+#i.e.
+def adjsut_economy_subtotals_where_base_year_is_different(economy, df):
+    ECONOMIES_WITH_DIFFERENT_BASE_YEARS_DICT = {
+        '16_RUS':2021
+    }
+    for economy_, economy_base_year in ECONOMIES_WITH_DIFFERENT_BASE_YEARS_DICT.items():
+        if economy == economy_:
+            # breakpoint()
+            if economy_base_year < OUTLOOK_BASE_YEAR:
+                #we grab the years after ECONOMY BASE YEAR that are <= to OUTLOOK+BASE YEAR and set their subtotal_results column to True where subtotal_layout is true, and to fasle where subtotal_layout is false. then cocnat them back in to df 
+                year_cols = [col for col in df.columns if re.match(r'^\d{4}$', str(col))]
+                different_years = [str(year) for year in range(economy_base_year+1, OUTLOOK_BASE_YEAR+1)]
+                non_year_cols = [col for col in df.columns if col not in year_cols]
+                df_different_years = df[non_year_cols + different_years]
+                # breakpoint()
+                df_different_years['old_subtotal_results'] = df_different_years['subtotal_results']
+                df_different_years['old_subtotal_layout'] = df_different_years['subtotal_layout']
+                #set the subtotal_results to True where subtotal_layout is True and set the subtotal_results to False where subtotal_layout is False
+                df_different_years.loc[df_different_years['subtotal_results'] == True, 'subtotal_layout'] = True
+                df_different_years.loc[df_different_years['subtotal_results'] == False, 'subtotal_layout'] = False
+                
+                #now we need to merge these back into the original dataframe but only for the years that are different so we can just drop those years from the original dataframe and then concat them back in.
+                df.drop(columns=different_years, inplace=True)
+                df_different_years.drop(columns=['old_subtotal_results', 'old_subtotal_layout'], inplace=True)
+                
+                #concat them back together
+                df = pd.concat([df, df_different_years], axis=0)
+                
+                #make sure column order is as before, non_year_cols + year cols
+                df = df[non_year_cols + year_cols]
+                return df
+            elif economy_base_year > OUTLOOK_BASE_YEAR:
+                #we grab the years after ECONOMY BASE YEAR that are <= to OUTLOOK+BASE YEAR and set their subtotal_layout column to True where subtotal_results is true, and to fasle where subtotal_results is false. then cocnat them back in to df 
+                year_cols = [col for col in df.columns if re.match(r'^\d{4}$', str(col))]
+                different_years = [str(year) for year in range(economy_base_year+1, OUTLOOK_BASE_YEAR+1)]
+                non_year_cols = [col for col in df.columns if col not in year_cols]
+                df_different_years = df[non_year_cols + different_years]
+                
+                df_different_years['old_subtotal_results'] = df_different_years['subtotal_results']
+                df_different_years['old_subtotal_layout'] = df_different_years['subtotal_layout']
+                #set the subtotal_layout to True where subtotal_results is True and set the subtotal_layout to False where subtotal_results is False
+                df_different_years.loc[df_different_years['subtotal_layout'] == True, 'subtotal_results'] = True
+                df_different_years.loc[df_different_years['subtotal_layout'] == False, 'subtotal_results'] = False
+                
+                #now we need to merge these back into the original dataframe but only for the years that are different so we can just drop those years from the original dataframe and then concat them back in.
+                df.drop(columns=different_years, inplace=True)
+                df_different_years.drop(columns=['old_subtotal_results', 'old_subtotal_layout'], inplace=True)
+                
+                #concat them back together
+                df = pd.concat([df, df_different_years], axis=0)
+                
+                #make sure column order is as before, non_year_cols + year cols
+                df = df[non_year_cols + year_cols]
+                return df
+    return df
