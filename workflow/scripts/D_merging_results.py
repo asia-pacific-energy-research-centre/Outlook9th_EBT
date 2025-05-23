@@ -149,10 +149,10 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
         results_df = results_adjustment_functions.power_move_x_in_chp_and_hp_to_biomass(results_df)
         results_df, layout_df = results_adjustment_functions.allocate_problematic_x_rows_to_unallocated(results_df, layout_df,years_to_keep_in_results)
         results_df = results_adjustment_functions.edit_hydrogen_transfomation_rows(results_df)
-        results_df = results_adjustment_functions.set_subfuel_for_06_crude_oil_and_ngl_stock_changes(results_df)
+        results_df = results_adjustment_functions.set_subfuel_for_supply_data(results_df)
         results_df = results_adjustment_functions.nullify_supply_stock_changes(results_df, PLOTTING=True)
         results_df = results_adjustment_functions.create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_df, layout_df, SINGLE_ECONOMY_ID, shared_categories, years_to_keep_in_results)
-        results_df = results_adjustment_functions.consolidate_imports_exports_from_supply_sector(results_df)
+        results_df = results_adjustment_functions.consolidate_imports_exports_from_supply_sector(results_df,economy=SINGLE_ECONOMY_ID)
         ########
         #TEMP#
         
@@ -217,7 +217,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
         if len([col for col in layout_df.columns if '2022' in col]) > 1:
             breakpoint()
         concatted_results_df = pd.concat([concatted_results_df, filtered_results_df_subtotals_labelled])
-
+    breakpoint()
     #make all cols strs
     concatted_results_df.columns = concatted_results_df.columns.astype(str)
     # Define the range of years to keep
@@ -240,6 +240,7 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
     # subtotal = concatted_results_df.loc[(concatted_results_df['sectors'] == '14_industry_sector') & (concatted_results_df['sub1sectors'] == 'x') & (concatted_results_df['fuels'] == '07_petroleum_products') & (concatted_results_df['subfuels'] == 'x')]
     #chck if the subtotal is true or false:
     # breakpoint()
+    
     concatted_results_df = merging_functions.calculate_subtotals(concatted_results_df, shared_categories + ['origin'], DATAFRAME_ORIGIN='results')
     
     # breakpoint()#wats goign on with scenarios	economy	sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels	subtotal_layout	subtotal_results	2021	2022
@@ -274,9 +275,12 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
     # Merge the new_layout_df with the concatted_results_df based on shared_categories using outer merge (so we can see which rows are missing/extra from the results_df)
     merged_df = pd.merge(trimmed_layout_df, trimmed_concatted_results_df, on=shared_categories, how="outer", indicator=True)
 
-
+    breakpoint()#are we losing our data here for china?
+    #filter for 15_transport_sector	15_03_rail	x	x	x	08_gas	08_03_gas_works_gas
+    x = merged_df.loc[merged_df['sectors'].isin(['15_transport_sector']) & merged_df['subfuels'].isin(['08_03_gas_works_gas'])].copy()
     results_layout_df = merging_functions.format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df,missing_sectors_df)
     
+    x = merged_df.loc[merged_df['sectors'].isin(['15_transport_sector']) & merged_df['subfuels'].isin(['08_03_gas_works_gas'])].copy()
     #add subtotals to shared_categories now its in all the dfs
     shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']
     #########################
@@ -352,57 +356,12 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
     final_df = layout_df[shared_categories].merge(final_df, on=shared_categories, sort=False)
     
     #######################################
-    
-    save_merged_file(final_df, SINGLE_ECONOMY_ID, previous_merged_df_filename, shared_categories_w_subtotals, 
+    merging_functions.save_merged_file(final_df, SINGLE_ECONOMY_ID, previous_merged_df_filename, shared_categories_w_subtotals, 
     folder_path=f'results/{SINGLE_ECONOMY_ID}/merged', old_folder_path=f'results/{SINGLE_ECONOMY_ID}/merged/old', COMPARE_TO_PREVIOUS_MERGE = True)
     
     return final_df
 
 
-def save_merged_file(final_df, SINGLE_ECONOMY_ID, previous_merged_df_filename, shared_categories_w_subtotals, 
-    folder_path, old_folder_path,   
-    COMPARE_TO_PREVIOUS_MERGE = True):
-    """Saves the merged file to a new CSV file and moves the previous merged file to the 'old' folder."""
-    # Identify the previous merged file
-    
-    # Check if the folder already exists
-    if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
-        # If the folder doesn't exist, create it
-        os.makedirs(folder_path)
-    
-    # Check if the old folder exists
-    if not os.path.exists(old_folder_path):
-        # If the old folder doesn't exist, create it
-        os.makedirs(old_folder_path)
-    
-    if COMPARE_TO_PREVIOUS_MERGE:
-        merging_functions.compare_to_previous_merge(final_df, shared_categories_w_subtotals, results_data_path=folder_path,previous_merged_df_filename=previous_merged_df_filename, new_subtotal_columns=['subtotal_layout', 'subtotal_results'], previous_subtotal_columns=['subtotal_historic','subtotal_predicted','subtotal'])
-    
-    previous_merged_df_filename = None
-    if os.path.exists(folder_path):
-        for file in os.listdir(folder_path):
-            if file.startswith(f'merged_file_energy_{SINGLE_ECONOMY_ID}') and file.endswith('.csv'):
-                previous_merged_df_filename = file
-                break
-
-    # Move the old merged file to the 'old' folder if it exists
-    if previous_merged_df_filename:
-        old_file_path = f'{folder_path}/{previous_merged_df_filename}'
-        new_old_file_path = f'{old_folder_path}/{previous_merged_df_filename}'
-        
-        # Remove the old file in the 'old' folder if it exists
-        if os.path.exists(new_old_file_path):
-            os.remove(new_old_file_path)
-        
-        os.rename(old_file_path, new_old_file_path)
-
-    #save the combined data to a new Excel file
-    #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
-    date_today = datetime.now().strftime('%Y%m%d')
-    if (isinstance(SINGLE_ECONOMY_ID, str)):
-        final_df.to_csv(f'{folder_path}/merged_file_energy_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
-    else:
-        final_df.to_csv(f'results/merged_file_energy_{date_today}.csv', index=False)
 # #%%
 # a = merging_results()
 # a.to_csv('new.csv')

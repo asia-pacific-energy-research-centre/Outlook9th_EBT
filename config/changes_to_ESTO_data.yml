@@ -19,6 +19,41 @@ INA_NON_ENERGY:
 - Year: 2022
   economy: 07_INA
   fuels: 7 Petroleum products
+  new_value: -112.29176
+  old_values:
+    00APEC_2024_20250312: -8.4061230624
+  sectors: 9.9 Petrochemical industry
+- Year: 2022
+  economy: 07_INA
+  fuels: 7.03 Naphtha
+  new_value: -112.29176
+  old_values:
+    00APEC_2024_20250312: -8.4061230624
+  sectors: 9.9 Petrochemical industry
+- Year: 2022
+  economy: 07_INA
+  fuels: 19 Total
+  new_value: -112.29176
+  old_values:
+    00APEC_2024_20250312: -8.4061230624
+  sectors: 9.9 Petrochemical industry
+- Year: 2022
+  economy: 07_INA
+  fuels: 19 Total
+  new_value: -3172.044619
+  old_values:
+    00APEC_2024_20250312: -3282.73049570165
+  sectors: 9. Total transformation sector
+- Year: 2022
+  economy: 07_INA
+  fuels: 7 Petroleum products
+  new_value: 1672.837883
+  old_values:
+    00APEC_2024_20250312: 1720.4533982248417
+  sectors: 9. Total transformation sector
+- Year: 2022
+  economy: 07_INA
+  fuels: 7 Petroleum products
   new_value: 2968.078803
   old_values:
     00APEC_2024_20250219: 2832.9837128384647

@@ -480,6 +480,7 @@ def set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df):
     ]
     new_rows_df = pd.DataFrame()
     if len(concatted_results_df.loc[(concatted_results_df['fuels'].isin(known_fuels_to_make_unallocated)) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False)]) > 0:
+        
         for fuel in known_fuels_to_make_unallocated:
             new_rows = concatted_results_df.loc[(concatted_results_df['fuels']==fuel) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False)].copy()
             new_rows['subfuels'] = fuel+'_unallocated'
@@ -487,6 +488,7 @@ def set_subfuel_x_rows_to_unallocated(concatted_results_df, layout_df):
             
             concatted_results_df.loc[(concatted_results_df['fuels']==fuel) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False), 'subfuels'] = fuel+'_unallocated'
     if len(concatted_results_df.loc[(~concatted_results_df['fuels'].isin(fuels_with_x_as_most_disaggregated)) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False)]) > 0:
+        breakpoint()#china unallocated test
         fuels = concatted_results_df.loc[(~concatted_results_df['fuels'].isin(fuels_with_x_as_most_disaggregated)) & (concatted_results_df['subfuels'] == 'x') & (concatted_results_df['is_subtotal'] == False), 'fuels'].unique().tolist()
         breakpoint()
         raise Exception("There are still subfuels with x in them that are not subtotals. This is unexpected. the fuels are {}".format(fuels))
@@ -880,7 +882,7 @@ def calculate_fuel_aggregates(new_aggregates_df, results_layout_df, shared_categ
     df_melted['year'] = df_melted['year'].astype(int)
 
     # drop 08_02_interproduct_transfers, 09_12_nonspecified_transformation as we dont want to include it in the aggregates
-    df_melted = df_melted[~df_melted['sub1sectors'].isin(['09_12_nonspecified_transformation', '08_02_interproduct_transfers'])].copy()
+    df_melted = df_melted[~df_melted['sub1sectors'].isin(['09_12_nonspecified_transformation', '08_02_interproduct_transfers'])].copy()#NOTE IM NOT REALLY SURE WHY THIS IS DONE. SEEMS VERY SPECIFIC AND BEYOND THE SCOPE OF THIS SYSTEM?
 
     # Split the melted DataFrame into two based on the year ranges
     df_layout = df_melted[(df_melted['year'].between(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR)) & (df_melted['subtotal_layout'] == False)].copy()
@@ -1421,7 +1423,7 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             economy=merged_df_bad_values['economy'].unique()[0]
             merged_df_bad_values.to_csv(f'data/temp/error_checking/merged_df_bad_values_{economy}.csv', index=False)
             print("There are {} rows where the values in the results file do not match the values in the layout file. These rows have been saved to data/temp/error_checking/merged_df_bad_values_{}.csv".format(merged_df_bad_values.shape[0], economy))
-            breakpoint()
+            # breakpoint()
         if missing_rows.shape[0] > 0:
             ###############
             missing_rows_exceptions_dict = {}
@@ -1485,6 +1487,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             missing_rows_exceptions_dict['russia_nonspecified_transformation'] = {'_merge':'new_layout_df', 'economy':'16_RUS', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_12_nonspecified_transformation'}
             
             missing_rows_exceptions_dict['new_statistical_discrepancys'] = {'_merge':'new_layout_df', 'sectors':'11_statistical_discrepancy'}
+            
+            missing_rows_exceptions_dict['new_22_demand_supply_discrepancy'] = {'_merge':'new_layout_df', 'sectors':'22_demand_supply_discrepancy'}
+            
             # 11_geothermal 02_imports#i dont know why these started but they are there :(
             missing_rows_exceptions_dict['geothermal_imports'] = {'_merge':'new_layout_df', 'fuels':'11_geothermal', 'subfuels':'x'}
             # 02_imports	x	x	x	x	12_solar similar to geothermal
@@ -1492,6 +1497,12 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             # 03_exports
             missing_rows_exceptions_dict['exports_solar'] = {'_merge':'new_layout_df', 'sectors':'03_exports', 'fuels':'12_solar'}
 
+            #china gas works gas 
+            #removeing gas works and biogas to see what happens wehn we do
+            breakpoint()
+            # missing_rows_exceptions_dict['gas_works_gas_prc'] = {'economy':'05_PRC', '_merge':'new_layout_df', 'subfuels':'08_03_gas_works_gas'}
+            # missing_rows_exceptions_dict['biogas_prc'] = {'economy':'05_PRC', '_merge':'new_layout_df', 'subfuels':'16_01_biogas'}
+            missing_rows_exceptions_dict['unallocated_prc'] = {'economy':'05_PRC', '_merge':'new_layout_df', 'subfuels':'16_others_unallocated', 'sub1sectors':'09_01_electricity_plants'}
             #created in adjust_projected_supply_to_balance_demand(). for new fuels especially they might turn up and cause issues
             #             09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	08_01_natural_gas
             # 09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	x
@@ -1832,3 +1843,47 @@ def insert_data_centres_into_layout_df(layout_df, results_df, shared_categories)
         #now carry on (:
     return layout_df
 
+def save_merged_file(final_df, SINGLE_ECONOMY_ID, previous_merged_df_filename, shared_categories_w_subtotals, 
+    folder_path, old_folder_path,   
+    COMPARE_TO_PREVIOUS_MERGE = True):
+    """Saves the merged file to a new CSV file and moves the previous merged file to the 'old' folder."""
+    # Identify the previous merged file
+    
+    # Check if the folder already exists
+    if not os.path.exists(folder_path) and (isinstance(SINGLE_ECONOMY_ID, str)):
+        # If the folder doesn't exist, create it
+        os.makedirs(folder_path)
+    
+    # Check if the old folder exists
+    if not os.path.exists(old_folder_path):
+        # If the old folder doesn't exist, create it
+        os.makedirs(old_folder_path)
+    
+    if COMPARE_TO_PREVIOUS_MERGE:
+        compare_to_previous_merge(final_df, shared_categories_w_subtotals, results_data_path=folder_path,previous_merged_df_filename=previous_merged_df_filename, new_subtotal_columns=['subtotal_layout', 'subtotal_results'], previous_subtotal_columns=['subtotal_historic','subtotal_predicted','subtotal'])
+    
+    previous_merged_df_filename = None
+    if os.path.exists(folder_path):
+        for file in os.listdir(folder_path):
+            if file.startswith(f'merged_file_energy_{SINGLE_ECONOMY_ID}') and file.endswith('.csv'):
+                previous_merged_df_filename = file
+                break
+
+    # Move the old merged file to the 'old' folder if it exists
+    if previous_merged_df_filename:
+        old_file_path = f'{folder_path}/{previous_merged_df_filename}'
+        new_old_file_path = f'{old_folder_path}/{previous_merged_df_filename}'
+        
+        # Remove the old file in the 'old' folder if it exists
+        if os.path.exists(new_old_file_path):
+            os.remove(new_old_file_path)
+        
+        os.rename(old_file_path, new_old_file_path)
+
+    #save the combined data to a new Excel file
+    #layout_df.to_excel('../../tfc/combined_data.xlsx', index=False, engine='openpyxl')
+    date_today = datetime.now().strftime('%Y%m%d')
+    if (isinstance(SINGLE_ECONOMY_ID, str)):
+        final_df.to_csv(f'{folder_path}/merged_file_energy_{SINGLE_ECONOMY_ID}_{date_today}.csv', index=False)
+    else:
+        final_df.to_csv(f'results/merged_file_energy_{date_today}.csv', index=False)

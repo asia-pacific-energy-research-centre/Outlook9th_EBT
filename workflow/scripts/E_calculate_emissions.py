@@ -101,7 +101,7 @@ def calculate_emissions(final_df, SINGLE_ECONOMY_ID, INCLUDE_ZERO_NET_EMISSION_F
         # Define conditions for CCS rows
         industry_ccs_condition = df['sub3sectors'].str.endswith('_ccs') & df['sub3sectors'].str.startswith('14_') & (df['Gas'] == 'CARBON DIOXIDE')
         power_ccs_condition = df['sub2sectors'].str.endswith('_ccs') & df['sub2sectors'].str.startswith('09_') & (df['Gas'] == 'CARBON DIOXIDE')
-        breakpoint()#why is 09 not hacing any emisisons output when we attached _captured emissions to it?
+        # breakpoint()#why is 09 not hacing any emisisons output when we attached _captured emissions to it?
         # Create a copy for manipulation
         df_copy = df.loc[industry_ccs_condition | power_ccs_condition].copy()
 

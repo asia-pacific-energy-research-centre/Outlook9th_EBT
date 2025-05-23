@@ -90,11 +90,12 @@ def minor_fuels_supply_and_transformation_handler(economy, model_df_clean_wide, 
     
     production_df, consumption_df = minor_fuels_simplified_modelling_methods_handler(economy, production_df, consumption_df, input_data_dict, model_df_clean_wide)
     # breakpoint()#can we have a flag for a fuel to make it continue to export the same amount as it has been exporting?
+    # breakpoint()#why are charcoal improts appearing out of nowehere INHISTO YEARS?
     final_df = calculate_exports_imports(model_df_clean_wide, consumption_df, production_df)
+    # breakpoint()#why are charcoal improts appearing out of nowehere?
     if PLOT and final_df.shape[0] > 0:
         print('Plotting minor_fuels data')
         plot_minor_fuels_data(final_df, economy)
-    
     for fuel in FUELS_LIST:
         final_df.loc[final_df['fuels'] == fuel, 'subfuels'] = 'x'
         
@@ -673,9 +674,13 @@ def calculate_exports_imports(model_df_clean_wide, consumption_df, production_df
                 if not (df['sectors'] == sector).any():
                     prod_rows['sectors'] = sector
                     model_df_clean_wide_index_cols = pd.concat([model_df_clean_wide_index_cols, prod_rows], ignore_index = True)       
-    # breakpoint()
+    # # breakpoint()#should we drop the historical data that has just been produced? sin some case have been adjusted to what is actually in the esto data
+    # historical_years = [str(year) for year in range(EBT_EARLIEST_YEAR, OUTLOOK_BASE_YEAR+1, 1)]
+    # #drop the historical years from the final_df
+    # final_df.drop(columns = historical_years, inplace = True)#actually this wont work since its hard to calcualte total consumption as the ottla of transfomration and losses and own use and total consumption
     # final_df_copy = final_df.copy()
     final_df = model_df_clean_wide_index_cols.merge(final_df, on = ['scenarios', 'economy', 'sectors', 'subfuels'], how = 'right')
+    
     #check for any missing values, this is where we may have created a category that wasnt in the original model_df_clean_wide
     #exceopt ignore where sectors==consumption as this will be missing
     if final_df[final_df['sectors'] != 'consumption'].isnull().sum().sum() > 0:
@@ -705,8 +710,9 @@ def plot_minor_fuels_data(final_refining_df, economy):
             fuel_name = 'Solid Biomass'
             fuel_plot = df_melted[df_melted['subfuels'].str.contains('15')].copy()
         else:
+            
             fuel_name = 'Non biofuels'
-            fuel_plot = df_melted[~(df_melted['subfuels'].str.contains('16') | df_melted['fuels'].str.contains('15'))].copy()
+            fuel_plot = df_melted[~(df_melted['subfuels'].str.contains('16') | df_melted['subfuels'].str.contains('15'))].copy()
         # Line chart to show the production, imports, and exports over the years by fuel type.
         # breakpoint()#why does exports of hydro appear in historical data? seems suss
         fig_production = px.line(
@@ -717,7 +723,7 @@ def plot_minor_fuels_data(final_refining_df, economy):
             line_dash='sectors',
             facet_row='scenarios',
             facet_col='subfuels',
-            title=f'minor_fuels Production, Imports, and Exports Over Time for {economy} - {fuel_name}',
+            title=f'minor_fuels Production, Imports, and Exports Over Time for {economy}/{fuel_name}/historical data is estimated',
             labels={'year': 'Year', 'energy_pj': 'Energy (PJ)', 'sectors': 'Supply Components', 'subfuels': ''}#set 'subfuels': '' so it doesnt take up space in the chart
         )
 
@@ -739,7 +745,7 @@ def plot_minor_fuels_data(final_refining_df, economy):
             barmode='relative',
             facet_row='subfuels',
             facet_col='scenarios',
-            title=f'minor_fuels Production, Imports, and Exports Comparison for {economy} - {fuel_name} - move your mouse over graph to see the fuel type',
+            title=f'minor_fuels Production, Imports, and Exports Comparison for{economy}/{fuel_name}/historical data is estimated',
             labels={'year': 'Year', 'energy_pj': 'Energy (PJ)', 'sectors': 'Supply Components', 'subfuels': 'subfuels'}
         )
 
@@ -764,7 +770,7 @@ def plot_minor_fuels_data(final_refining_df, economy):
             line_dash='sectors',
             facet_row='scenarios',
             facet_col='subfuels',
-            title=f'minor_fuels Production, Consumption and Net Imports Over Time for {economy} - {fuel_name} - negative imports are exports',
+            title=f'minor_fuels Production, Consumption and Net Imports Over Time for {economy} - {fuel_name} - negative imports are exports for - historical data is estimated',
             labels={'year': 'Year', 'energy_pj': 'Energy (PJ)', 'sectors': 'Supply Components', 'subfuels': ''}
         )
 

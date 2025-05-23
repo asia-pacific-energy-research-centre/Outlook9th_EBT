@@ -46,18 +46,25 @@ def filter_out_solar_with_zeros_in_buildings_file(results_df):
     results_df = results_df[~((results_df['fuels']=='12_solar') & (results_df['sub1sectors']=='16_01_buildings')&(results_df['sub2sectors']=='x')&(results_df['subfuels']=='x')&(results_df[years].isna().all(axis=1)))].copy()
     return results_df   
 
-def set_subfuel_for_06_crude_oil_and_ngl_stock_changes(results_df):
+def set_subfuel_for_supply_data(results_df):
     #set stock changes in supply of oil to be for 06_01_crude_oil. That is, where fuel is 06_crude_oil_and_ngl and subfuel is x, set the subfuel to 06_01_crude_oil. But only do this where sectors is 06_stock_changes
     #this is because otherwise we end up with stock changes in crude po; unaclloatied which may have no other data in it. this would then cause a supply inbalance in the data. better ti just set it to crude oil and ngl and assume that the stock changes are for crude oil and ngl.
     if results_df.loc[(results_df['fuels'] == '06_crude_oil_and_ngl') & (results_df['subfuels'] == 'x') & (results_df['sectors'] == '06_stock_changes')].shape[0] > 0:
         results_df.loc[(results_df['fuels'] == '06_crude_oil_and_ngl') & (results_df['subfuels'] == 'x') & (results_df['sectors'] == '06_stock_changes'), 'subfuels'] = '06_01_crude_oil'
+    #and set subfuel for 08_Gas production and stock changes to be for 08_01_natural_gas
+    if results_df.loc[(results_df['fuels'] == '08_gas') & (results_df['subfuels'] == 'x') & (results_df['sectors'] == '06_stock_changes')].shape[0] > 0:
+        results_df.loc[(results_df['fuels'] == '08_gas') & (results_df['subfuels'] == 'x') & (results_df['sectors'] == '06_stock_changes'), 'subfuels'] = '08_01_natural_gas'
+    #and set subfuel for 08_Gas production and stock changes to be for 08_01_natural_gas
+    if results_df.loc[(results_df['fuels'] == '08_gas') & (results_df['subfuels'] == 'x') & (results_df['sectors'] == '01_production')].shape[0] > 0:
+        results_df.loc[(results_df['fuels'] == '08_gas') & (results_df['subfuels'] == 'x') & (results_df['sectors'] == '01_production'), 'subfuels'] = '08_01_natural_gas'
     
     return results_df
 
-def consolidate_imports_exports_from_supply_sector(results_df, PLOTTING=True):
+def consolidate_imports_exports_from_supply_sector(results_df, economy, PLOTTING=True):
     """
     Replace situations where both imports and exports are nonzero with a consolidated (net imports) row.
     
+    Dont do this for some economies where they export and import the same fuel a lot, like in usa. this is useful data comapred to where the majority of values are exported or imported and the counterpart is really small (and therefore distracting)
     For each group identified by the key columns (economy, scenarios, fuels, subfuels):
       - If both an import row ('02_imports') and an export row ('03_exports') are present,
         compute, for each year, the net value as:
@@ -82,9 +89,11 @@ def consolidate_imports_exports_from_supply_sector(results_df, PLOTTING=True):
     #################
     supply_fuels = ['01_coal', '06_crude_oil_and_ngl', '08_gas']
     supply_sectors = ['01_production', '02_imports', '03_exports']
-    # Verify that every fuel/sector combination is present in the DataFrame
+    ECONOMIES_TO_ADJUST = []#['05_PRC', '20_USA', '01_AUS', '07_INA', '14_PE', '11_MEX', '10_MAS', '02_BD']
+    # Verify that almost every fuel/sector combination is present in the DataFrame
     all_found = True
     FOUND=False
+    found_number = 0#post hoc change. found that since we wrre removing rows of all 0s sometiemes, we would lose some rows we wanted.
     supply_results_df = pd.DataFrame()
     for fuel in supply_fuels:
         for sector in supply_sectors:
@@ -93,9 +102,13 @@ def consolidate_imports_exports_from_supply_sector(results_df, PLOTTING=True):
                 break  # Break out of inner loop if a combination is missing
             else:
                 supply_results_df = pd.concat([supply_results_df, results_df[(results_df['sectors'] == sector) & (results_df['fuels'] == fuel)]])
-        if not all_found:
-            break  # Break out of outer loop if a combination is missing
-
+                found_number += 1
+        # if not all_found:
+        #     break  # Break out of outer loop if a combination is missing
+    if found_number > 3:
+        all_found = True
+    # if economy in ECONOMIES_TO_IGNORE:
+    #     return results_df
     if all_found:
         #double check that when you sum up the values for OUTLOOK_BASE_YEAR+1, they are not all 0
         #make all cols strs 
@@ -107,6 +120,7 @@ def consolidate_imports_exports_from_supply_sector(results_df, PLOTTING=True):
     #################
     # At this point, FOUND is True if at least one file has all combinations.
     if FOUND:
+        # breakpoint()
         # breakpoint()#do we need to include subtotals in the keys?
         # Separate imports and exports
         imp_results_df = results_df.loc[results_df['sectors'] == '02_imports', keys + future_years].copy()
@@ -161,19 +175,29 @@ def consolidate_imports_exports_from_supply_sector(results_df, PLOTTING=True):
             #join fuels and subfuels
             
             merged_plotting['subfuel_fuels_sectors'] = merged_plotting['fuels'].astype(str) + '_' + merged_plotting['subfuels'].astype(str) + '_' + merged_plotting['sectors'].astype(str)
-
+            # breakpoint()#check mas. graph looking wierd
             merged_plotting['year'] = merged_plotting['year'].astype(int)
             for fuel in merged_plotting['fuels'].unique():
-
+                
                 fuel_data = merged_plotting[merged_plotting['fuels'] == fuel]
+                fuel_data['value'] = fuel_data['value'].replace(np.nan, 0)
                 import plotly.express as px
                 fig = px.line(fuel_data, x='year', y='value', color='subfuel_fuels_sectors', line_dash='dataset',facet_col='scenarios', title='Imports and Exports Comparison')
                 #write to html
                 economy= results_df.economy.unique()[0]
-                fig.write_html(f'./plotting_output/{economy}_{fuel}_supply_consolidated_imports_exports_comparison.html')
+                if economy not in ECONOMIES_TO_ADJUST:
+                    fig.write_html(f'./plotting_output/import_export_consolidations/NOT_USED_{economy}_{fuel}_supply_consolidated_imports_exports_comparison.html')
+                else:
+                    fig.write_html(f'./plotting_output/import_export_consolidations/{economy}_{fuel}_supply_consolidated_imports_exports_comparison.html')
         
         # breakpoint()#check its ok#esp with this  df_melted['year'] = df_melted['year'].astype(int)
         # breakpoint()
+    else:
+        return df_copy
+    if economy not in ECONOMIES_TO_ADJUST:#we still create the plot jsut to allow us to check if it is useful later
+        # breakpoint()#wats going on with usa exports ofcurde
+        return df_copy
+    # If not, return the modified DataFrame
     return results_df
 
 # Example usage:
@@ -277,7 +301,7 @@ def power_move_x_in_chp_and_hp_to_biomass(results_df):
 def allocate_problematic_x_rows_to_unallocated(results_df, layout_df, years_to_keep_in_results):
         
     #if tehre are rows in the dataframe where the fuel is the key in subfuels_to_solve and the subfuel is in the values in subfuels_to_solve as well as rows where the subfuel for that same fuel is x, then we need to set the rows wehre subfuels is x to '##_unallocated' now so that it doesnt confse the subtotalling funcitons later. 
-    sectors_with_issues = ['18_electricity_output_in_gwh', '09_total_transformation_sector'] #try to be as specfic as possible here to reduce chance of errors
+    sectors_with_issues = ['18_electricity_output_in_gwh', '09_total_transformation_sector', '19_heat_output_in_pj'] #try to be as specfic as possible here to reduce chance of errors
     subfuels_to_solve = {'16_others':['16_x_efuel', '16_x_ammonia', '16_x_hydrogen']}
     new_rows = pd.DataFrame()
     results_df_copy_ = results_df.copy()
@@ -286,6 +310,7 @@ def allocate_problematic_x_rows_to_unallocated(results_df, layout_df, years_to_k
         for sector_col in ['sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors']:
             for sector in sectors_with_issues:
                 if any(results_df_copy[sector_col]==sector):
+                    # breakpoint()
                     #grab that row and check for the subfuel x rows
                     df = results_df_copy[results_df_copy[sector_col]==sector].copy()
                     for fuel, subfuel_list in subfuels_to_solve.items():
@@ -294,7 +319,7 @@ def allocate_problematic_x_rows_to_unallocated(results_df, layout_df, years_to_k
                             if any(df_fuel['subfuels']=='x') and any(df_fuel['subfuels'].isin(subfuel_list)):
                                 ###########REALISED THAT CHECKING FOR SUBTOTALS HERE WAS NOT GOING TO WORK UNLESS IT WAS A LOT MORE COMPREHENSIVE I.E. CHECKING FOR LOWER LEVEL SUBTOTALS FIRST WOULD BE REQUIRED). so instead we will just hope nothign goes wrong!
                                 ##############################
-                                # breakpoint()
+                                # breakpoint()#since we already have unallocated in our data it shouldnt be appearing here no?
                                 # #check that the row with subfuel x is not a subtotal (ignorign the subottal column since modellers sometimes ignore it)
                                 # fuel_sum = df_fuel[(df_fuel['subfuels']!='x')][years_to_keep_in_results].sum().sum()
                                 # x_subfuel_sum = df_fuel[df_fuel['subfuels'] == 'x'][years_to_keep_in_results].sum().sum()
@@ -307,8 +332,10 @@ def allocate_problematic_x_rows_to_unallocated(results_df, layout_df, years_to_k
                                 results_df.loc[(results_df['subfuels'] == 'x') & (results_df['fuels'] == fuel) & (results_df[sector_col]==sector) & (results_df['scenarios'] == scenario), 'subfuels'] = f'{fuel}_unallocated'
                                 new_rows = pd.concat([new_rows, results_df.loc[(results_df['subfuels'] == f'{fuel}_unallocated') & (results_df['fuels'] == fuel) & (results_df[sector_col]==sector) & (results_df['scenarios'] == scenario)]], ignore_index=True)
                                 #now onto the next sector
+    
     if len(new_rows) == 0:
         return results_df, layout_df
+    # breakpoint()#is it actually creating them for hcina?
     #add 'is_subtotal' = false to the row:
     new_rows['is_subtotal'] = False
     #double check these new rows are in the layout_df - they shuld be if thy are added in the config, but sometimes they may not be:
@@ -470,7 +497,7 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
     # This function returns updated gas_supply and a DataFrame of LNG losses (for all projection years)
     lng_losses_projection, gas_trade_base_year = estimate_losses_for_lng_processes(lng_supply, layout_df, base_year_lng_and_gas_all_econs, all_economies_layout_df, gas_supply, str_OUTLOOK_BASE_YEAR, years_to_keep_in_results_str, SINGLE_ECONOMY_ID)
     
-    gas_supply_minus_losses = subtract_losses_from_larger_source(gas_supply, lng_losses_projection,years_to_keep_in_results_str)
+    gas_supply_minus_losses = subtract_losses_from_larger_source(gas_supply, lng_losses_projection,years_to_keep_in_results_str, SINGLE_ECONOMY_ID)
     #repalce data in layout df with data from gas_trade_base_year in case it was updated in the estimate_losses_for_lng_processes function above
     layout_df = layout_df.merge(gas_trade_base_year, on=['sectors', 'subfuels', 'scenarios', 'economy'], how='outer', suffixes=('', '_y'), indicator=True)
     #where there is data in gas_trade_base_year, replace the data in layout_df with that data
@@ -605,7 +632,7 @@ def plot_gas_supply_comparison_with_adjustments(results_df, new_gas_supply, year
     #add together fueks and subfuels to get a better label for the chart
     melted_df['fuels_subfuels'] = melted_df['fuels'] + '_' + melted_df['subfuels']
     #sum everything up
-    melted_df = melted_df.groupby(['economy', 'scenarios', 'sectors', 'fuels_subfuels', 'Type', 'Category', 'year']).sum().reset_index()
+    melted_df = melted_df.groupby(['economy', 'scenarios','fuels_subfuels', 'Type', 'Category', 'year']).sum().reset_index()
     # --- Step 5: Create the line chart ---
     # We facet by Category so that Supply, Transformation, Losses, and Pipeline Energy Use are shown separately.
     fig = px.line(
@@ -705,24 +732,24 @@ def estimate_losses_for_lng_processes(lng_supply, layout_df, base_year_lng_and_g
 
     # --- Load OECD LNG-to-gas ratio data ---
     try:
-        lng_ratios_oecd = pd.read_csv('data/raw_data/lng_to_pipeline_trade_ratios_for_oecds.csv').rename(
+        lng_ratios = pd.read_csv('data/raw_data/lng_to_pipeline_trade_ratios.csv').rename(
             columns={'Value': 'lng_to_gas_trade_ratio'}
         ).copy()
     except FileNotFoundError:
         breakpoint()
-        raise Exception("The file lng_to_pipeline_trade_ratios_for_oecds.csv is missing. Is created in the visualisation system.")
+        raise Exception("The file lng_to_pipeline_trade_ratios.csv is missing. Is created in the visualisation system.")
     # --- extract gas trade for base year for oecd econmies if necessary ---
     if not BASE_YEAR_LNG_AVAILABLE:
         
-        if SINGLE_ECONOMY_ID in lng_ratios_oecd.economy.unique() and lng_ratios_oecd.loc[(lng_ratios_oecd.economy == SINGLE_ECONOMY_ID)& (lng_ratios_oecd.Year == OUTLOOK_BASE_YEAR)].lng_to_gas_trade_ratio.sum() > 0:#if there are lng trade ratios for the single economy in the base year then we can use that to estimate the lng trade ratios for the single economy
+        if SINGLE_ECONOMY_ID in lng_ratios.economy.unique() and lng_ratios.loc[(lng_ratios.economy == SINGLE_ECONOMY_ID)& (lng_ratios.Year == OUTLOOK_BASE_YEAR)].lng_to_gas_trade_ratio.sum() > 0:#if there are lng trade ratios for the single economy in the base year then we can use that to estimate the lng trade ratios for the single economy
             
             # --- We will use OECD LNG ratios to estiamte lng trade ratios for the single economy ---
-            lng_ratios_oecd = lng_ratios_oecd[lng_ratios_oecd.economy == SINGLE_ECONOMY_ID].copy()
-            gas_trade_base_year =             calculate_base_year_lng_trade_for_oecd_economies(gas_trade_base_year, lng_ratios_oecd, str_OUTLOOK_BASE_YEAR, ONE_ECON = True)
+            lng_ratios = lng_ratios[lng_ratios.economy == SINGLE_ECONOMY_ID].copy()
+            gas_trade_base_year = calculate_base_year_lng_trade(gas_trade_base_year, lng_ratios, str_OUTLOOK_BASE_YEAR, ONE_ECON = True)
             BASE_YEAR_LNG_AVAILABLE = True
         else:
             #we will estiamte the average ratio of losses to lng trade in base yearfor all eocnomies. so extract/create data on lng trade fr oecd countries now
-            base_year_lng_and_gas_all_econs = calculate_base_year_lng_trade_for_oecd_economies(base_year_lng_and_gas_all_econs, lng_ratios_oecd, str_OUTLOOK_BASE_YEAR, ONE_ECON = False)          
+            base_year_lng_and_gas_all_econs = calculate_base_year_lng_trade(base_year_lng_and_gas_all_econs, lng_ratios, str_OUTLOOK_BASE_YEAR, ONE_ECON = False)          
     else:
         pass
     # if SINGLE_ECONOMY_ID == '09_ROK':
@@ -832,32 +859,36 @@ def estimate_losses_for_lng_processes(lng_supply, layout_df, base_year_lng_and_g
     
     return lng_losses_projection, gas_trade_base_year_copy
 
-def calculate_base_year_lng_trade_for_oecd_economies(base_year_lng_and_gas_all_econs, lng_ratios_oecd, str_OUTLOOK_BASE_YEAR, ONE_ECON = False):
+def calculate_base_year_lng_trade(base_year_lng_and_gas_all_econs, lng_ratios, str_OUTLOOK_BASE_YEAR, ONE_ECON = False):
     #we need to use the aggregated losses from the layout data
-    for economy in lng_ratios_oecd['economy'].unique():
-        ratios_base_year = lng_ratios_oecd[
-            (lng_ratios_oecd['Year'] == OUTLOOK_BASE_YEAR) & (lng_ratios_oecd['economy'] == economy)
+    for economy in lng_ratios['economy'].unique():
+        ratios_base_year = lng_ratios[
+            (lng_ratios['Year'] == OUTLOOK_BASE_YEAR) & (lng_ratios['economy'] == economy)
         ].copy()
         if ratios_base_year.shape[0] == 0:
             breakpoint()
-            raise Exception('There is no data for the base year in the lng_to_pipeline_trade_ratios_for_oecds.csv file. This is required to estimate the transformation of lng to gas.')
+            raise Exception('There is no data for the base year in the lng_to_pipeline_trade_ratios.csv file. This is required to estimate the transformation of lng to gas.')
 
         gas_trade_base_year = base_year_lng_and_gas_all_econs[['economy', 'scenarios', 'sectors', 'subfuels', str_OUTLOOK_BASE_YEAR]].loc[
             base_year_lng_and_gas_all_econs['economy'] == economy
         ].copy()
 
-        if gas_trade_base_year.loc[gas_trade_base_year['subfuels'] == '08_02_lng', str_OUTLOOK_BASE_YEAR].sum() != 0 | gas_trade_base_year.empty:
+        if gas_trade_base_year.empty:
             breakpoint()
-            raise Exception('There is non-zero LNG trade in the base year for an OECD country. This is unexpected and should be investigated.')
+            raise Exception('This is unexpected and should be investigated.')
         
-        #PVIOT THE subfuels so we can minus the nat gas trade times the ratio from the lng trade
-        gas_trade_base_year = gas_trade_base_year.pivot_table(index=['economy', 'scenarios', 'sectors'], columns='subfuels', values=str_OUTLOOK_BASE_YEAR).reset_index()
-        gas_trade_base_year = gas_trade_base_year.merge(ratios_base_year[['sectors', 'lng_to_gas_trade_ratio']], on='sectors', how='left')
-        gas_trade_base_year['08_02_lng'] = gas_trade_base_year['08_01_natural_gas'] * gas_trade_base_year['lng_to_gas_trade_ratio']
-        gas_trade_base_year['08_01_natural_gas'] = gas_trade_base_year['08_01_natural_gas'] - gas_trade_base_year['08_02_lng']#metl it back to the original shape
-        gas_trade_base_year.drop(columns=['lng_to_gas_trade_ratio'], inplace=True)
-        gas_trade_base_year = gas_trade_base_year.melt(id_vars=['economy', 'scenarios', 'sectors'], value_vars=['08_02_lng', '08_01_natural_gas'], var_name='subfuels', value_name=str_OUTLOOK_BASE_YEAR)
-        
+        if gas_trade_base_year.loc[gas_trade_base_year['subfuels'] == '08_02_lng', str_OUTLOOK_BASE_YEAR].sum() != 0:
+            #we can just use this data instead of doing this calculation
+            pass
+        else:
+            #PVIOT THE subfuels so we can minus the nat gas trade times the ratio from the lng trade
+            gas_trade_base_year = gas_trade_base_year.pivot_table(index=['economy', 'scenarios', 'sectors'], columns='subfuels', values=str_OUTLOOK_BASE_YEAR).reset_index()
+            gas_trade_base_year = gas_trade_base_year.merge(ratios_base_year[['sectors', 'lng_to_gas_trade_ratio']], on='sectors', how='left')
+            gas_trade_base_year['08_02_lng'] = gas_trade_base_year['08_01_natural_gas'] * gas_trade_base_year['lng_to_gas_trade_ratio']
+            gas_trade_base_year['08_01_natural_gas'] = gas_trade_base_year['08_01_natural_gas'] - gas_trade_base_year['08_02_lng']#metl it back to the original shape
+            gas_trade_base_year.drop(columns=['lng_to_gas_trade_ratio'], inplace=True)
+            gas_trade_base_year = gas_trade_base_year.melt(id_vars=['economy', 'scenarios', 'sectors'], value_vars=['08_02_lng', '08_01_natural_gas'], var_name='subfuels', value_name=str_OUTLOOK_BASE_YEAR)
+            
         #join the data back to the base_year_lng_and_gas_all_econs
         base_year_lng_and_gas_all_econs = base_year_lng_and_gas_all_econs.merge(
             gas_trade_base_year, 
@@ -1131,7 +1162,7 @@ def subtract_pipeline_adjustment_from_larger_source(gas_supply, gas_pipeline_ene
     
     return final_gas_supply
 
-def subtract_losses_from_larger_source(gas_supply, lng_losses_projection,years_to_keep_in_results_str):
+def subtract_losses_from_larger_source(gas_supply, lng_losses_projection,years_to_keep_in_results_str, SINGLE_ECONOMY_ID):
     """
     For each economy, scenario, and fuels group (here '08_gas'), subtract the
     liquefaction/regasification losses (from rows with sectors '10_losses_and_own_use' 
@@ -1141,6 +1172,14 @@ def subtract_losses_from_larger_source(gas_supply, lng_losses_projection,years_t
 
     This function is intended to be called immediately after the losses function.
     """
+    if SINGLE_ECONOMY_ID == '15_PHL':
+        breakpoint()#if economy is phlipines, need to make it so the gas use is coming from imports even thouh that is lower. 
+    MANUAL_SETTINGS = {
+        '15_PHL': {
+            'sectors': '02_imports',
+            'subfuels': '08_02_lng'
+        }
+    }
     # --- Identify losses rows ---
     losses_mask = (
         (gas_supply['sectors'] == '10_losses_and_own_use') &
@@ -1178,7 +1217,8 @@ def subtract_losses_from_larger_source(gas_supply, lng_losses_projection,years_t
     prod_imp = prod_group.merge(imp_group, on=['economy', 'scenarios', 'fuels', 'subfuels'], how='outer').fillna(0)
     # Merge the losses sums (which are per year) into the production/import data
     prod_imp = prod_imp.merge(losses_sum, on=['economy', 'scenarios', 'fuels', 'subfuels'], how='left').fillna(0)
-
+    if SINGLE_ECONOMY_ID in MANUAL_SETTINGS.keys():
+        breakpoint()
     # --- For each year, subtract losses from whichever is larger ---
     for y in years_to_keep_in_results_str:
         prod_col = f"{y}_prod"

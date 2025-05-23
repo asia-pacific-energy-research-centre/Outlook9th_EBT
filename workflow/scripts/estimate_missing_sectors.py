@@ -49,12 +49,13 @@ acitvity_to_missing_sectors_dict = {
     # 'biofuels_processing': {
     #     'sub1sectors': ['09_10_biofuels_processing']
     # },
-    'charcoal_processing': {
-        'sub1sectors': ['09_11_charcoal_processing']#after a bit of deliberation i decded to include this, even though we estiamte charcoal production in the minor fuel supply modelling system based on demand. The problem is that we still need that, but also having this is more accurate. I expect that doubel ups will get rmoved by the supply balancing system anyway. one issue is that its proxy is just total charcoal demand. but i thinkt hat should be ok given modellers continue to project that.
+    'charcoal_processing_fuel_wood_input': {#FIXED TO JUST BEFORE INPUT FUELS AFTER DIFFICULTIES WITH MONOR FUEL SUPPLY MODELLING. OUTPUT of cahrcoal IS NOW HANDLED IN make_manual_changes_to_rows()
+    'sub1sectors': ['09_11_charcoal_processing'],#after a bit of deliberation i decded to include this, even though we estiamte charcoal production in the minor fuel supply modelling system based on demand. The problem is that we still need that, but also having this is more accurate. I expect that doubel ups will get rmoved by the supply balancing system anyway. one issue is that its proxy is just total charcoal demand. but i thinkt hat should be ok given modellers continue to project that.
+    'subfuels': ['15_01_fuelwood_and_woodwaste', '15_05_other_biomass'] 
     },
-    'charcoal_processing_losses': {
-        'sub2sectors': ['10_01_15_charcoal_production_plants']#to avoid losing losses from demand we will contineu to estiamte thse, but since transfomration supply is just a bit difficult and satisfied by production, we wont do that.
-    },
+    # 'charcoal_processing_losses': {#there are none of these anyway
+    #     'sub2sectors': ['10_01_15_charcoal_production_plants']#to avoid losing losses from demand we will contineu to estiamte thse, but since transfomration supply is just a bit difficult and satisfied by production, we wont do that.
+    # },
     'electric_boilers': {
         'sub1sectors': ['09_04_electric_boilers']  # Note: only applicable in Russia; data is shifted to heat output and energy input for heat.
     },
@@ -64,7 +65,7 @@ acitvity_to_missing_sectors_dict = {
             '10_01_09_bkb_pb_plants'
         ]
     },
-    'coal_transformation_specific_fuels': {
+    'coal_transformation_specific_fuels': {#we seem to estimate only up to 09_08_coal_transformation for these sectors. this is meant to disaggregte that out into the sub2sectors. Im actually not 100% this is even working. e.g. 04_CHL_coal_transformation_ref_2025_04_21.csv contains 09_08_coal_transformation but no sub2sectors.
         'sub2sectors': ['09_08_05_liquefaction_coal_to_oil', '09_08_04_bkb_pb_plants', '09_08_03_patent_fuel_plants',
                         '09_08_02_blast_furnaces', '09_08_01_coke_ovens'],
         'fuels': ['01_coal', '02_coal_products']                
@@ -130,8 +131,8 @@ activity_to_proxies_dict = {
     # 'biofuels_processing': {'subfuels': ['16_05_biogasoline', '16_06_biodiesel', '16_07_bio_jet_kerosene',
     #                                       '16_08_other_liquid_biofuels', '15_01_fuelwood_and_woodwaste',
     #                                       '15_02_bagasse', '15_04_black_liquor', '15_05_other_biomass']},
-    'charcoal_processing': {'subfuels': ['15_03_charcoal']},
-    'charcoal_processing_losses': {'subfuels': ['15_03_charcoal']},
+    'charcoal_processing_fuel_wood_input': {'subfuels': ['15_03_charcoal'], 'sectors': ['12_total_final_consumption']},
+    # 'charcoal_processing_losses': {'subfuels': ['15_03_charcoal']},#there are none of these anyway
     'electric_boilers': {None},  # No proxy needed; assumed to be projected elsewhere.
     'coal_transformation_own_use': {'sub1sectors': ['09_08_coal_transformation'], 'fuels': ['01_coal', '02_coal_products']},
     'coal_transformation_specific_fuels': {'sectors': ['09_08_coal_transformation'], 'fuels': ['01_coal', '02_coal_products']},
@@ -162,7 +163,77 @@ canada_heat_activity_proxy = {
     'canada_heat': {'fuels': ['18_heat']}
 }
 
-
+#CHINA GAS WORKS - we will remove previous gas works estimation entries and replace with more specific ones.
+china_removed_activity = {
+    'gas_works': {
+        'sub2sectors': ['09_06_01_gas_works_plants', '10_01_02_gas_works_plants']
+}}
+china_removed_activity_proxy = {
+    'gas_works': {'subfuels': ['08_03_gas_works_gas']}}
+#then add in esimtaions for losses by fuel.. so the amount of petroleum losses is based on use of petroleum in gas works, same for gas and coal.
+china_gas_works_activity = {
+    'gas_works_natural_gas': {
+        'sub2sectors': ['10_01_02_gas_works_plants'],
+        'subfuels': ['08_01_natural_gas']},
+    'gas_works_petroleum': {
+        'sub2sectors': ['10_01_02_gas_works_plants'],
+        'fuels': ['07_petroleum_products']},
+    'gas_works_coal': {
+        'sub2sectors': ['10_01_02_gas_works_plants'],
+        'fuels': ['01_coal']},
+    'gas_works_electricity': {
+        'sub2sectors': ['10_01_02_gas_works_plants'],
+        'fuels': ['18_electricity']},
+    'gas_works_heat': {
+        'sub2sectors': ['10_01_02_gas_works_plants'],
+        'fuels': ['18_heat']}
+}
+china_gas_works_activity_proxy = {
+    'gas_works_natural_gas': {'sub2sectors': ['09_06_01_gas_works_plants'], 'subfuels': ['08_01_natural_gas']},
+    'gas_works_petroleum': {'sub2sectors': ['09_06_01_gas_works_plants'], 'fuels': ['07_petroleum_products']},
+    'gas_works_coal': {'sub2sectors': ['09_06_01_gas_works_plants'], 'fuels': ['01_coal']},
+    'gas_works_electricity': {'sub2sectors': ['09_06_01_gas_works_plants'], 'fuels': ['17_electricity']},
+    'gas_works_heat': {'sub2sectors': ['09_06_01_gas_works_plants'], 'fuels': ['18_heat']}
+}
+#################################
+#korea 06_x_other_hydrocarbons - 08_transfers # we need a projection of transfers in this sector to handle the supply mistmatch and allow us to increase use of 06_x_other_hydrocarbons in the refinery sector to repalce curde oil. this will also lead to a decrease in crude oil imports which is a substantial amount of crude oil and a great change to make  
+# # once this is done i will need to go through and adjsut the crude use downwards by this amount as well as the crude oil imports, and use of these hydrocarbons in the refinery sector.
+korea_other_hydrocarbons_activity = {
+    'korea_other_hydrocarbons': {
+        'sectors': ['08_transfers', '11_statistical_discrepancy'],#the statistical discrepancy is needed to balance the data unfortunately. at least in 2022, it is -150pj and transfers is 380pj, so it kind of cancels out some of that transfers which is kind of appearing out of nowhere...
+        'subfuels': ['06_x_other_hydrocarbons']
+    },
+}
+korea_other_hydrocarbons_activity_proxy = {
+    'korea_other_hydrocarbons': {
+        'sectors': ['09_total_transformation_sector'],
+        'sub1sectors': ['09_09_petrochemical_industry'],
+        'subfuels': ['06_x_other_hydrocarbons']
+    }
+}
+#################################
+#australia 06_x_other_hydrocarbons and lpg - 08_transfers # we need a projection of transfers in this sector to handle the supply mistmatch and allow us to export that amount of these fuels. 
+australia_other_hydrocarbons_activity = {
+    'australia_other_hydrocarbons': {
+        'sectors': ['08_transfers'],
+        'subfuels': ['06_x_other_hydrocarbons']
+    },
+    'australia_lpg': {
+        'sectors': ['08_transfers'],
+        'subfuels': ['07_09_lpg']
+    }
+}
+australia_other_hydrocarbons_activity_proxy = {
+    'australia_other_hydrocarbons': {
+        'sectors': ['09_total_transformation_sector'],
+        'sub1sectors': ['09_07_oil_refineries'],
+        'subfuels': ['06_x_other_hydrocarbons']
+    },
+    'australia_lpg': {
+        'sectors': ['03_exports'],#since we are doing this to ensure exports remain as is, it seems reasonable to use this as a proxy.
+        'subfuels': ['07_09_lpg']
+    }
+}
 #################################
 #BRUNEI
 # hey found an issue in coal for the autoproducer (electricity plant used exclusively by a plant) from the oil refinery (hengyi). Bascially we were accidentally recategorising coal use in 10_01_11_oil_refineries (own use) as electricity generation inputs and tehn not projecting the smaller actual electricity gneration inputs. 
@@ -192,6 +263,8 @@ canada_heat_activity_proxy = {
 # =============================================================================
 def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_missing_sectors_dict=acitvity_to_missing_sectors_dict, activity_to_proxies_dict=activity_to_proxies_dict,MERGE_ONTO_INPUT_DATA=False,SAVE_OUTPUT_TO_MODELLED_DATA_FOLDER=True,PLOT=True):
     """
+    IMPORTANT: MAKE SURE THAT ANY ESTIAMTES MADE IN THIS FUNCTION ARE ABSOLUTELY REQUIRED BECAUSE THERE IS NO WAY TO AUTOMATICALLY CHECK THAT THERE ARE NO DOUBLE ESTIAMTES BEING DONE. THIS IS BECAUSE THE OUTPUT IS SAVED TO THE MODELLED DATA FOLDER AND THEN MERGED BACK INTO THE INPUT DATA - SO THE INPUT DATA WILL CONTAIN THESE ESTIMATES FROM PREVIOUS RUNS AND WILL BE REPALCED WITH THE ESTIMATES MADE IN THIS FUNCTION - AND BECAUSE OF THAT WE CANT KNOW WEHTEHR PREXISTING ESTIAMTES ARE FORM THIS FUNCTION OR NOT.
+    
     Estimate own use, transformation and other missing energy uses for sectors we know are missing based on activity proxies. This is mostly for where a modeller has not been assigned to these sectors and they arent suited to being modelled in a separate model (normally because they are minor sectors and the time spent on properly mdoelling them isnt worht it comapred to this solution - as an example the lng trasnformation, losses and gas pipeline sectors were orignally modelled here but because they are quite important and can be eaily grouped we moved them to create_transformation_losses_pipeline_rows_for_gas_based_on_supply()in this repo.   
      
     This function projects future energy use for certain activities by:
@@ -227,6 +300,26 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
             acitvity_to_missing_sectors_dict[key] = value
         for key, value in canada_heat_activity_proxy.items():
             activity_to_proxies_dict[key] = value
+    if economy == '05_PRC':
+        #use the dicts for china
+        for key, value in china_removed_activity.items():
+            acitvity_to_missing_sectors_dict.pop(key, None)
+        for key, value in china_removed_activity_proxy.items():
+            activity_to_proxies_dict.pop(key, None)
+        for key, value in china_gas_works_activity.items():
+            acitvity_to_missing_sectors_dict[key] = value
+        for key, value in china_gas_works_activity_proxy.items():
+            activity_to_proxies_dict[key] = value
+    if economy == '09_ROK':
+        for key, value in korea_other_hydrocarbons_activity.items():
+            acitvity_to_missing_sectors_dict[key] = value
+        for key, value in korea_other_hydrocarbons_activity_proxy.items():
+            activity_to_proxies_dict[key] = value
+    if economy == '01_AUS':
+        for key, value in australia_other_hydrocarbons_activity.items():
+            acitvity_to_missing_sectors_dict[key] = value
+        for key, value in australia_other_hydrocarbons_activity_proxy.items():
+            activity_to_proxies_dict[key] = value
     # if economy == '02_BD':
     #     for key, value in bd_coal_own_use_for_oil_refineries_activity.items():
     #         acitvity_to_missing_sectors_dict[key] = value
@@ -251,6 +344,7 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
     pre_base_year_columns = [col for col in year_columns if int(col) < OUTLOOK_BASE_YEAR]
     future_year_columns = [col for col in year_columns if col not in pre_base_year_columns and col != str_OUTLOOK_BASE_YEAR]
     
+
     # Exclude aggregate fuel rows (e.g., totals) to avoid skewing the projections.
     df = df.loc[~df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])]
     # all_economies_df = all_economies_df.loc[~all_economies_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])]

@@ -6,7 +6,7 @@ import glob
 from datetime import datetime
 from utility_functions import *
 import yaml 
-import D_merging_results as D
+import merging_functions
 
 def check_for_negatives_or_postives_in_wrong_sectors(df, economy, file, INGORE_NANS=False, ABSOLUTE_THRESHOLD=0.001):
     """
@@ -92,7 +92,7 @@ def check_for_negatives_or_postives_in_wrong_sectors(df, economy, file, INGORE_N
         minor_errors_df.T.to_csv(minor_error_path)
     
         #since we may have slightly changed the original data, we should save it back to the file
-        D.save_merged_file(df, economy, previous_merged_df_filename=None,shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results'], folder_path=f'results/{economy}/merged', old_folder_path=f'results/{economy}/merged/old', COMPARE_TO_PREVIOUS_MERGE = True)
+        merging_functions.save_merged_file(df, economy, previous_merged_df_filename=None,shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results'], folder_path=f'results/{economy}/merged', old_folder_path=f'results/{economy}/merged/old', COMPARE_TO_PREVIOUS_MERGE = True)
     
     return ERROR, error_text, minor_errors_df, df
 
