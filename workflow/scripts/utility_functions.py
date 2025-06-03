@@ -17,7 +17,7 @@ ECONOMYS_WITH_INITIAL_NAS_AND_THEIR_COLS = {
 }
 ERRORS_DAIJOUBU = True
 # If merging supply results (i.e. the final stage of merging results from the modellers), set this to True and calculate TPES top down instead of bottom up
-MAJOR_SUPPLY_DATA_AVAILABLE = True    
+MAJOR_SUPPLY_DATA_AVAILABLE = False    
 CHECK_DATA = True
 # Set to True if you want to run time consuming checks on data, assuming MAJOR_SUPPLY_DATA_AVAILABLE is True 
 

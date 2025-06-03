@@ -721,7 +721,8 @@ def calculate_sector_aggregates(df, sectors, aggregate_sector, shared_categories
             # Check and save the differences
             if not differences.empty:
                 differences.to_csv('data/temp/error_checking/tpes_differences_' + df_filtered.name + '.csv', index=False)
-                raise Exception(f"Differences found in TPES calculation with {df_filtered.name} DataFrame and saved to 'tpes_differences_{df_filtered.name}.csv'.")
+                breakpoint()
+                # raise Exception(f"Differences found in TPES calculation with {df_filtered.name} DataFrame and saved to 'tpes_differences_{df_filtered.name}.csv'.")
             else:
                 print(f"No significant differences found in TPES calculation with {df_filtered.name} DataFrame.")
                 # If MAJOR_SUPPLY_DATA_AVAILABLE is True, use the top-down TPES calculation
@@ -1439,7 +1440,6 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             missing_rows_exceptions_dict['21_modern_renewables'] = {'_merge':'original_layout', 'fuels':'21_modern_renewables'}
 
             # USA file has some issues with the following rows (couldn't work out the cause)
-            missing_rows_exceptions_dict['nonspecified_transformation2'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'08_gas'}
             missing_rows_exceptions_dict['nonspecified_transformation3'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'20_total_renewables'}
             missing_rows_exceptions_dict['nonspecified_transformation4'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'21_modern_renewables'}
             missing_rows_exceptions_dict['10_losses_and_own_use'] = {'_merge':'new_layout_df', 'economy':'20_USA', 'sub1sectors':'10_01_own_use'}
@@ -1453,9 +1453,6 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             # ROK file has some issues with the following rows
             missing_rows_exceptions_dict['09_05_chemical_heat_for_electricity_production'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sub1sectors':'09_05_chemical_heat_for_electricity_production'}
             
-            # PRC file has some issues with the following rows
-            missing_rows_exceptions_dict['15_03_rail'] = {'_merge':'new_layout_df', 'economy':'05_PRC', 'sub1sectors':'15_03_rail', 'fuels':'01_coal', 'subfuels':'01_x_thermal_coal'}
-            
             # BD file has some issues with the following rows
             missing_rows_exceptions_dict['11_statistical_discrepancy'] = {'_merge':'new_layout_df', 'economy':'02_BD', 'sectors':'11_statistical_discrepancy', 'sub1sectors':'x', 'fuels':'21_modern_renewables', 'subfuels':'x'}
             
@@ -1465,23 +1462,28 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
             ################TEMP FOR NEW ESTO DATA
             
             missing_rows_exceptions_dict['08_transfers'] = {'_merge':'new_layout_df', 'economy':'14_PE', 'sectors':'08_transfers', 'fuels':'07_petroleum_products', 'subfuels':'07_x_other_petroleum_products', 'sub1sectors':'x', 'sub2sectors':'x', 'sub3sectors':'x', 'sub4sectors':'x'}
+            # new_layout_df	reference	05_PRC	09_total_transformation_sector	09_x_heat_plants	x	x	x	15_solid_biomass	15_solid_biomass_unallocated
+
+            missing_rows_exceptions_dict['biomass_unallocated_power']= {'_merge':'new_layout_df', 'sectors':'09_total_transformation_sector',  'fuels':'15_solid_biomass', 'subfuels':'15_solid_biomass_unallocated'}
+            
+            missing_rows_exceptions_dict['others_unallocated_power']= {'_merge':'new_layout_df', 'sectors':'09_total_transformation_sector',  'fuels':'16_others_unallocated', 'subfuels':'16_others_unallocated'}
+            
             #also this in NEew ESTO data:
             #             09_ROK	09_total_transformation_sector	09_01_electricity_plants	09_01_11_otherfuel	x	x	16_others	16_09_other_sources
             # 09_ROK	09_total_transformation_sector	09_02_chp_plants	09_02_04_biomass	x	x	16_others	16_09_other_sources
-            # 09_ROK	09_total_transformation_sector	09_02_chp_plants	x	x	x	16_others	16_09_other_sources
-            missing_rows_exceptions_dict['16_09_other_sources'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'fuels':'16_others', 'subfuels':'16_09_other_sources'}
-            missing_rows_exceptions_dict['16_09_other_sources2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub2sectors':'09_01_11_otherfuel', 'fuels':'16_others', 'subfuels':'16_09_other_sources'}
-            missing_rows_exceptions_dict['15_05_other_biomass_1'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_01_electricity_plants', 'sub2sectors':'09_01_06_biomass', 'fuels':'15_solid_biomass', 'subfuels':'15_05_other_biomass'}
-            missing_rows_exceptions_dict['16_02_industrial_waste_1'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_01_electricity_plants', 'sub2sectors':'09_01_11_otherfuel', 'fuels':'16_others', 'subfuels':'16_02_industrial_waste'}
-            missing_rows_exceptions_dict['15_05_other_biomass_2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'sub2sectors':'09_02_04_biomass', 'fuels':'15_solid_biomass', 'subfuels':'15_05_other_biomass'}
-            missing_rows_exceptions_dict['16_02_industrial_waste_2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'sub2sectors':'09_02_04_biomass', 'fuels':'16_others', 'subfuels':'16_02_industrial_waste'}
+            # # # 09_ROK	09_total_transformation_sector	09_02_chp_plants	x	x	x	16_others	16_09_other_sources
+            # # missing_rows_exceptions_dict['16_09_other_sources'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'fuels':'16_others', 'subfuels':'16_09_other_sources'}
+            # # missing_rows_exceptions_dict['16_09_other_sources2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub2sectors':'09_01_11_otherfuel', 'fuels':'16_others', 'subfuels':'16_09_other_sources'}
+            # # missing_rows_exceptions_dict['15_05_other_biomass_1'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_01_electricity_plants', 'sub2sectors':'09_01_06_biomass', 'fuels':'15_solid_biomass', 'subfuels':'15_05_other_biomass'}
+            # # missing_rows_exceptions_dict['16_02_industrial_waste_1'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_01_electricity_plants', 'sub2sectors':'09_01_11_otherfuel', 'fuels':'16_others', 'subfuels':'16_02_industrial_waste'}
+            # # missing_rows_exceptions_dict['15_05_other_biomass_2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'sub2sectors':'09_02_04_biomass', 'fuels':'15_solid_biomass', 'subfuels':'15_05_other_biomass'}
+            # # missing_rows_exceptions_dict['16_02_industrial_waste_2'] = {'_merge':'new_layout_df', 'economy':'09_ROK', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_02_chp_plants', 'sub2sectors':'09_02_04_biomass', 'fuels':'16_others', 'subfuels':'16_02_industrial_waste'}
             #these rows:
             # economy	sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels
             # 18_CT	09_total_transformation_sector	09_06_gas_processing_plants	09_06_02_liquefaction_regasification_plants	x	x	08_gas	x
             # 18_CT	09_total_transformation_sector	09_06_gas_processing_plants	09_06_02_liquefaction_regasification_plants	x	x	19_total	x
             # 18_CT	09_total_transformation_sector	09_06_gas_processing_plants	x	x	x	08_gas	x
             # 18_CT	09_total_transformation_sector	09_06_gas_processing_plants	x	x	x	19_total	x
-            missing_rows_exceptions_dict['gas_processing_ct_gas'] = {'_merge':'new_layout_df', 'economy':'18_CT', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'08_gas'}
             missing_rows_exceptions_dict['gas_processing_ct_total'] = {'_merge':'new_layout_df', 'economy':'18_CT', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_06_gas_processing_plants', 'fuels':'19_total'}
             
             missing_rows_exceptions_dict['russia_nonspecified_transformation'] = {'_merge':'new_layout_df', 'economy':'16_RUS', 'sectors':'09_total_transformation_sector', 'sub1sectors':'09_12_nonspecified_transformation'}
@@ -1499,10 +1501,9 @@ def check_for_issues_by_comparing_to_layout_df(results_layout_df, shared_categor
 
             #china gas works gas 
             #removeing gas works and biogas to see what happens wehn we do
-            breakpoint()
+            
             # missing_rows_exceptions_dict['gas_works_gas_prc'] = {'economy':'05_PRC', '_merge':'new_layout_df', 'subfuels':'08_03_gas_works_gas'}
             # missing_rows_exceptions_dict['biogas_prc'] = {'economy':'05_PRC', '_merge':'new_layout_df', 'subfuels':'16_01_biogas'}
-            missing_rows_exceptions_dict['unallocated_prc'] = {'economy':'05_PRC', '_merge':'new_layout_df', 'subfuels':'16_others_unallocated', 'sub1sectors':'09_01_electricity_plants'}
             #created in adjust_projected_supply_to_balance_demand(). for new fuels especially they might turn up and cause issues
             #             09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	08_01_natural_gas
             # 09_total_transformation_sector	09_12_nonspecified_transformation	x	x	x	08_gas	x

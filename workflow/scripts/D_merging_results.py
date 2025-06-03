@@ -52,8 +52,9 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
         print("No files found in the specified path.")
         # Exit the function
         return None
-
+    USING_FINAL_RESULTS_DF = False
     if final_results_df is not None:
+        USING_FINAL_RESULTS_DF = True
         #we wont bother going through the results files and sintead just use the final_results_df that has been passed in. This is useful for when we have the output fromthis funciton that had a few adjusmtnes made and we jsut want to merge it again with the layout file.
         # quickly make surethe data matches requirements: 
         final_results_df = final_results_df[(final_results_df['economy'].isin(economies))]
@@ -151,8 +152,13 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
         results_df = results_adjustment_functions.edit_hydrogen_transfomation_rows(results_df)
         results_df = results_adjustment_functions.set_subfuel_for_supply_data(results_df)
         results_df = results_adjustment_functions.nullify_supply_stock_changes(results_df, PLOTTING=True)
-        results_df = results_adjustment_functions.create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_df, layout_df, SINGLE_ECONOMY_ID, shared_categories, years_to_keep_in_results)
-        results_df = results_adjustment_functions.consolidate_imports_exports_from_supply_sector(results_df,economy=SINGLE_ECONOMY_ID)
+        # results_df = results_adjustment_functions.create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_df, layout_df, SINGLE_ECONOMY_ID, shared_categories, years_to_keep_in_results)
+        # breakpoint()#check the gas resutls
+        try:
+            results_df = results_adjustment_functions.consolidate_imports_exports_from_supply_sector(results_df,economy=SINGLE_ECONOMY_ID)
+        except:
+            breakpoint()
+            results_df = results_adjustment_functions.consolidate_imports_exports_from_supply_sector(results_df,economy=SINGLE_ECONOMY_ID)
         ########
         #TEMP#
         
@@ -217,7 +223,16 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
         if len([col for col in layout_df.columns if '2022' in col]) > 1:
             breakpoint()
         concatted_results_df = pd.concat([concatted_results_df, filtered_results_df_subtotals_labelled])
-    breakpoint()
+    # breakpoint()#want to adjust gas based on supply but first incroparte the direct use of lng ... haha
+    #drop all subtotals from concatted_results_df
+    
+    if not USING_FINAL_RESULTS_DF:
+        breakpoint()#seems we lose the origin col comsethimes?
+        concatted_results_df = concatted_results_df.loc[concatted_results_df['is_subtotal'] == False].copy()
+        concatted_results_df = results_adjustment_functions.create_transformation_losses_pipeline_rows_for_gas_based_on_supply(concatted_results_df, layout_df, SINGLE_ECONOMY_ID, shared_categories, years_to_keep_in_results)
+        breakpoint()#origin col comsethimes?
+    # if SINGLE_ECONOMY_ID == '05_PRC':
+    #     breakpoint()#check the gas works total from china demand vs supply and whether we need a discrepancy or not
     #make all cols strs
     concatted_results_df.columns = concatted_results_df.columns.astype(str)
     # Define the range of years to keep
@@ -275,12 +290,8 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
     # Merge the new_layout_df with the concatted_results_df based on shared_categories using outer merge (so we can see which rows are missing/extra from the results_df)
     merged_df = pd.merge(trimmed_layout_df, trimmed_concatted_results_df, on=shared_categories, how="outer", indicator=True)
 
-    breakpoint()#are we losing our data here for china?
-    #filter for 15_transport_sector	15_03_rail	x	x	x	08_gas	08_03_gas_works_gas
-    x = merged_df.loc[merged_df['sectors'].isin(['15_transport_sector']) & merged_df['subfuels'].isin(['08_03_gas_works_gas'])].copy()
     results_layout_df = merging_functions.format_merged_layout_results_df(merged_df, shared_categories, trimmed_layout_df, trimmed_concatted_results_df,missing_sectors_df)
     
-    x = merged_df.loc[merged_df['sectors'].isin(['15_transport_sector']) & merged_df['subfuels'].isin(['08_03_gas_works_gas'])].copy()
     #add subtotals to shared_categories now its in all the dfs
     shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']
     #########################

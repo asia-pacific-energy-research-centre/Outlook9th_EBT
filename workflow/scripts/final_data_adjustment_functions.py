@@ -59,7 +59,7 @@ def create_statistical_discrepancy_rows(group_copy, economy, scenario, fuel, sub
         group_copy = pd.concat([group_copy, statistical_discrepancies], ignore_index=True)
     return group_copy
 
-def handle_demand_supply_discrepancies_for_transformation_output(group_copy, economy, scenario, fuel, subfuel, year,demand_supply_discrepancies_df, extra_supply_from_transformation_output, reported_supply, total_required, transfomation_supply, error_df):
+def handle_demand_supply_discrepancies_for_transformation_output(group_copy, economy, scenario, fuel, subfuel, year,demand_supply_discrepancies_df, extra_supply_from_transformation_output, reported_supply, total_required, transfomation_supply, error_df, transformation_adjustment_threshold):
     #we can add some shortcuts here to fix the inbalance if it matches specified cases
     SPECIFIED_ALLOWED_DEMAND_SUPPLY_DISCREPANCIES = {
         # # will be tuples of economy, fuel, subfuel  that have statsitical discrepancies that are allowed:
@@ -89,7 +89,7 @@ def handle_demand_supply_discrepancies_for_transformation_output(group_copy, eco
     #first, check if the difference is significant or its a div by 0 siutation, if not just add it as a discrepancy. else do a check
     if total_required == 0:
         OKAY = False
-    elif abs(extra_supply_from_transformation_output) / abs(total_required) < 0.05:
+    elif abs(extra_supply_from_transformation_output) / abs(total_required) < transformation_adjustment_threshold:
         OKAY = True
     else:
         OKAY = False
@@ -139,6 +139,8 @@ def handle_demand_supply_discrepancies_for_transformation_output(group_copy, eco
         # breakpoint()#where is the stat discin the error df?
         # df_to_check.to_csv(os.path.join('data', 'temp', 'error_checking', f'{economy}_extra_supply_from_transformation_output_{fuel}_{subfuel}_{year}.csv'), index=False)
         # breakpoint()
+        
+        demand_supply_discrepancies_df[year] -= extra_supply_from_transformation_output
         # raise ValueError(f"Supply of this fuel is too high, but specifically transformation output makes up so much of supply that to match demand, the transformation output would need to be decreased for {economy}, {scenario}, fuel {fuel}, subfuel {subfuel} in year {year}. This is too complex to model here so I suggest adding it to the SPECIFIED_ALLOWED_STATISTICAL_DISCREPANCIES dict so the amount is treated as a statistical discrepancy, if its not too high.")
     else:
         #set the statistical discrepancy to the negative of diff to indicate that there is extra supply
@@ -152,7 +154,7 @@ def handle_demand_supply_discrepancies_for_transformation_output(group_copy, eco
     return demand_supply_discrepancies_df, group_copy, error_df
 
 
-def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False,adjustment_threshold=0.01):
+def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False,adjustment_threshold=0.01, transformation_adjustment_threshold=0.01):
     """
     Adjust supply for projected data so that overall demand and supply balance.
 
@@ -219,6 +221,7 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
 
     ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS = {
         '20_USA': ['06_crude_oil_and_ngl'],  # these are fuels we dont want to import/export/produce... FOR EXAMPLE, we dont want to import electricity since we by default want to prodce it from the grid.. even if the economy does import electricity.. its jsut bad to be automatically choosing to saitsy imbalances by importing it
+        '05_PRC': ['02_coal_products', '08_gas']#the discrep is just too much of a change in trend to auto balance. it results in high imports when we know that it should all be rpduced domestically. so we will just leave it as is.
     }  # we will still do the calcaultions in this fuinciton but will return the original df
     # ECONOMIES_TO_SKIP
 
@@ -232,10 +235,6 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
         economy, scenario, fuel, subfuel = key
         if fuel in['20_total_renewables', '21_modern_renewables', '19_total']:
             continue
-        if economy in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS.keys():
-            if fuel in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS[economy]:
-                breakpoint()
-                continue#skipping this one
         # if fuel =='17_electricity' and subfuel == 'x':
         #     breakpoint()
         # Create a mask for this group and work on a copy
@@ -244,7 +243,12 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
         group_copy = create_statistical_discrepancy_rows(group_copy, economy, scenario, fuel, subfuel,year_columns)
         demand_supply_discrepancies_df = create_demand_supply_discrepancy_rows(group_copy, economy, scenario, fuel, subfuel,year_columns)
         total_required = 0
+        # if fuel == '17_electricity':
+        #     breakpoint()
+        CONTINUE = False
         for year in projection_years:
+            if CONTINUE:
+                continue
             # if int(year) >= 2056 and subfuel == '16_x_ammonia' and scenario == 'target':
             #     breakpoint()
             #if everything is 0 then we will just skip this as there is no  data to work with here
@@ -291,15 +295,17 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
                 prop_diff = 0
             else:
                 prop_diff = abs(diff) / abs(total_required)
+            # if int(year) == 2031 and fuel == '17_electricity' and scenario == 'target' and subfuel == 'x':
+            #     breakpoint()#ar ewqe not passsing the adjustment thrshold for these>?
             if (diff > 0 and abs_supply_sum < diff) or (prop_diff > adjustment_threshold and fuel in FUELS_TO_NOT_IMPORT_EXPORT_PRODUCE and total_required != 0):
-                if fuel =='16_others' and subfuel == '16_x_hydrogen' and economy == '15_PHL' and diff > 10 and scenario == 'target':
-                    breakpoint()#whats going on with phl hdyrogen. check the numbers are correct.
+                # if fuel =='16_others' and subfuel == '16_x_hydrogen' and economy == '15_PHL' and diff > 10 and scenario == 'target':
+                #     breakpoint()#whats going on with phl hdyrogen. check the numbers are correct.
                 # if transfomation_supply <= 0:
                 #     #throw an error. this is not expected:
                 #     breakpoint()
                 #     raise ValueError(f"Extra supply for {economy}, {scenario}, fuel {fuel}, subfuel {subfuel} in year {year} but no transformation output to adjust.")
                 # else:
-                demand_supply_discrepancies_df, group_copy, error_df = handle_demand_supply_discrepancies_for_transformation_output(group_copy, economy, scenario, fuel, subfuel, year,demand_supply_discrepancies_df, diff, reported_supply, total_required, transfomation_supply, error_df)
+                demand_supply_discrepancies_df, group_copy, error_df = handle_demand_supply_discrepancies_for_transformation_output(group_copy, economy, scenario, fuel, subfuel, year,demand_supply_discrepancies_df, diff, reported_supply, total_required, transfomation_supply, error_df, transformation_adjustment_threshold)
                 continue#next year
 
             REDUCTION_FROM_EXPORTS = 0
@@ -412,7 +418,8 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
                         if new_prod < 0:
                             breakpoint()
                             raise ValueError(f"After reducing production, production became negative for {economy}, {scenario}, fuel {fuel}, subfuel {subfuel} in year {year}.")
-
+        # if fuel =='17_electricity' and subfuel == 'x':
+        #     breakpoint()#why cant we gete to the next breakpoint?
         # After processing all projection years for this group, update the original df rows.
         #first drop the rows for group_mask then add the new rows
         df = df.loc[~group_mask]
@@ -455,12 +462,16 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
     df['sectors'] = df['sectors'].replace({'09_total_transformation_sector_positive': '09_total_transformation_sector', '09_total_transformation_sector_negative': '09_total_transformation_sector'})
     dateid = datetime.now().strftime("%Y%m%d")
     #save teh differences to a file in results\modelled_within_repo\final_data_adjustments
-
+    # breakpoint()#check the all_diffs df is correct
     #find fuels in all_diffs that are in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS and set their 'USED' to 'FALSE' and True if not.
     if economy in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS.keys():
         fuels_to_skip = all_diffs['fuels'].unique()
         all_diffs['USED'] = True
         all_diffs.loc[all_diffs['fuels'].isin(fuels_to_skip), 'USED'] = False
+        
+        #AND DO SAME TO DEMANDD SUPPLY DISCREPANCIES DF
+        demand_supply_discrepancies_df_agg['USED'] = True
+        demand_supply_discrepancies_df_agg.loc[demand_supply_discrepancies_df_agg['fuels'].isin(fuels_to_skip), 'USED'] = False
         
     all_diffs.to_csv(os.path.join('results', 'modelled_within_repo', 'final_data_adjustments', f'{economy}_{dateid}_supply_adjustments.csv'), index=False)
     # breakpoint()#why does solar and gas have weird adjustements for brunei
@@ -612,6 +623,13 @@ def plot_changes_made_to_supply(df, df_copy, all_diffs, economy, scenario, USED_
         if len(combined_data_scen[combined_data_scen['dataset'] == 'original']) == len(combined_data_scen):
             # breakpoint()
             continue
+        
+        if economy in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS:
+            if fuel in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS[economy]:
+                USED_IN_RESULTS = '_UNUSED'
+            else:
+                USED_IN_RESULTS = ''
+                
         fig = px.line(
             combined_data_scen,
             x='year',
@@ -620,15 +638,12 @@ def plot_changes_made_to_supply(df, df_copy, all_diffs, economy, scenario, USED_
             line_dash='dataset',
             facet_col='scenarios',
             facet_row='subfuels',
-            title=f"Supply Adjustments — {economy} / {fuel}",
+            title=f"Supply Adjustments — {economy} / {fuel} {USED_IN_RESULTS}",
             labels={'value': 'Supply (PJ)', 'year': 'Year'},
         )
         # Write HTML
         if os.path.exists(f"./plotting_output/supply_adjustments/{economy}/") == False:
             os.makedirs(f"./plotting_output/supply_adjustments/{economy}/")
-        if economy in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS:
-            if fuel in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS[economy]:
-                USED_IN_RESULTS = '_UNUSED'
                 
         fig.write_html(f"./plotting_output/supply_adjustments/{economy}/supply_adjustments_{economy}_{fuel}{USED_IN_RESULTS}.html")
 
@@ -664,6 +679,11 @@ def plot_demand_supply_discrepancies(error_df, economy, scenario,USED_IN_RESULTS
         df.loc[df['sectors'] == '22_demand_supply_discrepancy', 'line_dash'] = 'demand_supply_discrepancy'
         df.loc[df['sectors'] != '22_demand_supply_discrepancy', 'line_dash'] = 'original data'
         if len(df)>0:
+            if economy in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS:
+                if fuel in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS[economy]:
+                    USED_IN_RESULTS = '_UNUSED'
+                else:
+                    USED_IN_RESULTS = ''
             # Create line chart
             fig = px.line(
                 df,
@@ -673,16 +693,18 @@ def plot_demand_supply_discrepancies(error_df, economy, scenario,USED_IN_RESULTS
                 line_dash='line_dash',
                 facet_col='scenarios',
                 facet_row='subfuels',
-                title=f"Demand Supply Discrepancies — {economy} / {fuel}"
+                title=f"Demand Supply Discrepancies — {economy} / {fuel} {USED_IN_RESULTS}",
             )
-            if economy in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS:
-                if fuel in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS[economy]:
-                    USED_IN_RESULTS = '_UNUSED'
             # Write HTML
             fig.write_html(f"./plotting_output/supply_adjustments/{economy}/demand_supply_discrepancies_{economy}_{fuel}{USED_IN_RESULTS}.html")
             final_df = pd.concat([final_df, df], ignore_index=True)
     if len(final_df) > 0:
         final_df.to_csv(f'./plotting_output/supply_adjustments/{economy}/demand_supply_discrepancies_{economy}.csv')
+
+
+
+#################################################################################
+
 
 def make_manual_changes_to_rows(final_energy_df, economy, scenario):
     #this will just be a messy function to make manual changes to the finaldata as is needed. Probelm is that these could be all sorts of little changes so i think it will be easier to have this be quite messy and just use whatever code we need to make the changes. just make sure to clearly label the changes and the reasons for them.
@@ -741,7 +763,9 @@ def make_manual_changes_to_rows(final_energy_df, economy, scenario):
             CHANGES_MADE = True
             final_energy_df.loc[(final_energy_df['sectors'] == '18_electricity_output_in_gwh') & (final_energy_df['economy'] == economy) & (final_energy_df['scenarios'] == scenario) & (final_energy_df['subtotal_layout'] == False) & (final_energy_df['fuels'].isin(['07_petroleum_products', '08_gas'])) & (final_energy_df['subfuels'] == 'x') & (final_energy_df['sub1sectors'] == 'x'), 'subtotal_layout'] = True
             
-
+    # if economy == '05_PRC':
+    #     #need to import imports of gas and lng and make the results exactly match tose. this is because the auto  balancing system does not consider that the use of lng might be direect )e.g. in trucks) and so it creates imports of gas, which is not correct. So we will just set the imports of natural gas and the imports of lng to exactyl what was supplied
+        
     if CHANGES_MADE:
         #and save the file sincxe this is a last step.
         shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']

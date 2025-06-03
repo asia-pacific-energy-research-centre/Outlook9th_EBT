@@ -1,3 +1,39 @@
+CHL_elec_output_subtotals_fix:
+- Year: 2022
+  economy: 04_CHL
+  fuels: 8.1 Natural gas
+  new_value: 16088.096
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 2022
+  economy: 04_CHL
+  fuels: 8.1 Natural gas
+  new_value: 15167
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
+- Year: 2022
+  economy: 04_CHL
+  fuels: 8.1 Natural gas
+  new_value: 921.096
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.3 AP electricity plants
+- Year: 2022
+  economy: 04_CHL
+  fuels: 1.2 Other bituminous coal
+  new_value: 19169.984
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18. Electricity output in GWh
+- Year: 2022
+  economy: 04_CHL
+  fuels: 1.2 Other bituminous coal
+  new_value: 19169.984
+  old_values:
+    00APEC_2024_20250312: 0.0
+  sectors: 18.1 MAP electricity plants
 CHL_lng_losses:
 - Year: 2022
   economy: 04_CHL
@@ -15,6 +51,35 @@ CHL_lng_losses:
     00APEC_2024_20250219: 0.0
     00APEC_2024_20250312: 0.0
   sectors: 10.1.3 Liquefaction/regasification plants
+CHL_losses_subtotals_fix:
+- Year: 2022
+  economy: 04_CHL
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: -16.150376744974906
+  sectors: 10. Losses & own use
+- Year: 2022
+  economy: 04_CHL
+  fuels: 8.1 Natural gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: -15.38577676785626
+  sectors: 10.1 Own Use
+- Year: 2022
+  economy: 04_CHL
+  fuels: 8 Gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: -16.150376744974906
+  sectors: 10. Losses & own use
+- Year: 2022
+  economy: 04_CHL
+  fuels: 8 Gas
+  new_value: 0
+  old_values:
+    00APEC_2024_20250312: -15.38577676785626
+  sectors: 10.1 Own Use
 INA_NON_ENERGY:
 - Year: 2022
   economy: 07_INA

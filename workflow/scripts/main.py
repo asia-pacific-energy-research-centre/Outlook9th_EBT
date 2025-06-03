@@ -60,13 +60,11 @@ def main(SINGLE_ECONOMY_ID, ONLY_RUN_UP_TO_MERGING=False):
         # breakpoint()
         # Subset the data
         layout_df = C.subset_data(layout_df, SINGLE_ECONOMY_ID)
-        breakpoint()#how tk include agas works for all sectors in chian?
         # breakpoint()
         if (isinstance(SINGLE_ECONOMY_ID, str)) and not (ONLY_RUN_UP_TO_MERGING):#if we arent using a single economy we dont need to merge
             # Merge the results
             first_merge_df = D.merging_results(layout_df, SINGLE_ECONOMY_ID)
             print('\n ### First merge complete ### \n')
-            breakpoint()#whats causing us to miss the gas works in china?
             
             #########
             #NOTE TESTING PUTTING THIS HERE TO TRY ESTIMATE MISTING SECTORS WHERE WE CAN AS SOON AS THE DATA IS AVAILABLE. THIS WAY THE TRANSFOMATION SECTORS CAN GET THE DATA THEY NEED EARLIER IN THE PIPELINE.
@@ -90,8 +88,11 @@ def main(SINGLE_ECONOMY_ID, ONLY_RUN_UP_TO_MERGING=False):
                 third_merge_df = D.merging_results(layout_df, SINGLE_ECONOMY_ID)
                 
                 #this function will not save anything to the modelled data folder so it needs to be run at the end of the pipeline. it is important especially for balancing the extra demand created in estimate_missing_sectors_using_activity_estimates()
-                final_results_df = adjust_projected_supply_to_balance_demand(third_merge_df,SINGLE_ECONOMY_ID, utils.ERRORS_DAIJOUBU)
-                
+                try:
+                    final_results_df = adjust_projected_supply_to_balance_demand(third_merge_df,SINGLE_ECONOMY_ID, utils.ERRORS_DAIJOUBU)
+                except Exception as e:
+                    breakpoint()
+                    final_results_df = adjust_projected_supply_to_balance_demand(third_merge_df,SINGLE_ECONOMY_ID, utils.ERRORS_DAIJOUBU)
                 #run merging to merge layout (i.e. layout_df) and final_results_df
                 final_energy_df = D.merging_results(layout_df, SINGLE_ECONOMY_ID, final_results_df)           
                 
@@ -133,10 +134,10 @@ def main(SINGLE_ECONOMY_ID, ONLY_RUN_UP_TO_MERGING=False):
 #%%
 # Run the main function and store the result
 RUSSIA = ['16_RUS']
-COMPLETED = ['15_PHL','17_SGP','07_INA','09_ROK', '20_USA','02_BD',   '21_VN', '13_PNG','05_PRC']
+COMPLETED = ['06_HKC', '03_CDA','09_ROK', '20_USA','02_BD', '21_VN', '13_PNG','05_PRC', '17_SGP','07_INA','15_PHL','12_NZ', '19_THA']
 TRANSFORMATION = ['08_JPN']
 DEMAND = []
-SUPPLY = [  '18_CT', '10_MAS','12_NZ','14_PE','04_CHL','19_THA', '06_HKC',  '11_MEX','03_CDA','01_AUS']#this is for when we are inputting suply for the first time
+SUPPLY = [  '18_CT', '10_MAS','14_PE','04_CHL',  '11_MEX','01_AUS']#this is for when we are inputting suply for the first time
 CURRENT = [ '01_AUS', '18_CT']#'05_PRC']#, '08_JPN','04_CHL']#'20_USA', '19_THA', '07_INA',]['05_PRC', '11_MEX']#,#'16_RUS']# '14_PE',
 FOUND=False#TODO, USA'S TRANSFERS FOR CRUDE AND OPETROLUM PRODUCTS SHOULDBE SONCISDRED.
 if __name__ == "__main__":#"03_CDA","05_PRC","07_INA","11_MEX","18_CT","19_THA", 
@@ -150,7 +151,7 @@ if __name__ == "__main__":#"03_CDA","05_PRC","07_INA","11_MEX","18_CT","19_THA",
         '25_OCE': ['01_AUS', '12_NZ', '13_PNG'],
         '26_NA': ['03_CDA', '20_USA'],
     }
-    for economy in ['05_PRC']:#['07_INA','09_ROK', '20_USA','02_BD', '15_PHL',  '21_VN', '13_PNG']:#['07_INA']:# ['18_CT']:#['15_PHL', '07_INA']:#,'15_PHL','02_BD', '21_VN','01_AUS']:#[  '14_PE']:#[ '14_PE','04_CHL','08_JPN', '17_SGP','19_THA', '20_USA','03_CDA''17_SGP',]+SUPPLY:#['00_APEC', '22_SEA', '23_NEA', '23b_ONEA', '24_OAM', '25_OCE', '24b_OOAM', '26_NA'] + SUPPLY + TRANSFORMATION:# ['20_USA', '19_THA', '07_INA','03_CDA']:#['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC '09_ROK', '02_BD',  '15_PHL' "10_MAS", '08_JPN', '17_SGP','19_THA', '20_USA', '20_USA',['15_PHL', '10_MAS', '21_VN','01_AUS']+'03_CDA', '08_JPN',
+    for economy in ['08_JPN']:#[ '19_THA']:#['07_INA','09_ROK', '20_USA','02_BD', '15_PHL',  '21_VN', '13_PNG']:#['07_INA']:# ['18_CT']:#['15_PHL', '07_INA']:#,'15_PHL','02_BD', '21_VN','01_AUS']:#[  '14_PE']:#[ '14_PE','04_CHL','08_JPN', '17_SGP','19_THA', '20_USA','21_VN', '18_CT','03_CDA''17_SGP',]+SUPPLY:#['00_APEC', '22_SEA', '23_NEA', '23b_ONEA', '24_OAM', '25_OCE', '24b_OOAM', '26_NA'] + SUPPLY + TRANSFORMATION:# ['20_USA', '19_THA', '07_INA','03_CDA']:#['26_NA' ]:# "01_AUS"]:#, 01_AUS', "02_BD", "03_CDA", "04_CHL", "05_PRC", "06_HKC", "07_INA", "08_JPN", "09_ROK", "10_MAS", "11_MEX", "12_NZ", "13_PNG", "14_PE", "15_PHL", "16_RUS", "17_SGP", "18_CT", "19_THA", "20_USA", "21_VN", '00_APEC '09_ROK', '02_BD',  '15_PHL' "10_MAS", '08_JPN', '17_SGP','19_THA', '20_USA', '20_USA',['15_PHL', '10_MAS', '21_VN','01_AUS']+'03_CDA', '08_JPN','20_USA', '15_PHL',
         final_energy_df, emissions_df, capacity_df, model_df_clean_wide = main(SINGLE_ECONOMY_ID=economy)
 #%%
 #"06_HKC",'04_CHL' - seemed it could be because we need to just base iput data for moelling offnew data. 
@@ -159,5 +160,5 @@ if __name__ == "__main__":#"03_CDA","05_PRC","07_INA","11_MEX","18_CT","19_THA",
 #mexico, indonesia, '02_BD'
 
 # %%
-# utils.move_files_to_onedrive('08_Final', origin_date_id='20250520', econ_list=['20_USA'])
+# utils.move_files_to_onedrive('08_Final', origin_date_id='20250603', econ_list=['06_HKC', '03_CDA','09_ROK', '20_USA','02_BD', '21_VN', '13_PNG','05_PRC', '17_SGP','07_INA','15_PHL', '19_THA']) #todo: '17_SGP','05_PRC', '07_INA'
 # %%
