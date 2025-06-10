@@ -552,9 +552,29 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
         
         #merge direct use with imports_lng and direct_use_lng_negative and sum the values
         shared_categories_no_sectors = [col for col in shared_categories if 'sectors' not in col]
+        
+        ###########
+        
+        #we ahd a bit of a bug where we were summing up the direct use but grouping by year which was causing a double up of lng transfomration. So we will search for where that would ahve resulted in errors:
+
+        # direct_use_lng1 = direct_use_lng.groupby(shared_categories_no_sectors + years_to_keep_in_results_str).sum().reset_index().copy()
+        # direct_use_lng_negative1 = direct_use_lng_negative.groupby(shared_categories_no_sectors + years_to_keep_in_results_str).sum().reset_index().copy()
+        # #if the errors would have occured it basically means the losses would have been to high, i think.
+        # if len(direct_use_lng1) >2:
+        #     # economy = direct_use_lng1['economy'].unique()[0] if 'economy' in direct_use_lng1.columns else 'unknown'
+        #     # direct_use_lng1.to_csv(f'direct_use_lng1_{economy}.csv', index=False)
+        #     breakpoint()#error would have occured here
+        # if len(direct_use_lng_negative1) >2:
+        #     # economy = direct_use_lng_negative1['economy'].unique()[0] if 'economy' in direct_use_lng_negative1.columns else 'unknown'
+        #     # #save the file to csv
+        #     # direct_use_lng_negative1.to_csv(f'direct_use_lng_negative1_{economy}.csv', index=False)
+        #     breakpoint()#error would have occured here
+
+        ###########
+        
         #sum up the direct use for each year
-        direct_use_lng = direct_use_lng.groupby(shared_categories_no_sectors + years_to_keep_in_results_str).sum().reset_index()
-        direct_use_lng_negative = direct_use_lng_negative.groupby(shared_categories_no_sectors + years_to_keep_in_results_str).sum().reset_index()
+        direct_use_lng = direct_use_lng.groupby(shared_categories_no_sectors).sum().reset_index()
+        direct_use_lng_negative = direct_use_lng_negative.groupby(shared_categories_no_sectors).sum().reset_index()
         # breakpoint()
         imports_lng = imports_lng.merge(direct_use_lng, on=shared_categories_no_sectors, how='left', suffixes=('', '_direct_use'))
         # breakpoint()
@@ -572,8 +592,10 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
                     breakpoint()
                     raise ValueError(f"Negative values found in LNG imports for year {year}. This should not happen.")
                 else:
+                    # breakpoint()#check that we are not raising errors
                     # If not raising errors, set negative values to zero
                     imports_lng[year] = imports_lng[year].clip(lower=0)
+        # breakpoint()
         #now drop the direct use columns
         cols_to_drop = [col for col in imports_lng.columns if col.endswith('_direct_use') or col.endswith('_direct_use_negative')]
         imports_lng.drop(columns= cols_to_drop, inplace=True)
@@ -585,6 +607,7 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
         #drop the old columns values
         for year in years_to_keep_in_results_str:
             lng_supply_minus_direct_use[year] = np.where(lng_supply_minus_direct_use[f'{year}_updated'].notnull(), lng_supply_minus_direct_use[f'{year}_updated'], lng_supply_minus_direct_use[year])
+        # breakpoint()
         # breakpoint()#check that the imports_lng is correct
         #check for cols ending in _updated and drop them
         cols_to_drop = [col for col in lng_supply_minus_direct_use.columns if col.endswith('_updated')]
@@ -592,8 +615,9 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
         #now we can return the lng_supply_minus_direct_use\
         return lng_supply_minus_direct_use
     ##################################################################
+    # breakpoint()
     lng_supply_minus_direct_use = minus_direct_use_from_lng_supply(lng_supply, gas_all,years_to_keep_in_results_str)
-    
+    # breakpoint()
     ##################################################################
     
     # --- Estimate losses for LNG transformation ---
@@ -617,9 +641,9 @@ def create_transformation_losses_pipeline_rows_for_gas_based_on_supply(results_d
          (gas_supply_minus_losses['subfuels'] == '08_02_lng')
     ].copy()
     lng_supply_minus_direct_use = minus_direct_use_from_lng_supply(lng_supply, gas_all,years_to_keep_in_results_str)
-    
+    # breakpoint()
     lng_to_gas_transfomation = create_lng_transformation_rows(lng_supply_minus_direct_use, years_to_keep_in_results_str)
-    
+    # breakpoint()
     ##################################################################
     
     # --- Estimate pipeline energy use for gas ---
@@ -791,6 +815,7 @@ def estimate_losses_for_lng_processes(lng_supply_minus_direct_use, layout_df, ba
       4. Multiply the LNG supply values by the ratio (converted to negative) to represent losses.
       5. Group the resulting rows by standard loss identifiers.
     """
+    ECONOMIES_WITH_ZERO_LOSSES = ['18_CT', '10_MAS']#THIS fucntion assumes all economies should have losses but to avoid big step changes we will set losses to 0 for these economies.
     # --- Determine if base-year LNG trade exists ---
     gas_trade_base_year = layout_df[
         ((layout_df['sectors'] == '02_imports') | (layout_df['sectors'] == '03_exports')) &
@@ -866,8 +891,8 @@ def estimate_losses_for_lng_processes(lng_supply_minus_direct_use, layout_df, ba
         raise Exception("The file lng_to_pipeline_trade_ratios.csv is missing. Is created in the visualisation system.")
     # --- extract gas trade for base year for oecd econmies if necessary ---
     if not BASE_YEAR_LNG_AVAILABLE:
-        
-        if SINGLE_ECONOMY_ID in lng_ratios.economy.unique() and lng_ratios.loc[(lng_ratios.economy == SINGLE_ECONOMY_ID)& (lng_ratios.Year == OUTLOOK_BASE_YEAR)].lng_to_gas_trade_ratio.sum() > 0 and gas_trade_base_year.loc[(gas_trade_base_year.economy == SINGLE_ECONOMY_ID),str(OUTLOOK_BASE_YEAR)].sum() > 0:#if there are lng trade ratios for the single economy in the base year then we can use that to estimate the lng trade ratios for the single economy. also if its all 0s for the gas imports/exports data then we cant do anything with it. often its all 0 for the gas data if the ratio is calcualted based on a year after the abse year.
+        # breakpoint()#whats going on with aus and why is gas trade base year 0 
+        if SINGLE_ECONOMY_ID in lng_ratios.economy.unique() and lng_ratios.loc[(lng_ratios.economy == SINGLE_ECONOMY_ID)& (lng_ratios.Year == OUTLOOK_BASE_YEAR)].lng_to_gas_trade_ratio.sum() > 0 and gas_trade_base_year.loc[(gas_trade_base_year.economy == SINGLE_ECONOMY_ID),str(OUTLOOK_BASE_YEAR)].abs().sum() > 0:#if there are lng trade ratios for the single economy in the base year then we can use that to estimate the lng trade ratios for the single economy. also if its all 0s for the gas imports/exports data then we cant do anything with it. often its all 0 for the gas data if the ratio is calcualted based on a year after the abse year.
             
             # --- We will use OECD LNG ratios to estiamte lng trade ratios for the single economy ---
             lng_ratios = lng_ratios[lng_ratios.economy == SINGLE_ECONOMY_ID].copy()
@@ -908,8 +933,8 @@ def estimate_losses_for_lng_processes(lng_supply_minus_direct_use, layout_df, ba
             breakpoint()
             raise Exception('No valid LNG trade data found for any economy. Cannot calculate losses ratio.')
         
-        if SINGLE_ECONOMY_ID == '09_ROK':
-            breakpoint()
+        # if SINGLE_ECONOMY_ID == '09_ROK':
+        #     breakpoint()
         losses = pd.concat(losses_list, ignore_index=True)
         #set any infs and 0s with nan so as not to affect the average
         losses['ratio'] = losses['ratio'].replace([np.inf, 0], np.nan)        
@@ -965,7 +990,7 @@ def estimate_losses_for_lng_processes(lng_supply_minus_direct_use, layout_df, ba
     # then convert it to a negative value to represent losses.
     for year in years_to_keep_in_results_str:
         lng_losses_projection[year] = -(lng_losses_projection[year].abs() * lng_losses_projection['ratio'])
-        
+    # breakpoint()#aus is weird
     # if SINGLE_ECONOMY_ID == '09_ROK':
     #     breakpoint()
     # Check for any missing values after the operation.
@@ -989,6 +1014,11 @@ def estimate_losses_for_lng_processes(lng_supply_minus_direct_use, layout_df, ba
     if lng_losses_projection.empty:
         breakpoint()
         raise Exception('All values in the LNG losses for transformation are 0. This is unexpected and should be investigated.')
+    
+    if SINGLE_ECONOMY_ID in ECONOMIES_WITH_ZERO_LOSSES:
+        #if the economy is in the list of economies with zero losses, set the losses to 0
+        # breakpoint()#check that this is correct
+        lng_losses_projection[years_to_keep_in_results_str] = 0
     
     return lng_losses_projection, gas_trade_base_year_copy
 

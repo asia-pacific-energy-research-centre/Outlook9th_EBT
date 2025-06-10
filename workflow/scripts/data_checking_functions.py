@@ -60,6 +60,14 @@ def check_for_negatives_or_postives_in_wrong_sectors(df, economy, file, INGORE_N
         elif sector not in negative_sector_exceptions and sector not in negative_sectors:
             for col in year_columns:
                 val = row[col]
+                #see if the val is a string, if so try to convert it to a float
+                if isinstance(val, str):
+                    try:
+                        val = float(val)
+                    except ValueError:
+                        #if it fails, we need to fix somehting!
+                        breakpoint()
+                        raise ValueError(f"Value in row {idx}, column {col} is not a number: {val}.")
                 if (pd.isna(val) and not INGORE_NANS) or val < 0:
                     #check the value is not really small. probably easiest just to base it off absolute value.. e.g. <0.01
                     if abs(val) < ABSOLUTE_THRESHOLD:

@@ -47,9 +47,7 @@ def label_subtotals(results_layout_df, shared_categories):
         
         ############################# 
         #if more than one value are not zero/nan for this group, then it could be a subtotal, if not, its a definite non-subtotal since its the most specific data we have for this group.
-        
         value_mask = (abs(df['value'])> 0)
-        
         # Group by all columns except 'value' and sub_col and check how many values are >0 or <0 for that group
         grouped = df.loc[value_mask, [col for col in df.columns if col not in ['value', sub_col, 'is_subtotal']]].groupby([col for col in df.columns if col not in ['value', sub_col, 'is_subtotal']]).size().reset_index(name='count')
 

@@ -227,10 +227,10 @@ def merging_results(original_layout_df, SINGLE_ECONOMY_ID, final_results_df=None
     #drop all subtotals from concatted_results_df
     
     if not USING_FINAL_RESULTS_DF:
-        breakpoint()#seems we lose the origin col comsethimes?
+        # breakpoint()#seems we lose the origin col comsethimes?
         concatted_results_df = concatted_results_df.loc[concatted_results_df['is_subtotal'] == False].copy()
         concatted_results_df = results_adjustment_functions.create_transformation_losses_pipeline_rows_for_gas_based_on_supply(concatted_results_df, layout_df, SINGLE_ECONOMY_ID, shared_categories, years_to_keep_in_results)
-        breakpoint()#origin col comsethimes?
+        # breakpoint()#origin col comsethimes?#are we missing the exports for china 
     # if SINGLE_ECONOMY_ID == '05_PRC':
     #     breakpoint()#check the gas works total from china demand vs supply and whether we need a discrepancy or not
     #make all cols strs

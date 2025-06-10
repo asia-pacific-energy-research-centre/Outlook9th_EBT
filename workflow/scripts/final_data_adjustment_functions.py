@@ -221,7 +221,9 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
 
     ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS = {
         '20_USA': ['06_crude_oil_and_ngl'],  # these are fuels we dont want to import/export/produce... FOR EXAMPLE, we dont want to import electricity since we by default want to prodce it from the grid.. even if the economy does import electricity.. its jsut bad to be automatically choosing to saitsy imbalances by importing it
-        '05_PRC': ['02_coal_products', '08_gas']#the discrep is just too much of a change in trend to auto balance. it results in high imports when we know that it should all be rpduced domestically. so we will just leave it as is.
+        '05_PRC': ['02_coal_products', '08_gas'],#the discrep is just too much of a change in trend to auto balance. it results in high imports when we know that it should all be rpduced domestically. so we will just leave it as is.
+        '12_NZ': ['08_gas'],#id like to do it properly but havent got the time
+        '10_MAS': ['08_gas']#MAS has crazy lossse s in their lng sector but which are reocrded as missing transfomation from lng to gas. So to amke this work we just avoid adjusting any discrepancies, we think. Its probably not perfect;ly accurate but its better than going through a whole rigamarole.
     }  # we will still do the calcaultions in this fuinciton but will return the original df
     # ECONOMIES_TO_SKIP
 
@@ -231,14 +233,16 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
     # Group by key identifiers
     group_cols = ['economy', 'scenarios', 'fuels', 'subfuels']
     # breakpoint()#ref exports of crude just disappeard?
+    
+    adjusted_df = df.copy()
     for key, group in df.groupby(group_cols, as_index=False):
         economy, scenario, fuel, subfuel = key
         if fuel in['20_total_renewables', '21_modern_renewables', '19_total']:
             continue
-        # if fuel =='17_electricity' and subfuel == 'x':
         #     breakpoint()
         # Create a mask for this group and work on a copy
         group_mask = (df['economy'] == economy) & (df['scenarios'] == scenario) & (df['fuels'] == fuel) & (df['subfuels'] == subfuel) & (df['subtotal_results'] == False)
+        adj_df_group_mask = (adjusted_df['economy'] == economy) & (adjusted_df['scenarios'] == scenario) & (adjusted_df['fuels'] == fuel) & (adjusted_df['subfuels'] == subfuel) & (adjusted_df['subtotal_results'] == False)
         group_copy = df.loc[group_mask].copy()
         group_copy = create_statistical_discrepancy_rows(group_copy, economy, scenario, fuel, subfuel,year_columns)
         demand_supply_discrepancies_df = create_demand_supply_discrepancy_rows(group_copy, economy, scenario, fuel, subfuel,year_columns)
@@ -247,8 +251,13 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
         #     breakpoint()
         CONTINUE = False
         for year in projection_years:
+            
             if CONTINUE:
                 continue
+            
+            # if fuel =='08_gas' and subfuel == '08_01_natural_gas' and economy == '05_PRC' and int(year) == 2060 and scenario == 'target':
+            #     #skip this fuel for this economy
+            #     breakpoint()
             # if int(year) >= 2056 and subfuel == '16_x_ammonia' and scenario == 'target':
             #     breakpoint()
             #if everything is 0 then we will just skip this as there is no  data to work with here
@@ -418,48 +427,63 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
                         if new_prod < 0:
                             breakpoint()
                             raise ValueError(f"After reducing production, production became negative for {economy}, {scenario}, fuel {fuel}, subfuel {subfuel} in year {year}.")
+            
+            #record the change if it was large enough
+            ADJUSTMENT_THRESHOLD_REACHED = False
+            # Warn if the proportional difference is high.
+            if total_required != 0:
+
+                if prop_diff > adjustment_threshold:
+                    ADJUSTMENT_THRESHOLD_REACHED = True
+                    # print(f"Warning: For {economy}, {scenario}, fuel {fuel}, subfuel {subfuel} in year {year} a large adjustment is needed (proportional difference: {prop_diff:.2f}).")
+                    all_diffs = pd.concat([all_diffs, pd.DataFrame({
+                        'economy': [economy],
+                        'scenarios': [scenario],
+                        'fuels': [fuel],
+                        'subfuels': [subfuel],
+                        'year': [year],
+                        'change in supply': [diff],
+                        'proportion of demand': [prop_diff],
+                        'reduction from exports': [REDUCTION_FROM_EXPORTS],
+                        'reduction from imports': [REDUCTION_FROM_IMPORTS],
+                        'reduction from production': [REDUCTION_FROM_PRODUCTION],
+                        'increase in production': [INCREASE_IN_PRODUCTION],
+                        'increase in exports': [INCREASE_IN_EXPORTS],
+                        'previous imports': [imports_val],
+                        'previous exports': [exports_val],
+                        'previous production': [production_val]
+                    })], ignore_index=True)
         # if fuel =='17_electricity' and subfuel == 'x':
         #     breakpoint()#why cant we gete to the next breakpoint?
         # After processing all projection years for this group, update the original df rows.
-        #first drop the rows for group_mask then add the new rows
-        df = df.loc[~group_mask]
-        #then add the new rows
-        df = pd.concat([df, group_copy], ignore_index=True)
-        #then add the demand supply discrepancies df if there are any
+        #check the econ and fuel are not in the ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS dict
+        
+        #adjust the df used for showing changes on plots
+        adjusted_df = adjusted_df.loc[~adj_df_group_mask]  # keep the original group without adjustments
+        adjusted_df = pd.concat([adjusted_df, group_copy], ignore_index=True)  
+        #add the group copy with no adjustments
+        #and add the demand supply discrepancies df to the adjusted df
         if '22_demand_supply_discrepancy' not in group_copy['sectors'].unique() and len(demand_supply_discrepancies_df) > 0:
-            df = pd.concat([df, demand_supply_discrepancies_df], ignore_index=True)
+            adjusted_df = pd.concat([adjusted_df, demand_supply_discrepancies_df], ignore_index=True)
+            
+        if economy in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS.keys() and fuel in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS[economy]:
+            pass
+        else:
+            #first drop the rows for group_mask then add the new rows
+            df = df.loc[~group_mask]
+            #then add the new rows
+            df = pd.concat([df, group_copy], ignore_index=True)
+            #then add the demand supply discrepancies df if there are any
+            if '22_demand_supply_discrepancy' not in group_copy['sectors'].unique() and len(demand_supply_discrepancies_df) > 0:
+                df = pd.concat([df, demand_supply_discrepancies_df], ignore_index=True)
         # add all the demand_supply_discrepancies_df to one too so we can track that in a csv later
         demand_supply_discrepancies_df_agg = pd.concat([demand_supply_discrepancies_df_agg, demand_supply_discrepancies_df], ignore_index=True)
         # error_df = pd.concat([error_df, statistical_discrepancies_df], ignore_index
         # =True)
 
-        #reocrd the change if it was large enough
-        ADJUSTMENT_THRESHOLD_REACHED = False
-        # Warn if the proportional difference is high.
-        if total_required != 0:
-
-            if prop_diff > adjustment_threshold:
-                ADJUSTMENT_THRESHOLD_REACHED = True
-                # print(f"Warning: For {economy}, {scenario}, fuel {fuel}, subfuel {subfuel} in year {year} a large adjustment is needed (proportional difference: {prop_diff:.2f}).")
-                all_diffs = pd.concat([all_diffs, pd.DataFrame({
-                    'economy': [economy],
-                    'scenarios': [scenario],
-                    'fuels': [fuel],
-                    'subfuels': [subfuel],
-                    'year': [year],
-                    'change in supply': [diff],
-                    'proportion of demand': [prop_diff],
-                    'reduction from exports': [REDUCTION_FROM_EXPORTS],
-                    'reduction from imports': [REDUCTION_FROM_IMPORTS],
-                    'reduction from production': [REDUCTION_FROM_PRODUCTION],
-                    'increase in production': [INCREASE_IN_PRODUCTION],
-                    'increase in exports': [INCREASE_IN_EXPORTS],
-                    'previous imports': [imports_val],
-                    'previous exports': [exports_val],
-                    'previous production': [production_val]
-                })], ignore_index=True)
     #change 09_total_transformation_sector_positive and 09_total_transformation_sector_negative to 09_total_transformation_sector
     df['sectors'] = df['sectors'].replace({'09_total_transformation_sector_positive': '09_total_transformation_sector', '09_total_transformation_sector_negative': '09_total_transformation_sector'})
+    adjusted_df['sectors'] = adjusted_df['sectors'].replace({'09_total_transformation_sector_positive': '09_total_transformation_sector', '09_total_transformation_sector_negative': '09_total_transformation_sector'})
     dateid = datetime.now().strftime("%Y%m%d")
     #save teh differences to a file in results\modelled_within_repo\final_data_adjustments
     # breakpoint()#check the all_diffs df is correct
@@ -472,13 +496,14 @@ def adjust_projected_supply_to_balance_demand(df, economy, ERRORS_DAIJOUBU=False
         #AND DO SAME TO DEMANDD SUPPLY DISCREPANCIES DF
         demand_supply_discrepancies_df_agg['USED'] = True
         demand_supply_discrepancies_df_agg.loc[demand_supply_discrepancies_df_agg['fuels'].isin(fuels_to_skip), 'USED'] = False
+        breakpoint()#why is china gas not being included here?
         
     all_diffs.to_csv(os.path.join('results', 'modelled_within_repo', 'final_data_adjustments', f'{economy}_{dateid}_supply_adjustments.csv'), index=False)
     # breakpoint()#why does solar and gas have weird adjustements for brunei
     #save the demand supply discrepancies to a file in results\modelled_within_repo\final_data_adjustments
     demand_supply_discrepancies_df_agg.to_csv(os.path.join('results', 'modelled_within_repo', 'final_data_adjustments', f'{economy}_{dateid}_demand_supply_discrepancies.csv'), index=False)
     # breakpoint()#create plottingscripts
-    plot_changes_made_to_supply(df, df_copy, all_diffs, economy, scenario, '', ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS)
+    plot_changes_made_to_supply(adjusted_df, df_copy, all_diffs, economy, scenario, '', ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS)
     if len(error_df) > 0:
         #order the cols in error df so we have non years first and then the years are in order
         ordered_columns = [col for col in ['sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels', 'economy', 'scenarios'] + [OUTLOOK_BASE_YEAR+1] + sorted(projection_years) if col in error_df.columns]
@@ -593,9 +618,10 @@ def clean_data_for_plotting(df, df_copy, all_diffs, economy, scenario):
     combined_data = combined_data[~combined_data['sectors'].isin(['12_total_final_consumption', '13_total_final_energy_consumption', '18_electricity_output_in_gwh', '19_heat_output_in_pj', '07_total_primary_energy_supply'])]
     #drop anhitorical years for adjusted
     combined_data = combined_data[~((combined_data['year'] <= OUTLOOK_BASE_YEAR) & (combined_data['dataset'] == 'adjusted'))]
+    
     # if '11_statistical_discrepancy' in combined_data['sectors'].unique():
     #     breakpoint()#whats going on wiuth this. why is it showing in adjusted col? is it cause of nas?
-    # breakpoint()
+    # breakpoint()#why is china not having gas plotted?
     return combined_data
 
 
@@ -624,18 +650,53 @@ def plot_changes_made_to_supply(df, df_copy, all_diffs, economy, scenario, USED_
             # breakpoint()
             continue
         
+        #we want to have the 'adjusted' data so that where there is an adjustment, we also see the values fromthe original data wehre there is no adjustment. To do this we will pivot the dataset col, and fill in nas in the adjusted col with the values that are in the original col. pivot on the following cols ['economy', 'scenarios', 'fuels', 'subfuels', 'sectors', 'year'] ['dataset']
+        #first extract the sectors and scenario combinations where there are adjustments
+        combos = combined_data_scen[combined_data_scen['dataset'] == 'adjusted'][['economy', 'scenarios', 'fuels', 'subfuels', 'sectors']].drop_duplicates()
+        #now pivot. we'll join  comboson and fil na where the combos are
+        combined_data_scen = combined_data_scen.pivot(
+            index=['economy', 'scenarios', 'fuels', 'subfuels', 'sectors', 'year'],
+            columns='dataset',
+            values='value'
+        ).reset_index()
+        combined_data_scen = combined_data_scen.merge(combos, on=['economy', 'scenarios', 'fuels', 'subfuels', 'sectors'], how='left', indicator=True)
+        # Fill NaN values in 'adjusted' with values from 'original'
+        combined_data_scen['adjusted'] = np.where(
+            combined_data_scen['adjusted'].isna() & (combined_data_scen['_merge'] == 'both'),
+            combined_data_scen['original'],
+            combined_data_scen['adjusted']
+        )
+        # Drop the '_merge' column and nas
+        combined_data_scen.drop(columns=['_merge'], inplace=True)
+        #then melt the data back to long format
+        combined_data_scen = combined_data_scen.melt(
+            id_vars=['economy', 'scenarios', 'fuels', 'subfuels', 'sectors', 'year'],
+            value_vars=['adjusted', 'original'],
+            var_name='dataset',
+            value_name='value'
+        )
+        
+        combined_data_scen.dropna(subset=['value'], inplace=True)
+        # Convert 'year' to integer
+        combined_data_scen['year'] = combined_data_scen['year'].astype(int)
+        
         if economy in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS:
             if fuel in ECONOMIES_TO_SKIP_FOR_BALANCING_FOR_CERTAIN_FUELS[economy]:
                 USED_IN_RESULTS = '_UNUSED'
             else:
                 USED_IN_RESULTS = ''
-                
+        if fuel == '06_crude_oil_and_ngl':
+            breakpoint()#why is line dash nto workign
+            
+        #order the dataset col so original is first and adjusted is second (so in reverse order)
+        combined_data_scen.sort_values(by=['dataset', 'year'], ascending=[False, True], inplace=True)
         fig = px.line(
             combined_data_scen,
             x='year',
             y='value',
             color='sectors',
             line_dash='dataset',
+            # line_dash_map={'original': 'solid', 'adjusted': 'dash'},
             facet_col='scenarios',
             facet_row='subfuels',
             title=f"Supply Adjustments — {economy} / {fuel} {USED_IN_RESULTS}",
@@ -685,6 +746,8 @@ def plot_demand_supply_discrepancies(error_df, economy, scenario,USED_IN_RESULTS
                 else:
                     USED_IN_RESULTS = ''
             # Create line chart
+            
+            df.sort_values(by=['line_dash', 'year'], ascending=[False, True], inplace=True)
             fig = px.line(
                 df,
                 x='year',
@@ -765,7 +828,73 @@ def make_manual_changes_to_rows(final_energy_df, economy, scenario):
             
     # if economy == '05_PRC':
     #     #need to import imports of gas and lng and make the results exactly match tose. this is because the auto  balancing system does not consider that the use of lng might be direect )e.g. in trucks) and so it creates imports of gas, which is not correct. So we will just set the imports of natural gas and the imports of lng to exactyl what was supplied
+    
+    if economy =='16_RUS':
+        #first of all we will delete all subtotals for 16_RUS where fuels is 01_coal and 08_gas. and delete subtotals where sectors == 09_total_transformation_sector. This makes it so we dont need to worry about the subtotals being incorrect for these fuels.
+        #then we will load in the file Outlook9th_EBT\data\raw_data\Input_data_CokingCoal_Gas_RUS.xlsx and merge it onto the data by the cols scenarios	economy	sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels
+        #then for every year col between 1980 and 2022 we will change the values in the final_energy_df to match the values in the file.
+        CHANGES_MADE = True
+        breakpoint()#check that this is correct#anhd double chekc year types
+        all_cols = final_energy_df.columns.tolist()
+        #double check that key_cols plus all_years_cols plus subtotal colsare in the final_energy_df
+        subtotal_cols = ['subtotal_layout', 'subtotal_results']
+        key_cols = ['scenarios', 'economy', 'sectors', 'sub1sectors', 'sub2sectors', 'sub3sectors', 'sub4sectors', 'fuels', 'subfuels']
+        all_years_cols = [col for col in final_energy_df.columns if re.match(r'^\d{4}$', str(col))]
+        if not all(col in all_cols for col in key_cols + all_years_cols + subtotal_cols):
+            breakpoint()
+            raise ValueError(f"Not all key cols, subtotal and year cols are in the final_energy_df. Key cols: {key_cols}, Year cols: {all_years_cols}. Final energy df cols: {all_cols}. Subtotal cols: {subtotal_cols}.")
+        historical_years = [str(year) for year in range(1980, OUTLOOK_BASE_YEAR+1)]
+        projected_years = [str(year) for year in all_years_cols if year not in historical_years]
         
+        historical_data = final_energy_df[key_cols + historical_years + ['subtotal_layout']].copy()
+        future_data = final_energy_df[key_cols + projected_years + ['subtotal_results']].copy()
+        #drop the rows where sectors == 09_total_transformation_sector or fuels is 01_coal or 08_gas and subfuels is x and subtotal_layout is True
+        # breakpoint()
+        historical_data = historical_data.loc[~((historical_data['sectors'] == '09_total_transformation_sector') & (historical_data['subtotal_layout'] == True))]
+        historical_data = historical_data.loc[~((historical_data['fuels'].isin(['01_coal', '08_gas'])) & (historical_data['subtotal_layout'] == True))]
+        #load in the data
+        import_data = pd.read_excel(os.path.join('data', 'raw_data', 'Input_data_CokingCoal_Gas_RUS.xlsx'), sheet_name='Sheet1')
+        #filter for the cols we need
+        import_data = import_data[import_data['scenarios'].isin([scenario])]
+        #make sure all cols are strings
+        import_data.columns = import_data.columns.astype(str)
+        #if OUTLOOK_BASE_YEAR is 2021 and 2022 is in the import_data then we will drop 2022 from the import_data
+        if OUTLOOK_BASE_YEAR == 2021 and '2022' in import_data.columns:
+            import_data = import_data.drop(columns=['2022'])
+        #merge
+        historical_data = pd.merge(historical_data, import_data, on=key_cols, how='outer', suffixes=('', '_import'), indicator=True)
+        #identify any _right_only rows and throw an error if they exist
+        if not historical_data[historical_data['_merge'] == 'right_only'].empty:
+            breakpoint()
+            raise ValueError(f"right_only rows found in merge with import data for {economy}, {scenario}. This means that there are rows in the historical_data that are not in the import data. Please check the merge.")
+        #now for every year col between 1980 and 2022 we will change the values in the historical_data to match the values in the import_data. but only do it where the value is not null in the import_data
+        for year in historical_years:
+            historical_data.loc[(historical_data['_merge'] == 'both') & (historical_data[year+'_import'].notnull()), year] = historical_data.loc[(historical_data['_merge'] == 'both') & (historical_data[year+'_import'].notnull()), year+'_import']
+        #drop the _import cols
+        historical_data = historical_data.drop(columns=[col for col in historical_data.columns if col.endswith('_import')])
+        #and drop the _merge col
+        historical_data = historical_data.drop(columns=['_merge'])
+        
+        #now how to join this back to the final_energy_df? im worried about getting emopty rows for hisotrical years?
+        new_data = pd.merge(future_data, historical_data, on=key_cols, how='outer', indicator=True)
+        #where merge is left_only, set subtotal_layout to False and all historical year cols to 0
+        new_data.loc[new_data['_merge'] == 'left_only', 'subtotal_layout'] = False
+        for year in historical_years:
+            new_data.loc[new_data['_merge'] == 'left_only', year] = 0
+        #where merge is both, its chill
+        #where merge is right_only, we should throw an error
+        if not new_data[new_data['_merge'] == 'right_only'].empty:
+            breakpoint()
+            raise ValueError(f"right_only rows found in merge with historical data for {economy}, {scenario}. This means that there are rows in the historical_data that are not in the final_energy_df. Please check the merge.")
+        #now we can set the final_energy_df to be the new_data
+        final_energy_df = new_data.copy()
+        breakpoint()
+        #double check cols are same
+        if not all(col in final_energy_df.columns for col in key_cols + all_years_cols + subtotal_cols):
+            breakpoint()
+            raise ValueError(f"Not all key cols, subtotal and year cols are in the final_energy_df after merge. Key cols: {key_cols}, Year cols: {all_years_cols}. Final energy df cols: {final_energy_df.columns.tolist()}. Subtotal cols: {subtotal_cols}.")
+        #set order of cols back to how it was before
+        final_energy_df = final_energy_df[all_cols]
     if CHANGES_MADE:
         #and save the file sincxe this is a last step.
         shared_categories_w_subtotals = shared_categories + ['subtotal_layout', 'subtotal_results']

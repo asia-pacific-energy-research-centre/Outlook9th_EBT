@@ -234,6 +234,34 @@ australia_other_hydrocarbons_activity_proxy = {
         'subfuels': ['07_09_lpg']
     }
 }
+###################################
+
+thailand_nonspecified_transformation_output = {
+    'nonspecified_transformation': {
+        'sub1sectors': ['09_12_nonspecified_transformation'],
+        'subfuels': ['07_09_lpg', '08_01_natural_gas', '06_02_natural_gas_liquids']#we will use this to estimate the output of ethane and lpg from the nonspecified transformation sector.
+    }
+}
+#we will base this off a manuallly createed row which specifies to hold constant the value, since we just want it to have a consistent value in the future years.
+thailand_nonspecified_transformation_output_proxy = {
+    'nonspecified_transformation': {
+        'sectors': ['CONSTANT']
+    }
+}
+#and make a specific one for ehtane absed on the non energy use of ethane
+
+thailand_ethane_nonspecified_transformation_output = {
+    'nonspecified_transformation_ethane': {
+        'sectors': ['09_12_nonspecified_transformation'],
+        'subfuels': ['07_11_ethane']
+    }
+}
+thailand_ethane_nonspecified_transformation_output_proxy = {
+    'nonspecified_transformation_ethane': {
+        'sectors': ['17_nonenergy_use'],
+        'subfuels': ['07_11_ethane']
+    }
+}
 #################################
 #BRUNEI
 # hey found an issue in coal for the autoproducer (electricity plant used exclusively by a plant) from the oil refinery (hengyi). Bascially we were accidentally recategorising coal use in 10_01_11_oil_refineries (own use) as electricity generation inputs and tehn not projecting the smaller actual electricity gneration inputs. 
@@ -320,6 +348,16 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
             acitvity_to_missing_sectors_dict[key] = value
         for key, value in australia_other_hydrocarbons_activity_proxy.items():
             activity_to_proxies_dict[key] = value
+    if economy == '19_THA':
+        for key, value in thailand_ethane_nonspecified_transformation_output.items():
+            acitvity_to_missing_sectors_dict[key] = value
+        for key, value in thailand_ethane_nonspecified_transformation_output_proxy.items():
+            activity_to_proxies_dict[key] = value
+        for key, value in thailand_nonspecified_transformation_output.items():
+            acitvity_to_missing_sectors_dict[key] = value
+        for key, value in thailand_nonspecified_transformation_output_proxy.items():
+            activity_to_proxies_dict[key] = value
+            
     # if economy == '02_BD':
     #     for key, value in bd_coal_own_use_for_oil_refineries_activity.items():
     #         acitvity_to_missing_sectors_dict[key] = value
@@ -348,6 +386,35 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
     # Exclude aggregate fuel rows (e.g., totals) to avoid skewing the projections.
     df = df.loc[~df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])]
     # all_economies_df = all_economies_df.loc[~all_economies_df['fuels'].isin(['19_total', '20_total_renewables', '21_modern_renewables'])]
+    #create 'CONSTANT' row which has the same value (1) for the current and all future years.
+    # breakpoint()
+    def create_constant_row(df, future_year_columns, str_OUTLOOK_BASE_YEAR):
+        """
+        Create a constant row for the base year and future years.
+        This row will have a value of 1 for the base year and all future years.
+        """
+        #     scenarios	economy	sectors	sub1sectors	sub2sectors	sub3sectors	sub4sectors	fuels	subfuels	subtotal_layout	subtotal_results
+        # reference	19_THA	01_production	x	x	x	x	01_coal	01_01_coking_coal	FALSE	FALSE
+        #grab a row form df by dropping duplciaes after grouping by the cols we need:
+        
+        constant_row = df[['scenarios', 'economy']].drop_duplicates()
+        # Add the necessary columns for future years.
+        constant_row[str_OUTLOOK_BASE_YEAR] = 1  # Base year valu
+        constant_row['sectors'] = 'CONSTANT'
+        constant_row['sub1sectors'] = 'x'
+        constant_row['sub2sectors'] = 'x'
+        constant_row['sub3sectors'] = 'x'
+        constant_row['sub4sectors'] = 'x'
+        constant_row['fuels'] = 'CONSTANT'
+        constant_row['subfuels'] = 'x'
+        constant_row['subtotal_layout'] = False
+        constant_row['subtotal_results'] = False
+        # Add the constant row for future years.
+        for year in future_year_columns:
+            constant_row[year] = 1 
+        df = pd.concat([df, constant_row], ignore_index=True)
+        return df
+    df = create_constant_row(df, future_year_columns, str_OUTLOOK_BASE_YEAR)
     
     # Separate base year and future years data.
     base_year_df_all_economies = df.drop(columns=future_year_columns + pre_base_year_columns)
@@ -508,7 +575,7 @@ def estimate_missing_sectors_using_activity_estimates(df, economy,acitvity_to_mi
     
     future_projection_df = future_projection_df.drop(columns=['_merge', str_OUTLOOK_BASE_YEAR + '_energy', str_OUTLOOK_BASE_YEAR + '_proxy'])
     
-    # breakpoint()
+    # breakpoint()#check that CONSTANT row is not in the future_projection_df
     # -----------------------------------------------------------------------------
     # Plot the projected energy use.
     # -----------------------------------------------------------------------------
